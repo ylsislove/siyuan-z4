@@ -11,22 +11,45 @@ import * as path from "path";
 /// #endif
 import {isBrowser} from "../util/functions";
 import {setStorageVal} from "../protyle/util/compatibility";
+import {hasClosestByAttribute, hasClosestByClassName} from "../protyle/util/hasClosest";
+import {Plugin} from "../plugin";
+import {App} from "../index";
 
 export const bazaar = {
     element: undefined as Element,
     genHTML() {
         const localSort = window.siyuan.storage[Constants.LOCAL_BAZAAR];
-        const loadingHTML = `<div style="height: ${bazaar.element.clientHeight - 72}px;display: flex;align-items: center;justify-content: center;"><img src="/stage/loading-pure.svg"></div>`;
+        const loadingHTML = `<div style="height: ${bazaar.element.clientHeight - 80}px;display: flex;align-items: center;justify-content: center;"><img src="/stage/loading-pure.svg"></div>`;
         return `<div class="fn__flex-column" style="height: 100%">
 <div class="layout-tab-bar fn__flex">
-    <div data-type="theme" class="item item--full item--focus"><span class="fn__flex-1"></span><span class="item__text">${window.siyuan.languages.theme}</span><span class="fn__flex-1"></span></div>
-    <div data-type="template" class="item item--full"><span class="fn__flex-1"></span><span class="item__text">${window.siyuan.languages.template}</span><span class="fn__flex-1"></span></div>
+    <div data-type="downloaded" class="item item--full item--focus"><span class="fn__flex-1"></span><span class="item__text">${window.siyuan.languages.downloaded}</span><span class="fn__flex-1"></span></div>
+    <div data-type="theme" class="item item--full"><span class="fn__flex-1"></span><span class="item__text">${window.siyuan.languages.theme}</span><span class="fn__flex-1"></span></div>
     <div data-type="icon" class="item item--full"><span class="fn__flex-1"></span><span class="item__text">${window.siyuan.languages.icon}</span><span class="fn__flex-1"></span></div>
+    <div data-type="template" class="item item--full"><span class="fn__flex-1"></span><span class="item__text">${window.siyuan.languages.template}</span><span class="fn__flex-1"></span></div>
     <div data-type="widget" class="item item--full"><span class="fn__flex-1"></span><span class="item__text">${window.siyuan.languages.widget}</span><span class="fn__flex-1"></span></div>
-    <div data-type="downloaded" class="item item--full"><span class="fn__flex-1"></span><span class="item__text">${window.siyuan.languages.downloaded}</span><span class="fn__flex-1"></span></div>
+    <div data-type="plugin" class="item item--full"><span class="fn__flex-1"></span><span class="item__text">${window.siyuan.languages.plugin}</span><span class="fn__flex-1"></span></div>
 </div>
 <div class="fn__flex-1">
-    <div data-type="theme" class="bazaarPanel" data-init="true">
+    <div class="bazaarPanel" data-type="downloaded" data-init="true">
+        <div class="fn__hr"></div>
+        <div class="fn__flex">
+            <div class="fn__space"></div>
+            <div class="fn__space"></div>
+            <button data-type="myTheme" class="b3-button">${window.siyuan.languages.theme}</button>
+            <div class="fn__space"></div>
+            <button data-type="myIcon" class="b3-button b3-button--outline">${window.siyuan.languages.icon}</button>
+            <div class="fn__space"></div>
+            <button data-type="myTemplate" class="b3-button b3-button--outline">${window.siyuan.languages.template}</button>
+            <div class="fn__space"></div>
+            <button data-type="myWidget" class="b3-button b3-button--outline">${window.siyuan.languages.widget}</button>
+            <div class="fn__space"></div>
+            <button data-type="myPlugin" class="b3-button b3-button--outline">${window.siyuan.languages.plugin}</button>
+        </div>
+        <div id="configBazaarDownloaded">
+            ${loadingHTML}
+        </div>
+    </div>
+    <div data-type="theme" class="bazaarPanel fn__none">
         <div class="fn__hr"></div>
         <div class="fn__flex fn__flex-wrap">
             <div class="fn__space"></div>
@@ -70,6 +93,24 @@ export const bazaar = {
             ${loadingHTML}
         </div>
     </div>
+    <div class="fn__none bazaarPanel" data-type="plugin">
+        <div class="fn__hr"></div>
+        <div class="fn__flex">
+            <div class="fn__space"></div>
+            <div class="fn__space"></div>
+            <svg class="svg ft__on-surface fn__flex-center"><use xlink:href="#iconSort"></use></svg>
+            <div class="fn__space"></div>
+            <select class="b3-select fn__size200">
+                <option ${localSort.template === "0" ? "selected" : ""} value="0">${window.siyuan.languages.sortByUpdateTimeDesc}</option>
+                <option ${localSort.template === "1" ? "selected" : ""} value="1">${window.siyuan.languages.sortByUpdateTimeAsc}</option>
+                <option ${localSort.template === "2" ? "selected" : ""} value="2">${window.siyuan.languages.sortByDownloadsDesc}</option>
+                <option ${localSort.template === "3" ? "selected" : ""} value="3">${window.siyuan.languages.sortByDownloadsAsc}</option>
+            </select>
+        </div>
+        <div id="configBazaarPlugin">
+            ${loadingHTML}
+        </div>
+    </div>
     <div class="fn__none bazaarPanel" data-type="icon">
         <div class="fn__hr"></div>
         <div class="fn__flex">
@@ -106,23 +147,6 @@ export const bazaar = {
             ${loadingHTML}
         </div>
     </div>
-    <div class="bazaarPanel fn__none" data-type="downloaded">
-        <div class="fn__hr"></div>
-        <div class="fn__flex">
-            <div class="fn__space"></div>
-            <div class="fn__space"></div>
-            <button data-type="myTheme" class="b3-button">${window.siyuan.languages.theme}</button>
-            <div class="fn__space"></div>
-            <button data-type="myTemplate" class="b3-button b3-button--outline">${window.siyuan.languages.template}</button>
-            <div class="fn__space"></div>
-            <button data-type="myIcon" class="b3-button b3-button--outline">${window.siyuan.languages.icon}</button>
-            <div class="fn__space"></div>
-            <button data-type="myWidget" class="b3-button b3-button--outline">${window.siyuan.languages.widget}</button>
-        </div>
-        <div id="configBazaarDownloaded">
-            ${loadingHTML}
-        </div>
-    </div>
 </div>
 <div id="configBazaarReadme" class="config-bazaar__readme"></div>
 </div>`;
@@ -151,33 +175,43 @@ export const bazaar = {
             repoHash: item.repoHash,
             downloaded: false,
         };
-        return `<div data-obj='${JSON.stringify(dataObj)}' class="b3-card${hide ? " fn__none" : ""}${item.current ? " b3-card--current" : ""}">
-    <div class="b3-card__img"><img src="${item.previewURLThumb}"/></div>
-    <div class="b3-card__info fn__flex">
-        <span class="fn__flex-center fn__ellipsis">${item.name}</span>
-        <span class="fn__space"></span>
-        <span class="fn__flex-1"></span>
-        <svg class="svg fn__flex-center"><use xlink:href="#iconDownload"></use></svg>
-        <span class="fn__space"></span>
-        <span class="fn__flex-center">${item.downloads}</span>
+        return `<div data-obj='${JSON.stringify(dataObj)}' class="b3-card b3-card--wrap${hide ? " fn__none" : ""}${item.current ? " b3-card--current" : ""}">
+    <div class="b3-card__img">
+        <img src="${item.iconURL}" onerror="this.src='${item.previewURLThumb}'"/>
     </div>
-    <div class="b3-card__actions">
-        <div class="fn__flex-1"></div>
-        <span class="b3-tooltips b3-tooltips__nw block__icon block__icon--show${item.installed ? "" : " fn__none"}" data-type="uninstall" aria-label="${window.siyuan.languages.uninstall}">
-            <svg><use xlink:href="#iconTrashcan"></use></svg>
-        </span>
-        <div class="fn__space${!item.current && item.installed && showSwitch ? "" : " fn__none"}"></div>
-        <span class="b3-tooltips b3-tooltips__nw block__icon block__icon--show${!item.current && item.installed && showSwitch ? "" : " fn__none"}" data-type="switch" aria-label="${window.siyuan.languages.use}">
-            <svg><use xlink:href="#iconSelect"></use></svg>
-        </span>
-        <div class="fn__space${item.outdated ? "" : " fn__none"}"></div>
-        <span data-type="install-t" class="b3-tooltips b3-tooltips__nw block__icon block__icon--show${item.outdated ? "" : " fn__none"}" aria-label="${window.siyuan.languages.update}">
-            <svg class="ft__primary"><use xlink:href="#iconRefresh"></use></svg>
-        </span>
+    <div class="fn__flex-1 fn__flex-column">
+        <div class="b3-card__info fn__flex-1">
+            ${item.preferredName} <span class="ft__on-surface ft__smaller">${item.name}</span>
+            <div class="fn__hr"></div>
+            <div class="ft__smaller ft__on-surface">
+                ${item.preferredDesc || ""}
+            </div>
+        </div>
+        <div class="b3-card__actions">
+            <span class="block__icon block__icon--show ft__primary">
+                <svg><use xlink:href="#iconDownload"></use></svg>
+                <span class="fn__space"></span>
+                ${item.downloads}
+            </span>
+            <span class="fn__space"></span>
+            ${item.preferredFunding ? `<a target="_blank" href="${item.preferredFunding}" class="b3-tooltips b3-tooltips__ne block__icon block__icon--show" aria-label="${window.siyuan.languages.sponsor} ${item.preferredFunding}"><svg class="ft__pink"><use xlink:href="#iconHeart"></use></svg></a><span class="fn__space"></span>` : ""}
+            <div class="fn__flex-1"></div>
+            <span class="b3-tooltips b3-tooltips__nw block__icon block__icon--show${item.installed ? "" : " fn__none"}" data-type="uninstall" aria-label="${window.siyuan.languages.uninstall}">
+                <svg><use xlink:href="#iconTrashcan"></use></svg>
+            </span>
+            <div class="fn__space${!item.current && item.installed && showSwitch ? "" : " fn__none"}"></div>
+            <span class="b3-tooltips b3-tooltips__nw block__icon block__icon--show${!item.current && item.installed && showSwitch ? "" : " fn__none"}" data-type="switch" aria-label="${window.siyuan.languages.use}">
+                <svg><use xlink:href="#iconSelect"></use></svg>
+            </span>
+            <div class="fn__space${item.outdated ? "" : " fn__none"}"></div>
+            <span data-type="install-t" class="b3-tooltips b3-tooltips__nw block__icon block__icon--show${item.outdated ? "" : " fn__none"}" aria-label="${window.siyuan.languages.update}">
+                <svg class="ft__primary"><use xlink:href="#iconRefresh"></use></svg>
+            </span>
+        </div>
     </div>
 </div>`;
     },
-    _genMyHTML(bazaarType: TBazaarType) {
+    _genMyHTML(bazaarType: TBazaarType, app: App) {
         let url = "/api/bazaar/getInstalledTheme";
         if (bazaarType === "icons") {
             url = "/api/bazaar/getInstalledIcon";
@@ -185,6 +219,8 @@ export const bazaar = {
             url = "/api/bazaar/getInstalledWidget";
         } else if (bazaarType === "templates") {
             url = "/api/bazaar/getInstalledTemplate";
+        } else if (bazaarType === "plugins") {
+            url = "/api/bazaar/getInstalledPlugin";
         }
         fetchPost(url, {}, response => {
             let html = "";
@@ -202,33 +238,55 @@ export const bazaar = {
                     repoHash: item.repoHash,
                     downloaded: true
                 };
+                let hasSetting = false;
+                if (bazaarType === "plugins") {
+                    app.plugins.find((item: Plugin) => {
+                        if (item.name === dataObj.name) {
+                            // @ts-ignore
+                            hasSetting = item.__proto__.hasOwnProperty("openSetting");
+                            return true;
+                        }
+                    })
+                }
                 html += `<div data-obj='${JSON.stringify(dataObj)}' class="b3-card${item.current ? " b3-card--current" : ""}">
-    <div class="b3-card__img"><img src="${item.previewURLThumb}"/></div>
-    <div class="b3-card__info">
-        ${item.name}
-    </div>
-    <div class="b3-card__actions">
-        <div class="fn__flex-1"></div>
-        <span class="b3-tooltips b3-tooltips__nw block__icon block__icon--show" data-type="uninstall" aria-label="${window.siyuan.languages.uninstall}">
-            <svg><use xlink:href="#iconTrashcan"></use></svg>
-        </span>
-        <span class="fn__space${isBrowser() ? " fn__none" : ""}"></span>
-        <span class="b3-tooltips b3-tooltips__nw block__icon block__icon--show${isBrowser() ? " fn__none" : ""}" data-type="open" aria-label="${window.siyuan.languages.showInFolder}">
-            <svg><use xlink:href="#iconFolder"></use></svg>
-        </span>
-        <span class="fn__space${!item.current && showSwitch ? "" : " fn__none"}"></span>
-        <span class="b3-tooltips b3-tooltips__nw block__icon block__icon--show${!item.current && showSwitch ? "" : " fn__none"}" data-type="switch" aria-label="${window.siyuan.languages.use}">
-            <svg><use xlink:href="#iconSelect"></use></svg>
-        </span>
-        <span class="fn__space${item.outdated ? "" : " fn__none"}"></span>
-        <span data-type="install-t" aria-label="${window.siyuan.languages.update}" class="b3-tooltips b3-tooltips__nw block__icon block__icon--show${item.outdated ? "" : " fn__none"}">
-            <svg class="ft__primary"><use xlink:href="#iconRefresh"></use></svg>
-        </span>
+    <div class="b3-card__img"><img src="${item.iconURL}" onerror="this.src='${item.previewURLThumb}'"/></div>
+    <div class="fn__flex-1 fn__flex-column">
+        <div class="b3-card__info fn__flex-1">
+            ${item.preferredName} <span class="ft__on-surface ft__smaller">${item.name}</span>
+            <div class="fn__hr"></div>
+            <div class="ft__smaller ft__on-surface">${item.preferredDesc || ""}</div>
+        </div>
+        <div class="b3-card__actions">
+            ${item.preferredFunding ? `<a target="_blank" href="${item.preferredFunding}" class="b3-tooltips b3-tooltips__ne block__icon block__icon--show" aria-label="${window.siyuan.languages.sponsor} ${item.preferredFunding}"><svg class="ft__pink"><use xlink:href="#iconHeart"></use></svg></a>` : ""}
+            <div class="fn__flex-1"></div>
+            <span class="b3-tooltips b3-tooltips__nw block__icon block__icon--show${hasSetting ? "" : " fn__none"}" data-type="setting" aria-label="${window.siyuan.languages.config}">
+                <svg><use xlink:href="#iconSettings"></use></svg>
+            </span>
+            <span class="fn__space"></span>
+            <span class="b3-tooltips b3-tooltips__nw block__icon block__icon--show" data-type="uninstall" aria-label="${window.siyuan.languages.uninstall}">
+                <svg><use xlink:href="#iconTrashcan"></use></svg>
+            </span>
+            <span class="fn__space${isBrowser() ? " fn__none" : ""}"></span>
+            <span class="b3-tooltips b3-tooltips__nw block__icon block__icon--show${isBrowser() ? " fn__none" : ""}" data-type="open" aria-label="${window.siyuan.languages.showInFolder}">
+                <svg><use xlink:href="#iconFolder"></use></svg>
+            </span>
+            <span class="fn__space${!item.current && showSwitch ? "" : " fn__none"}"></span>
+            <span class="b3-tooltips b3-tooltips__nw block__icon block__icon--show${!item.current && showSwitch ? "" : " fn__none"}" data-type="switch" aria-label="${window.siyuan.languages.use}">
+                <svg><use xlink:href="#iconSelect"></use></svg>
+            </span>
+            <span class="fn__space${item.outdated ? "" : " fn__none"}"></span>
+            <span data-type="install-t" aria-label="${window.siyuan.languages.update}" class="b3-tooltips b3-tooltips__nw block__icon block__icon--show${item.outdated ? "" : " fn__none"}">
+                <svg class="ft__primary"><use xlink:href="#iconRefresh"></use></svg>
+            </span>
+            <span class="fn__space${bazaarType === "plugins" ? "" : " fn__none"}"></span>
+            <span class="fn__space${bazaarType === "plugins" ? "" : " fn__none"}"></span>
+            <input class="b3-switch fn__flex-center${bazaarType === "plugins" ? "" : " fn__none"}" ${item.enabled ? "checked" : ""} data-type="plugin-enable" type="checkbox">
+        </div>
     </div>
 </div>`;
             });
             bazaar._data.downloaded = response.data.packages;
-            bazaar.element.querySelector("#configBazaarDownloaded").innerHTML = html ? `<div class="b3-cards">${html}</div>` : `<div class="fn__hr"></div><ul class="b3-list b3-list--background"><li class="b3-list--empty">${window.siyuan.languages.emptyContent}</li></ul>`;
+            bazaar.element.querySelector("#configBazaarDownloaded").innerHTML = html ? html : `<div class="fn__hr"></div><ul class="b3-list b3-list--background"><li class="b3-list--empty">${window.siyuan.languages.emptyContent}</li></ul>`;
         });
     },
     _data: {
@@ -236,6 +294,7 @@ export const bazaar = {
         templates: [] as IBazaarItem[],
         icons: [] as IBazaarItem[],
         widgets: [] as IBazaarItem[],
+        plugins: [] as IBazaarItem[],
         downloaded: [] as IBazaarItem[],
     },
     _renderReadme(cardElement: HTMLElement, bazaarType: TBazaarType) {
@@ -261,6 +320,8 @@ export const bazaar = {
             navTitle = window.siyuan.languages.widget;
         } else if (bazaarType === "templates") {
             navTitle = window.siyuan.languages.template;
+        } else if (bazaarType === "plugins") {
+            navTitle = window.siyuan.languages.plugin;
         }
         const dataObj1 = {
             bazaarType,
@@ -279,7 +340,16 @@ export const bazaar = {
     <a href="${data.repoURL}" target="_blank" class="item__title" title="GitHub Repo">${data.name}</a>
     <div class="fn__hr--b"></div>
     <div class="fn__hr--b"></div>
-    <div style="line-height: 20px;"><span class="ft__smaller">Made with ❤️ by</span><br><a href="${urls.join("/")}" target="_blank" title="Creator">${data.author}</a></div>
+    <div class="block__icons">
+        <span class="fn__flex-1"></span>
+        ${data.preferredFunding ?
+            `<a target="_blank" href="${data.preferredFunding}" class="b3-tooltips b3-tooltips__ne block__icon block__icon--show" aria-label="${window.siyuan.languages.sponsor} ${data.preferredFunding}"><svg class="ft__pink"><use xlink:href="#iconHeart"></use></svg></a>` :
+            `<span class="b3-tooltips b3-tooltips__ne block__icon block__icon--show ft__primary" aria-label="${window.siyuan.languages.author}"><svg><use xlink:href="#iconAccount"></use></svg></span>`
+        }
+        <span class="fn__space"></span>
+        <a href="${urls.join("/")}" target="_blank" title="Creator">${data.author}</a>
+        <span class="fn__flex-1"></span>
+    </div>
     <div class="fn__hr--b"></div>
     <div class="fn__hr--b"></div>
     <div class="ft__on-surface ft__smaller" style="line-height: 20px;">${window.siyuan.languages.currentVer}<br>v${data.version}</div>
@@ -327,12 +397,13 @@ export const bazaar = {
 </div>`;
         if (dataObj.downloaded) {
             const mdElement = readmeElement.querySelector(".item__readme");
-            mdElement.innerHTML = data.readme;
+            mdElement.innerHTML = data.preferredReadme;
             highlightRender(mdElement);
         } else {
             fetchPost("/api/bazaar/getBazaarPackageREAME", {
                 repoURL: data.repoURL,
                 repoHash: data.repoHash,
+                packageType: bazaarType
             }, response => {
                 const mdElement = readmeElement.querySelector(".item__readme");
                 mdElement.innerHTML = response.data.html;
@@ -341,18 +412,21 @@ export const bazaar = {
         }
         readmeElement.classList.add("config-bazaar__readme--show");
     },
-    bindEvent() {
-        fetchPost("/api/bazaar/getBazaarTheme", {}, response => {
-            bazaar._onBazaar(response, "themes", false);
-            bazaar._data.themes = response.data.packages;
-        });
+    bindEvent(app: App) {
+        this._genMyHTML("themes", app);
         bazaar.element.firstElementChild.addEventListener("click", (event) => {
             let target = event.target as HTMLElement;
+            const dataElement = hasClosestByAttribute(target, "data-obj", null);
+            let dataObj: IObject;
+            if (dataElement) {
+                dataObj = JSON.parse(dataElement.getAttribute("data-obj"));
+            }
             while (target && !target.isEqualNode(bazaar.element)) {
                 const type = target.getAttribute("data-type");
-                if (type === "open") {
+                if (target.tagName === "A") {
+                    break;
+                } else if (type === "open" && dataObj) {
                     /// #if !BROWSER
-                    const dataObj = JSON.parse(target.parentElement.parentElement.getAttribute("data-obj"));
                     const dirName = dataObj.bazaarType;
                     if (dirName === "icons" || dirName === "themes") {
                         shell.openPath(path.join(window.siyuan.config.system.confDir, "appearance", dirName, dataObj.name));
@@ -363,7 +437,7 @@ export const bazaar = {
                     event.preventDefault();
                     event.stopPropagation();
                     break;
-                } else if (type === "myTheme" || type === "myTemplate" || type === "myIcon" || type === "myWidget") {
+                } else if (["myTheme", "myTemplate", "myIcon", "myWidget", "myPlugin"].includes(type)) {
                     if (target.classList.contains("b3-button--outline")) {
                         target.parentElement.childNodes.forEach((item: HTMLElement) => {
                             if (item.nodeType !== 3 && item.classList.contains("b3-button")) {
@@ -371,7 +445,7 @@ export const bazaar = {
                             }
                         });
                         target.classList.remove("b3-button--outline");
-                        this._genMyHTML(type.replace("my", "").toLowerCase() + "s" as TBazaarType);
+                        this._genMyHTML(type.replace("my", "").toLowerCase() + "s" as TBazaarType, app);
                     }
                     event.preventDefault();
                     event.stopPropagation();
@@ -383,7 +457,6 @@ export const bazaar = {
                     break;
                 } else if (type === "install") {
                     if (!target.classList.contains("b3-button--progress")) {
-                        const dataObj = JSON.parse(target.parentElement.parentElement.getAttribute("data-obj"));
                         const bazaarType = dataObj.bazaarType as TBazaarType;
                         let url = "/api/bazaar/installBazaarTemplate";
                         if (bazaarType === "themes") {
@@ -392,6 +465,8 @@ export const bazaar = {
                             url = "/api/bazaar/installBazaarIcon";
                         } else if (bazaarType === "widgets") {
                             url = "/api/bazaar/installBazaarWidget";
+                        } else if (bazaarType === "plugins") {
+                            url = "/api/bazaar/installBazaarPlugin";
                         }
                         fetchPost(url, {
                             repoURL: dataObj.repoURL,
@@ -403,7 +478,7 @@ export const bazaar = {
                                 exportLayout(true);
                                 return;
                             }
-                            bazaar._genMyHTML(bazaarType);
+                            bazaar._genMyHTML(bazaarType, app);
                             bazaar._onBazaar(response, bazaarType, ["themes", "icons"].includes(bazaarType));
                         });
                     }
@@ -413,8 +488,7 @@ export const bazaar = {
                 } else if (type === "install-t") {
                     if (!target.classList.contains("b3-button--progress")) {
                         confirmDialog(window.siyuan.languages.update, window.siyuan.languages.exportTplTip, () => {
-                            const dataObj = JSON.parse(target.parentElement.parentElement.getAttribute("data-obj"));
-                            const bazaarType: TBazaarType = dataObj.bazaarType;
+                            const bazaarType = dataObj.bazaarType as TBazaarType;
                             let url = "/api/bazaar/installBazaarTemplate";
                             if (bazaarType === "themes") {
                                 url = "/api/bazaar/installBazaarTheme";
@@ -422,6 +496,8 @@ export const bazaar = {
                                 url = "/api/bazaar/installBazaarIcon";
                             } else if (bazaarType === "widgets") {
                                 url = "/api/bazaar/installBazaarWidget";
+                            } else if (bazaarType === "plugins") {
+                                url = "/api/bazaar/installBazaarPlugin";
                             }
                             if (!target.classList.contains("b3-button")) {
                                 target.parentElement.insertAdjacentHTML("afterend", '<img data-type="img-loading" style="position: absolute;top: 0;left: 0;height: 100%;width: 100%;padding: 48px;box-sizing: border-box;" src="/stage/loading-pure.svg">');
@@ -434,7 +510,7 @@ export const bazaar = {
                                 update: true,
                             }, response => {
                                 // 更新主题后不需要对该主题进行切换 https://github.com/siyuan-note/siyuan/issues/4966
-                                this._genMyHTML(bazaarType);
+                                this._genMyHTML(bazaarType, app);
                                 bazaar._onBazaar(response, bazaarType, ["icons"].includes(bazaarType));
                                 // https://github.com/siyuan-note/siyuan/issues/5411
                                 if (bazaarType === "themes" && (
@@ -455,8 +531,7 @@ export const bazaar = {
                     event.stopPropagation();
                     break;
                 } else if (type === "uninstall") {
-                    const dataObj = JSON.parse(target.parentElement.parentElement.getAttribute("data-obj"));
-                    const bazaarType: TBazaarType = dataObj.bazaarType;
+                    const bazaarType = dataObj.bazaarType as TBazaarType;
                     let url = "/api/bazaar/uninstallBazaarTemplate";
                     if (bazaarType === "themes") {
                         url = "/api/bazaar/uninstallBazaarTheme";
@@ -464,6 +539,8 @@ export const bazaar = {
                         url = "/api/bazaar/uninstallBazaarIcon";
                     } else if (bazaarType === "widgets") {
                         url = "/api/bazaar/uninstallBazaarWidget";
+                    } else if (bazaarType === "plugins") {
+                        url = "/api/bazaar/uninstallBazaarPlugin";
                     }
 
                     const packageName = dataObj.name;
@@ -475,23 +552,26 @@ export const bazaar = {
                         fetchPost(url, {
                             packageName
                         }, response => {
-                            this._genMyHTML(bazaarType);
+                            this._genMyHTML(bazaarType, app);
                             bazaar._onBazaar(response, bazaarType, ["themes", "icons"].includes(bazaarType));
+                            // TODO destroy plugin
+                            if (bazaarType === "plugins") {
+                                exportLayout(true);
+                            }
                         });
                     }
                     event.preventDefault();
                     event.stopPropagation();
                     break;
                 } else if (type === "switch") {
-                    const dataObj = JSON.parse(target.parentElement.parentElement.getAttribute("data-obj"));
-                    const bazaarType: TBazaarType = dataObj.bazaarType;
+                    const bazaarType = dataObj.bazaarType as TBazaarType;
                     const packageName = dataObj.name;
                     const mode = dataObj.themeMode === "dark" ? 1 : 0;
                     if (bazaarType === "icons") {
                         fetchPost("/api/setting/setAppearance", Object.assign({}, window.siyuan.config.appearance, {
                             icon: packageName,
                         }), (appearanceResponse) => {
-                            this._genMyHTML(bazaarType);
+                            this._genMyHTML(bazaarType, app);
                             fetchPost("/api/bazaar/getBazaarIcon", {}, response => {
                                 response.data.appearance = appearanceResponse.data;
                                 bazaar._onBazaar(response, "icons", true);
@@ -511,7 +591,7 @@ export const bazaar = {
                                 window.siyuan.config.appearance.themeJS) {
                                 exportLayout(true);
                             } else {
-                                this._genMyHTML("themes");
+                                this._genMyHTML("themes", app);
                                 fetchPost("/api/bazaar/getBazaarTheme", {}, response => {
                                     response.data.appearance = appearanceResponse.data;
                                     bazaar._onBazaar(response, "themes", true);
@@ -523,8 +603,31 @@ export const bazaar = {
                     event.preventDefault();
                     event.stopPropagation();
                     break;
+                } else if (type === "setting") {
+                    app.plugins.find((item: Plugin) => {
+                        if (item.name === dataObj.name) {
+                            item.openSetting()
+                            return true
+                        }
+                    })
+                    event.preventDefault();
+                    event.stopPropagation();
+                    break;
+                } else if (type === "plugin-enable") {
+                    const itemElement = hasClosestByClassName(target, "b3-card");
+                    if (itemElement) {
+                        fetchPost("/api/petal/setPetalEnabled", {
+                            packageName: dataObj.name,
+                            enabled: (target as HTMLInputElement).checked
+                        }, () => {
+                            // TODO destroy plugin
+                            exportLayout(true);
+                        });
+                    }
+                    event.stopPropagation();
+                    break;
                 } else if (target.classList.contains("b3-card")) {
-                    bazaar._renderReadme(target, (JSON.parse(target.getAttribute("data-obj")).bazaarType) as TBazaarType);
+                    bazaar._renderReadme(target, (dataObj.bazaarType) as TBazaarType);
                     event.preventDefault();
                     event.stopPropagation();
                     break;
@@ -551,8 +654,16 @@ export const bazaar = {
                                         bazaar._onBazaar(response, "widgets", false);
                                         bazaar._data.widgets = response.data.packages;
                                     });
-                                } else if (type === "downloaded") {
-                                    this._genMyHTML("themes");
+                                } else if (type === "theme") {
+                                    fetchPost("/api/bazaar/getBazaarTheme", {}, response => {
+                                        bazaar._onBazaar(response, "themes", false);
+                                        bazaar._data.themes = response.data.packages;
+                                    });
+                                } else if (type === "plugin") {
+                                    fetchPost("/api/bazaar/getBazaarPlugin", {}, response => {
+                                        bazaar._onBazaar(response, "plugins", false);
+                                        bazaar._data.plugins = response.data.packages;
+                                    });
                                 }
                                 item.setAttribute("data-init", "true");
                             }
@@ -578,7 +689,7 @@ export const bazaar = {
                 if (selectElement.id === "bazaarSelect") {
                     // theme select
                     bazaar.element.querySelectorAll("#configBazaarTheme .b3-card").forEach((item) => {
-                       const dataObj = JSON.parse(item.getAttribute("data-obj"));
+                        const dataObj = JSON.parse(item.getAttribute("data-obj"));
                         if (selectElement.value === "0") {
                             if (dataObj.themeMode.indexOf("light") > -1) {
                                 item.classList.remove("fn__none");
@@ -640,6 +751,8 @@ export const bazaar = {
             id = "#configBazaarIcon";
         } else if (bazaarType === "widgets") {
             id = "#configBazaarWidget";
+        } else if (bazaarType === "plugins") {
+            id = "#configBazaarPlugin";
         }
         const element = bazaar.element.querySelector(id);
         if (response.code === 1) {

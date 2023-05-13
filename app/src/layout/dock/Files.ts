@@ -34,6 +34,11 @@ export class Files extends Model {
                         case "moveDoc":
                             this.onMove(data);
                             break;
+                        case "reloadFiletree":
+                            setNoteBook(() => {
+                                this.init(false);
+                            });
+                            break;
                         case "mount":
                             this.onMount(data);
                             break;
@@ -583,7 +588,6 @@ export class Files extends Model {
                             fetchPost("/api/filetree/listDocsByPath", {
                                 notebook: toURL,
                                 path: toDir === "/" ? "/" : toDir + ".sy",
-                                sort: window.siyuan.config.fileTree.sort,
                             }, response => {
                                 if (response.data.path === "/" && response.data.files.length === 0) {
                                     showMessage(window.siyuan.languages.emptyContent);
@@ -636,7 +640,7 @@ export class Files extends Model {
         }
     }
 
-    private init(init = true) {
+    public init(init = true) {
         let html = "";
         let closeHtml = "";
         window.siyuan.notebooks.forEach((item) => {
@@ -878,8 +882,7 @@ export class Files extends Model {
             } else if (filePath.startsWith(item.path.replace(".sy", ""))) {
                 fetchPost("/api/filetree/listDocsByPath", {
                     notebook: data.box,
-                    path: item.path,
-                    sort: window.siyuan.config.fileTree.sort
+                    path: item.path
                 }, response => {
                     this.selectItem(response.data.box, filePath, response.data);
                 });
@@ -921,7 +924,6 @@ export class Files extends Model {
         fetchPost("/api/filetree/listDocsByPath", {
             notebook: notebookId,
             path: liElement.getAttribute("data-path"),
-            sort: window.siyuan.config.fileTree.sort,
         }, response => {
             if (response.data.path === "/" && response.data.files.length === 0) {
                 showMessage(window.siyuan.languages.emptyContent);
@@ -961,8 +963,7 @@ export class Files extends Model {
         } else {
             fetchPost("/api/filetree/listDocsByPath", {
                 notebook: notebookId,
-                path: currentPath,
-                sort: window.siyuan.config.fileTree.sort
+                path: currentPath
             }, response => {
                 this.onLsSelect(response.data, filePath);
             });
@@ -972,7 +973,7 @@ export class Files extends Model {
     private genFileHTML = (item: IFile) => {
         let countHTML = "";
         if (item.count && item.count > 0) {
-            countHTML = `<span class="popover__block counter b3-tooltips b3-tooltips__nw" aria-label="${window.siyuan.languages.blockRef}">${item.count}</span>`;
+            countHTML = `<span class="popover__block counter b3-tooltips b3-tooltips__nw" aria-label="${window.siyuan.languages.ref}">${item.count}</span>`;
         }
         return `<li title="${getDisplayName(item.name, true, true)} ${item.hSize}${item.bookmark ? "\n" + window.siyuan.languages.bookmark + " " + item.bookmark : ""}${item.name1 ? "\n" + window.siyuan.languages.name + " " + item.name1 : ""}${item.alias ? "\n" + window.siyuan.languages.alias + " " + item.alias : ""}${item.memo ? "\n" + window.siyuan.languages.memo + " " + item.memo : ""}${item.subFileCount !== 0 ? window.siyuan.languages.includeSubFile.replace("x", item.subFileCount) : ""}\n${window.siyuan.languages.modifiedAt} ${item.hMtime}\n${window.siyuan.languages.createdAt} ${item.hCtime}" 
 data-node-id="${item.id}" data-name="${Lute.EscapeHTMLStr(item.name)}" draggable="true" data-count="${item.subFileCount}" 

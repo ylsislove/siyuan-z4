@@ -42,7 +42,21 @@ export const isFileAnnotation = (text: string) => {
     return /^<<assets\/.+\/\d{14}-\w{7} ".+">>$/.test(text);
 };
 
+export const isValidAttrName = (name: string) => {
+    return /^[_a-zA-Z][_.\-0-9a-zA-Z]*$/.test(name);
+};
+
 // REF https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/eval
 export const looseJsonParse = (text: string) => {
     return Function(`"use strict";return (${text})`)();
+};
+
+export const objEquals = (a: any, b: any): boolean => {
+    if (a === b) return true;
+    if (a instanceof Date && b instanceof Date) return a.getTime() === b.getTime();
+    if (!a || !b || (typeof a !== "object" && typeof b !== "object")) return a === b;
+    if (a.prototype !== b.prototype) return false;
+    const keys = Object.keys(a);
+    if (keys.length !== Object.keys(b).length) return false;
+    return keys.every(k => objEquals(a[k], b[k]));
 };

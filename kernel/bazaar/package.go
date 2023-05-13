@@ -38,18 +38,52 @@ import (
 	"golang.org/x/text/transform"
 )
 
+type DisplayName struct {
+	Default string `json:"default"`
+	ZhCN    string `json:"zh_CN"`
+	EnUS    string `json:"en_US"`
+}
+
+type Description struct {
+	Default string `json:"default"`
+	ZhCN    string `json:"zh_CN"`
+	EnUS    string `json:"en_US"`
+}
+
+type Readme struct {
+	Default string `json:"default"`
+	ZhCN    string `json:"zh_CN"`
+	EnUS    string `json:"en_US"`
+}
+
+type Funding struct {
+	OpenCollective string   `json:"openCollective"`
+	Patreon        string   `json:"patreon"`
+	GitHub         string   `json:"github"`
+	Custom         []string `json:"custom"`
+}
+
 type Package struct {
-	Author  string `json:"author"`
-	URL     string `json:"url"`
-	Version string `json:"version"`
+	Author      string       `json:"author"`
+	URL         string       `json:"url"`
+	Version     string       `json:"version"`
+	DisplayName *DisplayName `json:"displayName"`
+	Description *Description `json:"description"`
+	Readme      *Readme      `json:"readme"`
+	Funding     *Funding     `json:"funding"`
+	I18N        []string     `json:"i18n"`
+
+	PreferredFunding string `json:"preferredFunding"`
+	PreferredName    string `json:"preferredName"`
+	PreferredDesc    string `json:"preferredDesc"`
+	PreferredReadme  string `json:"preferredReadme"`
 
 	Name            string `json:"name"`
 	RepoURL         string `json:"repoURL"`
 	RepoHash        string `json:"repoHash"`
 	PreviewURL      string `json:"previewURL"`
 	PreviewURLThumb string `json:"previewURLThumb"`
-
-	README string `json:"readme"`
+	IconURL         string `json:"iconURL"`
 
 	Installed    bool   `json:"installed"`
 	Outdated     bool   `json:"outdated"`
@@ -66,7 +100,140 @@ type Package struct {
 	Downloads    int    `json:"downloads"`
 }
 
-func WidgetJSON(widgetDirName string) (ret map[string]interface{}, err error) {
+type StagePackage struct {
+	Author      string       `json:"author"`
+	URL         string       `json:"url"`
+	Version     string       `json:"version"`
+	Description *Description `json:"description"`
+	Readme      *Readme      `json:"readme"`
+	I18N        []string     `json:"i18n"`
+	Funding     *Funding     `json:"funding"`
+}
+
+type StageRepo struct {
+	URL        string `json:"url"`
+	Updated    string `json:"updated"`
+	Stars      int    `json:"stars"`
+	OpenIssues int    `json:"openIssues"`
+	Size       int64  `json:"size"`
+
+	Package *StagePackage `json:"package"`
+}
+
+type StageIndex struct {
+	Repos []*StageRepo `json:"repos"`
+}
+
+func getPreferredReadme(readme *Readme) string {
+	if nil == readme {
+		return "README.md"
+	}
+
+	ret := readme.Default
+	switch util.Lang {
+	case "zh_CN":
+		if "" != readme.ZhCN {
+			ret = readme.ZhCN
+		}
+	case "en_US":
+		if "" != readme.EnUS {
+			ret = readme.EnUS
+		}
+	default:
+		if "" != readme.EnUS {
+			ret = readme.EnUS
+		}
+	}
+	return ret
+}
+
+func getPreferredName(pkg *Package) string {
+	if nil == pkg.DisplayName {
+		return pkg.Name
+	}
+
+	ret := pkg.DisplayName.Default
+	switch util.Lang {
+	case "zh_CN":
+		if "" != pkg.DisplayName.ZhCN {
+			ret = pkg.DisplayName.ZhCN
+		}
+	case "en_US":
+		if "" != pkg.DisplayName.EnUS {
+			ret = pkg.DisplayName.EnUS
+		}
+	default:
+		if "" != pkg.DisplayName.EnUS {
+			ret = pkg.DisplayName.EnUS
+		}
+	}
+	return ret
+}
+
+func getPreferredDesc(desc *Description) string {
+	if nil == desc {
+		return ""
+	}
+
+	ret := desc.Default
+	switch util.Lang {
+	case "zh_CN":
+		if "" != desc.ZhCN {
+			ret = desc.ZhCN
+		}
+	case "en_US":
+		if "" != desc.EnUS {
+			ret = desc.EnUS
+		}
+	default:
+		if "" != desc.EnUS {
+			ret = desc.EnUS
+		}
+	}
+	return ret
+}
+
+func getPreferredFunding(funding *Funding) string {
+	if nil == funding {
+		return ""
+	}
+
+	if "" != funding.OpenCollective {
+		return "https://opencollective.com/" + funding.OpenCollective
+	}
+	if "" != funding.Patreon {
+		return "https://www.patreon.com/" + funding.Patreon
+	}
+	if "" != funding.GitHub {
+		return "https://github.com/sponsors/" + funding.GitHub
+	}
+	if 0 < len(funding.Custom) {
+		return funding.Custom[0]
+	}
+	return ""
+}
+
+func PluginJSON(pluginDirName string) (ret *Plugin, err error) {
+	p := filepath.Join(util.DataDir, "plugins", pluginDirName, "plugin.json")
+	if !gulu.File.IsExist(p) {
+		err = os.ErrNotExist
+		return
+	}
+	data, err := os.ReadFile(p)
+	if nil != err {
+		logging.LogErrorf("read plugin.json [%s] failed: %s", p, err)
+		return
+	}
+	if err = gulu.JSON.UnmarshalJSON(data, &ret); nil != err {
+		logging.LogErrorf("parse plugin.json [%s] failed: %s", p, err)
+		return
+	}
+
+	ret.URL = strings.TrimSuffix(ret.URL, "/")
+	return
+}
+
+func WidgetJSON(widgetDirName string) (ret *Widget, err error) {
 	p := filepath.Join(util.DataDir, "widgets", widgetDirName, "widget.json")
 	if !gulu.File.IsExist(p) {
 		err = os.ErrNotExist
@@ -81,14 +248,12 @@ func WidgetJSON(widgetDirName string) (ret map[string]interface{}, err error) {
 		logging.LogErrorf("parse widget.json [%s] failed: %s", p, err)
 		return
 	}
-	if 4 > len(ret) {
-		logging.LogWarnf("invalid widget.json [%s]", p)
-		return nil, errors.New("invalid widget.json")
-	}
+
+	ret.URL = strings.TrimSuffix(ret.URL, "/")
 	return
 }
 
-func IconJSON(iconDirName string) (ret map[string]interface{}, err error) {
+func IconJSON(iconDirName string) (ret *Icon, err error) {
 	p := filepath.Join(util.IconsPath, iconDirName, "icon.json")
 	if !gulu.File.IsExist(p) {
 		err = os.ErrNotExist
@@ -103,14 +268,12 @@ func IconJSON(iconDirName string) (ret map[string]interface{}, err error) {
 		logging.LogErrorf("parse icon.json [%s] failed: %s", p, err)
 		return
 	}
-	if 4 > len(ret) {
-		logging.LogWarnf("invalid icon.json [%s]", p)
-		return nil, errors.New("invalid icon.json")
-	}
+
+	ret.URL = strings.TrimSuffix(ret.URL, "/")
 	return
 }
 
-func TemplateJSON(templateDirName string) (ret map[string]interface{}, err error) {
+func TemplateJSON(templateDirName string) (ret *Template, err error) {
 	p := filepath.Join(util.DataDir, "templates", templateDirName, "template.json")
 	if !gulu.File.IsExist(p) {
 		err = os.ErrNotExist
@@ -125,14 +288,12 @@ func TemplateJSON(templateDirName string) (ret map[string]interface{}, err error
 		logging.LogErrorf("parse template.json [%s] failed: %s", p, err)
 		return
 	}
-	if 4 > len(ret) {
-		logging.LogWarnf("invalid template.json [%s]", p)
-		return nil, errors.New("invalid template.json")
-	}
+
+	ret.URL = strings.TrimSuffix(ret.URL, "/")
 	return
 }
 
-func ThemeJSON(themeDirName string) (ret map[string]interface{}, err error) {
+func ThemeJSON(themeDirName string) (ret *Theme, err error) {
 	p := filepath.Join(util.ThemesPath, themeDirName, "theme.json")
 	if !gulu.File.IsExist(p) {
 		err = os.ErrNotExist
@@ -143,28 +304,41 @@ func ThemeJSON(themeDirName string) (ret map[string]interface{}, err error) {
 		logging.LogErrorf("read theme.json [%s] failed: %s", p, err)
 		return
 	}
+
+	ret = &Theme{}
 	if err = gulu.JSON.UnmarshalJSON(data, &ret); nil != err {
 		logging.LogErrorf("parse theme.json [%s] failed: %s", p, err)
 		return
 	}
-	if 5 > len(ret) {
-		logging.LogWarnf("invalid theme.json [%s]", p)
-		return nil, errors.New("invalid theme.json")
-	}
+
+	ret.URL = strings.TrimSuffix(ret.URL, "/")
 	return
 }
 
-func getPkgIndex(pkgType string) (ret map[string]interface{}, err error) {
-	ret, err = util.GetRhyResult(false)
+var cachedStageIndex = map[string]*StageIndex{}
+var stageIndexCacheTime int64
+var stageIndexLock = sync.Mutex{}
+
+func getStageIndex(pkgType string) (ret *StageIndex, err error) {
+	rhyRet, err := util.GetRhyResult(false)
 	if nil != err {
 		return
 	}
 
-	bazaarHash := ret["bazaar"].(string)
-	ret = map[string]interface{}{}
+	stageIndexLock.Lock()
+	defer stageIndexLock.Unlock()
+
+	now := time.Now().Unix()
+	if 3600 >= now-stageIndexCacheTime && nil != cachedStageIndex[pkgType] {
+		ret = cachedStageIndex[pkgType]
+		return
+	}
+
+	bazaarHash := rhyRet["bazaar"].(string)
+	ret = &StageIndex{}
 	request := httpclient.NewBrowserRequest()
 	u := util.BazaarOSSServer + "/bazaar@" + bazaarHash + "/stage/" + pkgType + ".json"
-	resp, reqErr := request.SetSuccessResult(&ret).Get(u)
+	resp, reqErr := request.SetSuccessResult(ret).Get(u)
 	if nil != reqErr {
 		logging.LogErrorf("get community stage index [%s] failed: %s", u, reqErr)
 		return
@@ -173,6 +347,9 @@ func getPkgIndex(pkgType string) (ret map[string]interface{}, err error) {
 		logging.LogErrorf("get community stage index [%s] failed: %d", u, resp.StatusCode)
 		return
 	}
+
+	stageIndexCacheTime = now
+	cachedStageIndex[pkgType] = ret
 	return
 }
 
@@ -210,6 +387,26 @@ func isOutdatedIcon(icon *Icon, bazaarIcons []*Icon) bool {
 	for _, pkg := range bazaarIcons {
 		if icon.URL == pkg.URL && icon.Name == pkg.Name && icon.Author == pkg.Author && icon.Version < pkg.Version {
 			icon.RepoHash = pkg.RepoHash
+			return true
+		}
+	}
+	return false
+}
+
+func isOutdatedPlugin(plugin *Plugin, bazaarPlugins []*Plugin) bool {
+	if !strings.HasPrefix(plugin.URL, "https://github.com/") {
+		return false
+	}
+
+	repo := strings.TrimPrefix(plugin.URL, "https://github.com/")
+	parts := strings.Split(repo, "/")
+	if 2 != len(parts) || "" == strings.TrimSpace(parts[1]) {
+		return false
+	}
+
+	for _, pkg := range bazaarPlugins {
+		if plugin.URL == pkg.URL && plugin.Name == pkg.Name && plugin.Author == pkg.Author && plugin.Version < pkg.Version {
+			plugin.RepoHash = pkg.RepoHash
 			return true
 		}
 	}
@@ -256,9 +453,29 @@ func isOutdatedTemplate(template *Template, bazaarTemplates []*Template) bool {
 	return false
 }
 
-func GetPackageREADME(repoURL, repoHash string, systemID string) (ret string) {
+func GetPackageREADME(repoURL, repoHash, packageType string) (ret string) {
 	repoURLHash := repoURL + "@" + repoHash
-	data, err := downloadPackage(repoURLHash+"/README.md", false, systemID)
+
+	stageIndex := cachedStageIndex[packageType]
+	if nil == stageIndex {
+		return
+	}
+
+	url := strings.TrimPrefix(repoURLHash, "https://github.com/")
+	var repo *StageRepo
+	for _, r := range stageIndex.Repos {
+		if r.URL == url {
+			repo = r
+			break
+		}
+	}
+	if nil == repo {
+		return
+	}
+
+	readme := getPreferredReadme(repo.Package.Readme)
+
+	data, err := downloadPackage(repoURLHash+"/"+readme, false, "")
 	if nil != err {
 		ret = "Load bazaar package's README.md failed: " + err.Error()
 		return
@@ -327,7 +544,7 @@ func downloadPackage(repoURLHash string, pushProgress bool, systemID string) (da
 }
 
 func incPackageDownloads(repoURLHash, systemID string) {
-	if strings.Contains(repoURLHash, ".md") {
+	if strings.Contains(repoURLHash, ".md") || "" == systemID {
 		return
 	}
 
@@ -341,17 +558,17 @@ func incPackageDownloads(repoURLHash, systemID string) {
 }
 
 func installPackage(data []byte, installPath string) (err error) {
-	dir := filepath.Join(util.TempDir, "bazaar", "package")
-	if err = os.MkdirAll(dir, 0755); nil != err {
+	tmpPackage := filepath.Join(util.TempDir, "bazaar", "package")
+	if err = os.MkdirAll(tmpPackage, 0755); nil != err {
 		return
 	}
 	name := gulu.Rand.String(7)
-	tmp := filepath.Join(dir, name+".zip")
+	tmp := filepath.Join(tmpPackage, name+".zip")
 	if err = os.WriteFile(tmp, data, 0644); nil != err {
 		return
 	}
 
-	unzipPath := filepath.Join(dir, name)
+	unzipPath := filepath.Join(tmpPackage, name)
 	if err = gulu.Zip.Unzip(tmp, unzipPath); nil != err {
 		logging.LogErrorf("write file [%s] failed: %s", installPath, err)
 		err = errors.New("write file failed")
@@ -362,13 +579,12 @@ func installPackage(data []byte, installPath string) (err error) {
 	if nil != err {
 		return
 	}
-	for _, d := range dirs {
-		if d.IsDir() && strings.Contains(d.Name(), "-") {
-			dir = d.Name()
-			break
-		}
+
+	srcPath := unzipPath
+	if 1 == len(dirs) && dirs[0].IsDir() {
+		srcPath = filepath.Join(unzipPath, dirs[0].Name())
 	}
-	srcPath := filepath.Join(unzipPath, dir)
+
 	if err = filelock.Copy(srcPath, installPath); nil != err {
 		return
 	}

@@ -5,8 +5,8 @@ go 1.18
 require (
 	github.com/88250/clipboard v0.1.5
 	github.com/88250/css v0.1.2
-	github.com/88250/gulu v1.2.3-0.20230321113152-38c4a3d73c37
-	github.com/88250/lute v1.7.6-0.20230420041521-254a14e6b604
+	github.com/88250/gulu v1.2.3-0.20230501031728-4d62370997cd
+	github.com/88250/lute v1.7.6-0.20230507144653-7df5fd6c56c5
 	github.com/88250/pdfcpu v0.3.14-0.20230401044135-c7369a99720c
 	github.com/88250/vitess-sqlparser v0.0.0-20210205111146-56a2ded2aba1
 	github.com/ClarkThan/ahocorasick v0.0.0-20230220142845-f237b6348b3e
@@ -31,26 +31,26 @@ require (
 	github.com/go-ole/go-ole v1.2.6
 	github.com/goccy/go-json v0.10.1
 	github.com/gofrs/flock v0.8.1
-	github.com/imroc/req/v3 v3.33.2
+	github.com/imroc/req/v3 v3.34.0
 	github.com/jinzhu/copier v0.3.5
 	github.com/json-iterator/go v1.1.12
 	github.com/mattn/go-sqlite3 v2.0.3+incompatible
 	github.com/mitchellh/go-ps v1.0.0
 	github.com/mssola/user_agent v0.6.0
 	github.com/olahol/melody v1.1.3
-	github.com/open-spaced-repetition/go-fsrs v0.1.0
+	github.com/open-spaced-repetition/go-fsrs v0.1.1
 	github.com/panjf2000/ants/v2 v2.7.3
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/radovskyb/watcher v1.0.7
-	github.com/sashabaranov/go-gpt3 v1.4.0
+	github.com/sashabaranov/go-openai v1.9.0
 	github.com/shirou/gopsutil/v3 v3.23.2
-	github.com/siyuan-note/dejavu v0.0.0-20230424035816-c47703a13fd4
+	github.com/siyuan-note/dejavu v0.0.0-20230501032540-9d7760329f9d
 	github.com/siyuan-note/encryption v0.0.0-20220713091850-5ecd92177b75
 	github.com/siyuan-note/eventbus v0.0.0-20230216103454-41885eac6c2b
-	github.com/siyuan-note/filelock v0.0.0-20230417044524-125ee78b5cc9
-	github.com/siyuan-note/httpclient v0.0.0-20230420113830-aaaf2c3bc514
+	github.com/siyuan-note/filelock v0.0.0-20230501032014-b981a05568ef
+	github.com/siyuan-note/httpclient v0.0.0-20230501032226-9e9018416f53
 	github.com/siyuan-note/logging v0.0.0-20230327073243-ebe83aec1493
-	github.com/siyuan-note/riff v0.0.0-20230224144841-cfbe0748ddb7
+	github.com/siyuan-note/riff v0.0.0-20230508133423-21cd63a7ef20
 	github.com/steambap/captcha v1.4.1
 	github.com/studio-b12/gowebdav v0.0.0-20230203202212-3282f94193f2
 	github.com/vmihailenco/msgpack/v5 v5.3.5
@@ -68,7 +68,7 @@ require (
 	github.com/alecthomas/chroma v0.10.0 // indirect
 	github.com/andybalholm/cascadia v1.3.1 // indirect
 	github.com/asaskevich/EventBus v0.0.0-20200907212545-49d423059eef // indirect
-	github.com/aws/aws-sdk-go v1.44.246 // indirect
+	github.com/aws/aws-sdk-go v1.44.253 // indirect
 	github.com/bytedance/sonic v1.8.5 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/chenzhuoyu/base64x v0.0.0-20221115062448-fe3a3abad311 // indirect
@@ -82,7 +82,7 @@ require (
 	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0 // indirect
 	github.com/golang/glog v1.1.1 // indirect
 	github.com/golang/mock v1.6.0 // indirect
-	github.com/google/pprof v0.0.0-20230406165453-00490a63f317 // indirect
+	github.com/google/pprof v0.0.0-20230429030804-905365eefe3e // indirect
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/gopherjs/gopherjs v1.17.2 // indirect
 	github.com/gorilla/context v1.1.1 // indirect
@@ -111,7 +111,7 @@ require (
 	github.com/pelletier/go-toml/v2 v2.0.7 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/power-devops/perfstat v0.0.0-20221212215047-62379fc7944b // indirect
-	github.com/qiniu/go-sdk/v7 v7.14.0 // indirect
+	github.com/qiniu/go-sdk/v7 v7.15.0 // indirect
 	github.com/quic-go/qpack v0.4.0 // indirect
 	github.com/quic-go/qtls-go1-19 v0.3.2 // indirect
 	github.com/quic-go/qtls-go1-20 v0.2.2 // indirect
@@ -128,10 +128,10 @@ require (
 	github.com/yusufpapurcu/wmi v1.2.2 // indirect
 	golang.org/x/arch v0.3.0 // indirect
 	golang.org/x/crypto v0.8.0 // indirect
-	golang.org/x/exp v0.0.0-20230419192730-864b3d6c5c2c // indirect
+	golang.org/x/exp v0.0.0-20230425010034-47ecfdc1ba53 // indirect
 	golang.org/x/net v0.9.0 // indirect
 	golang.org/x/sync v0.1.0 // indirect
-	golang.org/x/sys v0.7.0 // indirect
+	golang.org/x/sys v0.8.0 // indirect
 	golang.org/x/tools v0.8.0 // indirect
 	google.golang.org/protobuf v1.29.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
@@ -139,8 +139,6 @@ require (
 )
 
 replace github.com/mattn/go-sqlite3 => github.com/88250/go-sqlite3 v1.14.13-0.20220714142610-fbbda1ee84f5
-
-replace github.com/quic-go/quic-go => github.com/lucas-clemente/quic-go v0.33.0
 
 //replace github.com/siyuan-note/dejavu => D:\88250\dejavu
 //replace github.com/siyuan-note/riff => D:\88250\riff

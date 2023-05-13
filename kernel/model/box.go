@@ -53,6 +53,10 @@ type Box struct {
 	SortMode int    `json:"sortMode"`
 	Closed   bool   `json:"closed"`
 
+	NewFlashcardCount int `json:"newFlashcardCount"`
+	DueFlashcardCount int `json:"dueFlashcardCount"`
+	FlashcardCount    int `json:"flashcardCount"`
+
 	historyGenerated int64 // 最近一次历史生成时间
 }
 
@@ -476,10 +480,6 @@ func genTreeID(tree *parse.Tree) {
 	})
 	tree.Root.KramdownIAL = parse.Tokens2IAL(tree.Root.LastChild.Tokens)
 	return
-}
-
-func ReloadUI() {
-	task.AppendTask(task.ReloadUI, util.ReloadUI)
 }
 
 func FullReindex() {

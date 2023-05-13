@@ -130,6 +130,38 @@ func GetBlockTreeRootByHPath(boxID, hPath string) (ret *BlockTree) {
 	return
 }
 
+func GetBlockTreeRootByHPathPreferredParentID(boxID, hPath, preferredParentID string) (ret *BlockTree) {
+	var roots []*BlockTree
+	blockTrees.Range(func(key, value interface{}) bool {
+		slice := value.(*btSlice)
+		slice.m.Lock()
+		for _, b := range slice.data {
+			if b.BoxID == boxID && b.HPath == hPath && b.RootID == b.ID {
+				if "" == preferredParentID {
+					ret = b
+					break
+				}
+
+				roots = append(roots, b)
+			}
+		}
+		slice.m.Unlock()
+		return nil == ret
+	})
+	if 1 > len(roots) {
+		return
+	}
+
+	for _, root := range roots {
+		if root.ID == preferredParentID {
+			ret = root
+			return
+		}
+	}
+	ret = roots[0]
+	return
+}
+
 func GetBlockTree(id string) (ret *BlockTree) {
 	if "" == id {
 		return
@@ -221,6 +253,21 @@ func RemoveBlockTreesByPathPrefix(pathPrefix string) {
 		slice.m.Unlock()
 		slice.changed = time.Now()
 	}
+}
+
+func GetBlockTreesByBoxID(boxID string) (ret []*BlockTree) {
+	blockTrees.Range(func(key, value interface{}) bool {
+		slice := value.(*btSlice)
+		slice.m.Lock()
+		for _, b := range slice.data {
+			if b.BoxID == boxID {
+				ret = append(ret, b)
+			}
+		}
+		slice.m.Unlock()
+		return true
+	})
+	return
 }
 
 func RemoveBlockTreesByBoxID(boxID string) (ids []string) {

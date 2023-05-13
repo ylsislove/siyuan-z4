@@ -6,7 +6,6 @@ import {Model} from "./Model";
 import {Graph} from "./dock/Graph";
 import {Editor} from "../editor";
 import {Files} from "./dock/Files";
-import {setPadding} from "../protyle/ui/initUI";
 import {newFile} from "../util/newFile";
 import {Outline} from "./dock/Outline";
 import {Bookmark} from "./dock/Bookmark";
@@ -33,6 +32,10 @@ import {setTabPosition} from "../window/setHeader";
 /// #endif
 import {showMessage} from "../dialog/message";
 import {getIdZoomInByPath} from "../util/pathName";
+import {openHistory} from "../history/history";
+import {Custom} from "./dock/Custom";
+import {newCardModel} from "../card/newCardTab";
+import {openRecentDocs} from "../business/openRecentDocs";
 
 export const setPanelFocus = (element: Element) => {
     if (element.classList.contains("layout__tab--active") || element.classList.contains("layout__wnd--active")) {
@@ -234,7 +237,7 @@ const JSONToDock = (json: any) => {
     window.siyuan.layout.bottomDock = new Dock({position: "Bottom", data: json.bottom});
 };
 
-export const JSONToCenter = (json: any, layout?: Layout | Wnd | Tab | Model, isStart = false) => {
+export const JSONToCenter = (json: ILayoutJSON, layout?: Layout | Wnd | Tab | Model, isStart = false) => {
     let child: Layout | Wnd | Tab | Model;
     if (json.instance === "Layout") {
         if (!layout) {
@@ -306,7 +309,7 @@ export const JSONToCenter = (json: any, layout?: Layout | Wnd | Tab | Model, isS
             tab: (layout as Tab),
             blockId: json.blockId,
             rootId: json.rootId,
-            type: json.type,
+            type: json.type as "pin" | "local",
         }));
     } else if (json.instance === "Bookmark") {
         (layout as Tab).addModel(new Bookmark((layout as Tab)));
@@ -319,13 +322,13 @@ export const JSONToCenter = (json: any, layout?: Layout | Wnd | Tab | Model, isS
             tab: (layout as Tab),
             blockId: json.blockId,
             rootId: json.rootId,
-            type: json.type
+            type: json.type as "pin" | "local" | "global",
         }));
     } else if (json.instance === "Outline") {
         (layout as Tab).addModel(new Outline({
             tab: (layout as Tab),
             blockId: json.blockId,
-            type: json.type
+            type: json.type as "pin" | "local",
         }));
     } else if (json.instance === "Tag") {
         (layout as Tab).addModel(new Tag((layout as Tab)));
@@ -334,12 +337,17 @@ export const JSONToCenter = (json: any, layout?: Layout | Wnd | Tab | Model, isS
             tab: (layout as Tab),
             config: json.config
         }));
+    } else if (json.instance === "Custom") {
+        (layout as Tab).addModel(newCardModel({
+            tab: (layout as Tab),
+            data: json.data
+        }));
     }
     if (json.children) {
         if (Array.isArray(json.children)) {
             json.children.forEach((item: any, index: number) => {
                 JSONToCenter(item, layout ? child : window.siyuan.layout.layout, isStart);
-                if (item.instance === "Tab" && index === json.children.length - 1) {
+                if (item.instance === "Tab" && index === (json.children as ILayoutJSON[]).length - 1) {
                     const activeTabElement = (child as Wnd).headersElement.querySelector('[data-init-active="true"]') as HTMLElement;
                     if (activeTabElement) {
                         if (window.siyuan.config.fileTree.closeTabsOnStart && isStart &&
@@ -462,6 +470,9 @@ export const layoutToJSON = (layout: Layout | Wnd | Tab | Model, json: any) => {
     } else if (layout instanceof Search) {
         json.instance = "Search";
         json.config = layout.config;
+    } else if (layout instanceof Custom) {
+        json.instance = "Custom";
+        json.data = layout.data;
     }
 
     if (layout instanceof Layout || layout instanceof Wnd) {
@@ -532,34 +543,9 @@ export const resizeTabs = () => {
     resizeTimeout = window.setTimeout(() => {
         const models = getAllModels();
         models.editor.forEach((item) => {
-            if (item.editor && item.editor.protyle && item.element.parentElement) {
-                hideElements(["gutter"], item.editor.protyle);
-                setPadding(item.editor.protyle);
-                if (typeof echarts !== "undefined") {
-                    item.editor.protyle.wysiwyg.element.querySelectorAll('[data-subtype="echarts"], [data-subtype="mindmap"]').forEach((chartItem: HTMLElement) => {
-                        const chartInstance = echarts.getInstanceById(chartItem.firstElementChild.nextElementSibling.getAttribute("_echarts_instance_"));
-                        if (chartInstance) {
-                            chartInstance.resize();
-                        }
-                    });
-                }
-                // 保持光标位置不变 https://ld246.com/article/1673704873983/comment/1673765814595#comments
-                if (!item.element.classList.contains("fn__none") && item.editor.protyle.toolbar.range) {
-                    let rangeRect = item.editor.protyle.toolbar.range.getBoundingClientRect();
-                    if (rangeRect.height === 0) {
-                        const blockElement = hasClosestBlock(item.editor.protyle.toolbar.range.startContainer);
-                        if (blockElement) {
-                            rangeRect = blockElement.getBoundingClientRect();
-                        }
-                    }
-                    if (rangeRect.height === 0) {
-                        return;
-                    }
-                    const protyleRect = item.editor.protyle.element.getBoundingClientRect();
-                    if (protyleRect.top + 30 > rangeRect.top || protyleRect.bottom < rangeRect.bottom) {
-                        item.editor.protyle.toolbar.range.startContainer.parentElement.scrollIntoView(protyleRect.top > rangeRect.top);
-                    }
-                }
+            if (item.editor && item.editor.protyle &&
+                item.element.parentElement && !item.element.classList.contains("fn__none")) {
+                item.editor.resize();
             }
         });
         // https://github.com/siyuan-note/siyuan/issues/6250
@@ -571,6 +557,11 @@ export const resizeTabs = () => {
             item.editors.forEach(editorItem => {
                 hideElements(["gutter"], editorItem.protyle);
             });
+        });
+        models.custom.forEach(item => {
+            if (item.resize) {
+                item.resize();
+            }
         });
         pdfResize();
         hideAllElements(["gutter"]);
@@ -627,6 +618,11 @@ export const copyTab = (tab: Tab) => {
                 model = new Search({
                     tab: newTab,
                     config: tab.model.config
+                });
+            } else if (tab.model instanceof Custom) {
+                model = newCardModel({
+                    tab,
+                    data: tab.model.data
                 });
             } else if (!tab.model && tab.headElement) {
                 const initData = JSON.parse(tab.headElement.getAttribute("data-initdata") || "{}");
@@ -803,29 +799,83 @@ export const newCenterEmptyTab = () => {
         </div>
         <div class="b3-label__text">${window.siyuan.languages.slogan}</div>
     </div>
-    <h1>${window.siyuan.languages.noOpenFile}</h1>
     <div class="fn__hr"></div>
-    <div class="fn__hr"></div>
-    <div class="b3-list-item" id="editorEmptySearch"><svg class="b3-list-item__graphic"><use xlink:href="#iconSearch"></use></svg><span>${window.siyuan.languages.search}</span><span class="b3-list-item__meta">${updateHotkeyTip(window.siyuan.config.keymap.general.globalSearch.custom)}</span></div>
-    <div class="b3-list-item${window.siyuan.config.readonly ? " fn__none" : ""}" id="editorEmptyFile"><svg class="b3-list-item__graphic"><use xlink:href="#iconFile"></use></svg><span>${window.siyuan.languages.newFile}</span><span class="b3-list-item__meta">${updateHotkeyTip(window.siyuan.config.keymap.general.newFile.custom)}</span></div>
-    <div class="b3-list-item${window.siyuan.config.readonly ? " fn__none" : ""}" id="editorEmptyNewNotebook"><svg class="b3-list-item__graphic"><use xlink:href="#iconFilesRoot"></use></svg><span>${window.siyuan.languages.newNotebook}</span></div>
-    <div class="b3-list-item" id="editorEmptyHelp"><svg class="b3-list-item__graphic"><use xlink:href="#iconHelp"></use></svg><span>${window.siyuan.languages.help}</span></div>
+    <div class="b3-list-item" id="editorEmptySearch">
+        <svg class="b3-list-item__graphic"><use xlink:href="#iconSearch"></use></svg>
+        <span>${window.siyuan.languages.search}</span>
+        <span class="b3-list-item__meta">${updateHotkeyTip(window.siyuan.config.keymap.general.globalSearch.custom)}</span>
+    </div>
+    <div id="editorEmptyRecent" class="b3-list-item">
+        <svg class="b3-list-item__graphic"><use xlink:href="#iconList"></use></svg>
+        <span>${window.siyuan.languages.recentDocs}</span>
+        <span class="b3-list-item__meta">${updateHotkeyTip(window.siyuan.config.keymap.general.recentDocs.custom)}</span>
+    </div>
+    <div id="editorEmptyHistory" class="b3-list-item${window.siyuan.config.readonly ? " fn__none" : ""}">
+        <svg class="b3-list-item__graphic"><use xlink:href="#iconHistory"></use></svg>
+        <span>${window.siyuan.languages.dataHistory}</span>
+        <span class="b3-list-item__meta">${updateHotkeyTip(window.siyuan.config.keymap.general.dataHistory.custom)}</span>
+    </div>
+    <div class="b3-list-item${window.siyuan.config.readonly ? " fn__none" : ""}" id="editorEmptyFile">
+        <svg class="b3-list-item__graphic"><use xlink:href="#iconFile"></use></svg>
+        <span>${window.siyuan.languages.newFile}</span>
+        <span class="b3-list-item__meta">${updateHotkeyTip(window.siyuan.config.keymap.general.newFile.custom)}</span>
+    </div>
+    <div class="b3-list-item${window.siyuan.config.readonly ? " fn__none" : ""}" id="editorEmptyNewNotebook">
+        <svg class="b3-list-item__graphic"><use xlink:href="#iconFilesRoot"></use></svg>
+        <span>${window.siyuan.languages.newNotebook}</span>
+    </div>
+    <div class="b3-list-item" id="editorEmptyHelp">
+        <svg class="b3-list-item__graphic"><use xlink:href="#iconHelp"></use></svg>
+        <span>${window.siyuan.languages.help}</span>
+    </div>
 </div>`,
         callback(tab: Tab) {
-            tab.panelElement.querySelector("#editorEmptyHelp").addEventListener("click", () => {
-                mountHelp();
+            tab.panelElement.addEventListener("click", (event) => {
+                let target = event.target as HTMLElement;
+                while (target && !target.isEqualNode(tab.panelElement)) {
+                    if (target.id === "editorEmptySearch") {
+                        openSearch(window.siyuan.config.keymap.general.globalSearch.custom);
+                        event.stopPropagation();
+                        event.preventDefault();
+                        break;
+                    } else if (target.id === "editorEmptyRecent") {
+                        const openRecentDocsDialog = window.siyuan.dialogs.find(item => {
+                            if (item.element.getAttribute("data-key") === window.siyuan.config.keymap.general.recentDocs.custom) {
+                                return true;
+                            }
+                        });
+                        if (openRecentDocsDialog) {
+                            hideElements(["dialog"]);
+                            return;
+                        }
+                        openRecentDocs();
+                        event.stopPropagation();
+                        event.preventDefault();
+                        break;
+                    } else if (target.id === "editorEmptyHistory") {
+                        openHistory();
+                        event.stopPropagation();
+                        event.preventDefault();
+                        break;
+                    } else if (target.id === "editorEmptyFile") {
+                        newFile(undefined, undefined, undefined, true);
+                        event.stopPropagation();
+                        event.preventDefault();
+                        break;
+                    } else if (target.id === "editorEmptyNewNotebook") {
+                        newNotebook();
+                        event.stopPropagation();
+                        event.preventDefault();
+                        break;
+                    } else if (target.id === "editorEmptyHelp") {
+                        mountHelp();
+                        event.stopPropagation();
+                        event.preventDefault();
+                        break;
+                    }
+                    target = target.parentElement;
+                }
             });
-            tab.panelElement.querySelector("#editorEmptySearch").addEventListener("click", () => {
-                openSearch(window.siyuan.config.keymap.general.globalSearch.custom);
-            });
-            if (!window.siyuan.config.readonly) {
-                tab.panelElement.querySelector("#editorEmptyNewNotebook").addEventListener("click", () => {
-                    newNotebook();
-                });
-                tab.panelElement.querySelector("#editorEmptyFile").addEventListener("click", () => {
-                    newFile(undefined, undefined, undefined, true);
-                });
-            }
         }
     });
 };

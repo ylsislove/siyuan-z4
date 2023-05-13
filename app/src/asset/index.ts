@@ -2,6 +2,9 @@ import {Model} from "../layout/Model";
 import {Tab} from "../layout/Tab";
 import {Constants} from "../constants";
 import {setPanelFocus} from "../layout/util";
+/// #if !BROWSER
+import {setModelsHash} from "../window/setHeader";
+/// #endif
 /// #if !MOBILE
 // @ts-ignore
 import {webViewerLoad} from "./pdf/viewer";
@@ -497,6 +500,9 @@ export class Asset extends Model {
                         this.element, this.pdfPage, this.pdfId);
                     this.element.setAttribute("data-loading", "true");
                 }
+                /// #if !BROWSER
+                setModelsHash();
+                /// #endif
             }, Constants.TIMEOUT_BLOCKLOAD);
             /// #endif
         }

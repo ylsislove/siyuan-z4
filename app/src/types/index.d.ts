@@ -29,7 +29,10 @@ type TOperation =
     | "removeAttrViewBlock"
     | "addFlashcards"
     | "removeFlashcards"
-type TBazaarType = "templates" | "icons" | "widgets" | "themes"
+type TBazaarType = "templates" | "icons" | "widgets" | "themes" | "plugins"
+type TCardType = "doc" | "notebook" | "all"
+type TEventBus = "ws-main"
+
 declare module "blueimp-md5"
 
 interface Window {
@@ -49,6 +52,7 @@ interface Window {
 
     newWindow: {
         positionPDF(pathStr: string, page: string | number): void
+        switchTabById(id: string): void
     }
 
     Protyle: import("../protyle/method").default
@@ -179,6 +183,9 @@ interface INotebook {
     closed: boolean
     icon: string
     sort: number
+    dueFlashcardCount?: string;
+    newFlashcardCount?: string;
+    flashcardCount?: string;
     sortMode: number
 }
 
@@ -270,6 +277,29 @@ interface IObject {
     [key: string]: string;
 }
 
+declare interface ILayoutJSON extends ILayoutOptions {
+    instance?: string,
+    width?: string,
+    height?: string,
+    title?: string,
+    lang?: string
+    docIcon?: string
+    page?: string
+    path?: string
+    blockId?: string
+    icon?: string
+    rootId?: string
+    active?: boolean
+    pin?: boolean
+    data?: {
+        cardType: TCardType,
+        id: string,
+        title?: string
+    }
+    config?: ISearchOption
+    children?: ILayoutJSON[] | ILayoutJSON
+}
+
 declare interface IDockTab {
     type: TDockType;
     size: { width: number, height: number }
@@ -279,6 +309,8 @@ declare interface IDockTab {
 }
 
 declare interface IOpenFileOptions {
+    searchData?: ISearchOption, // 搜索必填
+    customData?: any, // card 必填
     assetPath?: string, // asset 必填
     fileName?: string, // file 必填
     rootIcon?: string, // 文档图标
@@ -359,12 +391,12 @@ declare interface IEditor {
 }
 
 declare interface IWebSocketData {
-    cmd: string
+    cmd?: string
     callback?: string
-    data: any
+    data?: any
     msg: string
     code: number
-    sid: string
+    sid?: string
 }
 
 declare interface IAppearance {
@@ -421,6 +453,7 @@ declare interface IConfig {
         openAI: {
             apiBaseURL: string
             apiKey: string
+            apiModel: string
             apiMaxTokens: number
             apiProxy: string
             apiTimeout: number
@@ -602,6 +635,9 @@ declare interface IFile {
     hMtime: string;
     hCtime: string;
     hSize: string;
+    dueFlashcardCount?: string;
+    newFlashcardCount?: string;
+    flashcardCount?: string;
     id: string;
     count: number;
     subFileCount: number;
@@ -651,8 +687,13 @@ declare interface IModels {
     graph: import("../layout/dock/Graph").Graph[],
     outline: import("../layout/dock/Outline").Outline[]
     backlink: import("../layout/dock/Backlink").Backlink[]
+    inbox: import("../layout/dock/Inbox").Inbox[]
+    files: import("../layout/dock/Files").Files[]
+    bookmark: import("../layout/dock/Bookmark").Bookmark[]
+    tag: import("../layout/dock/Tag").Tag[]
     asset: import("../asset").Asset[]
     search: import("../search").Search[]
+    custom: import("../layout/dock/Custom").Custom[]
 }
 
 declare interface IMenu {
@@ -671,7 +712,11 @@ declare interface IMenu {
 }
 
 declare interface IBazaarItem {
-    readme: string
+    enabled: boolean
+    preferredName: string
+    preferredDesc: string
+    preferredReadme: string
+    iconURL: string
     stars: string
     author: string
     updated: string
@@ -692,4 +737,5 @@ declare interface IBazaarItem {
     hInstallSize: string
     hInstallDate: string
     hUpdated: string
+    preferredFunding: string
 }

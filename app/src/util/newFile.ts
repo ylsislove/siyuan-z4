@@ -11,7 +11,6 @@ import {getDisplayName, getOpenNotebookCount, pathPosix} from "./pathName";
 import {Constants} from "../constants";
 import {replaceFileName, validateName} from "../editor/rename";
 import {hideElements} from "../protyle/ui/hideElements";
-import {isMobile} from "./functions";
 import {openMobileFileById} from "../mobile/editor";
 
 export const getNewFilePath = (useSavePath: boolean) => {
@@ -83,6 +82,8 @@ export const newFile = (notebookId?: string, currentPath?: string, paths?: strin
                 }, response => {
                     /// #if !MOBILE
                     openFileById({id: response.data, action: [Constants.CB_GET_HL, Constants.CB_GET_CONTEXT]});
+                    /// #else
+                    openMobileFileById(response.data, [Constants.CB_GET_HL, Constants.CB_GET_CONTEXT]);
                     /// #endif
                 });
             } else {
@@ -97,6 +98,8 @@ export const newFile = (notebookId?: string, currentPath?: string, paths?: strin
                     }, response => {
                         /// #if !MOBILE
                         openFileById({id: response.data, action: [Constants.CB_GET_HL, Constants.CB_GET_CONTEXT]});
+                        /// #else
+                        openMobileFileById(response.data, [Constants.CB_GET_HL, Constants.CB_GET_CONTEXT]);
                         /// #endif
                     });
                 });
@@ -121,6 +124,8 @@ export const newFile = (notebookId?: string, currentPath?: string, paths?: strin
             }, () => {
                 /// #if !MOBILE
                 openFileById({id, action: [Constants.CB_GET_HL, Constants.CB_GET_CONTEXT]});
+                /// #else
+                openMobileFileById(id, [Constants.CB_GET_HL, Constants.CB_GET_CONTEXT]);
                 /// #endif
             });
         }
@@ -165,11 +170,11 @@ export const newFileByName = (value: string) => {
             markdown: ""
         }, response => {
             hideElements(["dialog"]);
-            if (isMobile()) {
-                openMobileFileById(response.data, [Constants.CB_GET_HL, Constants.CB_GET_CONTEXT]);
-            } else {
-                openFileById({id: response.data, action: [Constants.CB_GET_HL, Constants.CB_GET_CONTEXT]});
-            }
+            /// #if MOBILE
+            openMobileFileById(response.data, [Constants.CB_GET_HL, Constants.CB_GET_CONTEXT]);
+            /// #else
+            openFileById({id: response.data, action: [Constants.CB_GET_HL, Constants.CB_GET_CONTEXT]});
+            /// #endif
         });
     });
 };

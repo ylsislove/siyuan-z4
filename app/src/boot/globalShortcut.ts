@@ -52,6 +52,8 @@ import {isWindow} from "../util/functions";
 import {reloadProtyle} from "../protyle/util/reload";
 import {fullscreen} from "../protyle/breadcrumb/action";
 import {setPadding} from "../protyle/ui/initUI";
+import {openRecentDocs} from "../business/openRecentDocs";
+import {App} from "../index";
 
 const getRightBlock = (element: HTMLElement, x: number, y: number) => {
     let index = 1;
@@ -94,7 +96,7 @@ const switchDialogEvent = (event: MouseEvent, switchDialog: Dialog) => {
     }
 };
 
-export const globalShortcut = () => {
+export const globalShortcut = (app: App) => {
     document.body.addEventListener("mouseleave", () => {
         if (window.siyuan.layout.leftDock) {
             window.siyuan.layout.leftDock.hideDock();
@@ -476,7 +478,7 @@ export const globalShortcut = () => {
             }
             let dockHtml = "";
             if (!isTabWindow) {
-                dockHtml = `<ul class="b3-list b3-list--background" style="max-height: calc(70vh - 35px);overflow: auto">
+                dockHtml = `<ul class="b3-list b3-list--background" style="max-height: calc(70vh - 35px);overflow: auto;width: 200px;">
 <li data-type="riffCard" data-index="0" class="b3-list-item${!tabHtml ? " b3-list-item--focus" : ""}">
     <svg class="b3-list-item__graphic"><use xlink:href="#iconRiffCard"></use></svg>
     <span class="b3-list-item__text">${window.siyuan.languages.riffCard}</span>
@@ -629,7 +631,7 @@ export const globalShortcut = () => {
             return;
         }
         if (!isTabWindow && !window.siyuan.config.readonly && matchHotKey(window.siyuan.config.keymap.general.config.custom, event)) {
-            openSetting();
+            openSetting(app);
             event.preventDefault();
             return;
         }
@@ -979,75 +981,6 @@ const dialogArrow = (element: HTMLElement, event: KeyboardEvent) => {
     }
 };
 
-const openRecentDocs = () => {
-    fetchPost("/api/storage/getRecentDocs", {}, (response) => {
-        let range: Range;
-        if (getSelection().rangeCount > 0) {
-            range = getSelection().getRangeAt(0);
-        }
-        let tabHtml = "";
-        response.data.forEach((item: any, index: number) => {
-            tabHtml += `<li data-index="${index}" data-node-id="${item.rootID}" class="b3-list-item${index === 0 ? " b3-list-item--focus" : ""}">
-${unicode2Emoji(item.icon || Constants.SIYUAN_IMAGE_FILE, false, "b3-list-item__graphic", true)}
-<span class="b3-list-item__text">${escapeHtml(item.title)}</span>
-</li>`;
-        });
-        let dockHtml = "";
-        if (!isWindow()) {
-            dockHtml = `<ul class="b3-list b3-list--background" style="max-height: calc(70vh - 35px);overflow: auto">
-<li data-type="riffCard" data-index="0" class="b3-list-item${!tabHtml ? " b3-list-item--focus" : ""}">
-    <svg class="b3-list-item__graphic"><use xlink:href="#iconRiffCard"></use></svg>
-    <span class="b3-list-item__text">${window.siyuan.languages.riffCard}</span>
-    <span class="b3-list-item__meta">${updateHotkeyTip(window.siyuan.config.keymap.general.riffCard.custom)}</span>
-</li>`;
-            getAllDocks().forEach((item, index) => {
-                dockHtml += `<li data-type="${item.type}" data-index="${index + 1}" class="b3-list-item">
-    <svg class="b3-list-item__graphic"><use xlink:href="#${item.icon}"></use></svg>
-    <span class="b3-list-item__text">${window.siyuan.languages[item.hotkeyLangId]}</span>
-    <span class="b3-list-item__meta">${updateHotkeyTip(window.siyuan.config.keymap.general[item.hotkeyLangId].custom)}</span>
-</li>`;
-            });
-            dockHtml = dockHtml + "</ul>";
-        }
-        const dialog = new Dialog({
-            title: window.siyuan.languages.recentDocs,
-            content: `<div class="fn__flex-column switch-doc">
-    <div class="fn__hr"><input style="opacity: 0;height: 1px;box-sizing: border-box"></div>
-    <div class="fn__flex">${dockHtml}
-        <ul${!isWindow() ? "" : ' style="border-left:0"'} class="b3-list b3-list--background fn__flex-1">${tabHtml}</ul>
-    </div>
-    <div class="switch-doc__path"></div>
-</div>`,
-            destroyCallback: () => {
-                if (range && range.getBoundingClientRect().height !== 0) {
-                    focusByRange(range);
-                }
-            }
-        });
-        if (response.data.length > 0) {
-            fetchPost("/api/filetree/getFullHPathByID", {
-                id: response.data[0].rootID
-            }, (response) => {
-                dialog.element.querySelector(".switch-doc__path").innerHTML = escapeHtml(response.data);
-            });
-        } else {
-            dialog.element.querySelector(".switch-doc__path").innerHTML = dialog.element.querySelector(".b3-list-item--focus").textContent;
-        }
-        dialog.element.querySelector("input").focus();
-        dialog.element.setAttribute("data-key", window.siyuan.config.keymap.general.recentDocs.custom);
-        dialog.element.addEventListener("click", (event) => {
-            const liElement = hasClosestByClassName(event.target as HTMLElement, "b3-list-item");
-            if (liElement) {
-                dialog.element.querySelector(".b3-list-item--focus").classList.remove("b3-list-item--focus");
-                liElement.classList.add("b3-list-item--focus");
-                window.dispatchEvent(new KeyboardEvent("keydown", {key: "Enter"}));
-                event.stopPropagation();
-                event.preventDefault();
-            }
-        });
-    });
-};
-
 const editKeydown = (event: KeyboardEvent) => {
     const activeTabElement = document.querySelector(".layout__wnd--active .item--focus");
     let protyle: IProtyle;
@@ -1094,7 +1027,7 @@ const editKeydown = (event: KeyboardEvent) => {
     }
     if (!isFileFocus && matchHotKey(window.siyuan.config.keymap.editor.general.spaceRepetition.custom, event)) {
         fetchPost("/api/riff/getTreeRiffDueCards", {rootID: protyle.block.rootID}, (response) => {
-            openCardByData(response.data, "doc", protyle.block.rootID, protyle.title.editElement.textContent);
+            openCardByData(response.data, "doc", protyle.block.rootID, protyle.title.editElement.textContent || "Untitled");
         });
         event.preventDefault();
         return true;

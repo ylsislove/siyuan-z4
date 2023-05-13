@@ -72,6 +72,7 @@ func Serve(fastMode bool) {
 	serveWebSocket(ginServer)
 	serveExport(ginServer)
 	serveWidgets(ginServer)
+	servePlugins(ginServer)
 	serveEmojis(ginServer)
 	serveTemplates(ginServer)
 	api.ServeAPI(ginServer)
@@ -129,6 +130,8 @@ func Serve(fastMode bool) {
 		}
 	}()
 
+	go util.HookUILoaded()
+
 	if err = http.Serve(ln, ginServer); nil != err {
 		if !fastMode {
 			logging.LogErrorf("boot kernel failed: %s", err)
@@ -170,6 +173,10 @@ func serveExport(ginServer *gin.Engine) {
 
 func serveWidgets(ginServer *gin.Engine) {
 	ginServer.Static("/widgets/", filepath.Join(util.DataDir, "widgets"))
+}
+
+func servePlugins(ginServer *gin.Engine) {
+	ginServer.Static("/plugins/", filepath.Join(util.DataDir, "plugins"))
 }
 
 func serveEmojis(ginServer *gin.Engine) {

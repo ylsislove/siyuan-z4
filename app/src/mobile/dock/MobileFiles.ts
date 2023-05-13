@@ -29,6 +29,11 @@ export class MobileFiles extends Model {
                         case "moveDoc":
                             this.onMove(data.data);
                             break;
+                        case "reloadFiletree":
+                            setNoteBook(() => {
+                                this.init(false);
+                            });
+                            break;
                         case "mount":
                             this.onMount(data);
                             break;
@@ -266,7 +271,7 @@ export class MobileFiles extends Model {
         }
     }
 
-    private init(init = true) {
+    public init(init = true) {
         let html = "";
         let closeHtml = "";
         window.siyuan.notebooks.forEach((item) => {
@@ -505,8 +510,7 @@ export class MobileFiles extends Model {
             } else if (filePath.startsWith(item.path.replace(".sy", ""))) {
                 fetchPost("/api/filetree/listDocsByPath", {
                     notebook: data.box,
-                    path: item.path,
-                    sort: window.siyuan.config.fileTree.sort
+                    path: item.path
                 }, response => {
                     this.selectItem(response.data.box, filePath, response.data);
                 });
@@ -550,8 +554,7 @@ export class MobileFiles extends Model {
         }
         fetchPost("/api/filetree/listDocsByPath", {
             notebook: notebookId,
-            path: liElement.getAttribute("data-path"),
-            sort: window.siyuan.config.fileTree.sort,
+            path: liElement.getAttribute("data-path")
         }, response => {
             if (response.data.path === "/" && response.data.files.length === 0) {
                 showMessage(window.siyuan.languages.emptyContent);
@@ -591,8 +594,7 @@ export class MobileFiles extends Model {
         } else {
             fetchPost("/api/filetree/listDocsByPath", {
                 notebook: notebookId,
-                path: currentPath,
-                sort: window.siyuan.config.fileTree.sort
+                path: currentPath
             }, response => {
                 this.onLsSelect(response.data, filePath);
             });

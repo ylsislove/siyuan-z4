@@ -22,8 +22,11 @@ import {getSearch} from "../util/functions";
 import {initRightMenu} from "./menu";
 import {openChangelog} from "../boot/openChangelog";
 import {registerServiceWorker} from "../util/serviceWorker";
+import {loadPlugins} from "../plugin/loader";
 
 class App {
+    public plugins: import("../plugin").Plugin[] = [];
+
     constructor() {
         if (!window.webkit?.messageHandlers && !window.JSAndroid) {
             registerServiceWorker(`${Constants.SERVICE_WORKER_PATH}?v=${Constants.SIYUAN_VERSION}`);
@@ -41,7 +44,10 @@ class App {
             ws: new Model({
                 id: genUUID(),
                 type: "main",
-                msgCallback(data) {
+                msgCallback: (data)=> {
+                    this.plugins.forEach((plugin) => {
+                        plugin.eventBus.emit("ws-main", data);
+                    });
                     onMessage(data);
                 }
             })
@@ -70,6 +76,7 @@ class App {
                             window.siyuan.emojis = emojiResponse.data as IEmoji[];
                             initFramework();
                             initRightMenu();
+                            loadPlugins(siyuanApp);
                             openChangelog();
                         });
                     });
@@ -85,7 +92,7 @@ class App {
     }
 }
 
-new App();
+const siyuanApp = new App();
 
 window.goBack = goBack;
 window.showKeyboardToolbar = (height) => {

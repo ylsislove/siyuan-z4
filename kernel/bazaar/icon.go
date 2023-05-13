@@ -32,25 +32,24 @@ import (
 )
 
 type Icon struct {
-	Package
+	*Package
 }
 
 func Icons() (icons []*Icon) {
 	icons = []*Icon{}
 
-	pkgIndex, err := getPkgIndex("icons")
+	stageIndex, err := getStageIndex("icons")
 	if nil != err {
 		return
 	}
 	bazaarIndex := getBazaarIndex()
-	repos := pkgIndex["repos"].([]interface{})
 	waitGroup := &sync.WaitGroup{}
 	lock := &sync.Mutex{}
 	p, _ := ants.NewPoolWithFunc(2, func(arg interface{}) {
 		defer waitGroup.Done()
 
-		repo := arg.(map[string]interface{})
-		repoURL := repo["url"].(string)
+		repo := arg.(*StageRepo)
+		repoURL := repo.URL
 
 		icon := &Icon{}
 		innerU := util.BazaarOSSServer + "/package/" + repoURL + "/icon.json"
@@ -70,10 +69,15 @@ func Icons() (icons []*Icon) {
 		icon.RepoHash = repoURLHash[1]
 		icon.PreviewURL = util.BazaarOSSServer + "/package/" + repoURL + "/preview.png?imageslim"
 		icon.PreviewURLThumb = util.BazaarOSSServer + "/package/" + repoURL + "/preview.png?imageView2/2/w/436/h/232"
-		icon.Updated = repo["updated"].(string)
-		icon.Stars = int(repo["stars"].(float64))
-		icon.OpenIssues = int(repo["openIssues"].(float64))
-		icon.Size = int64(repo["size"].(float64))
+		icon.IconURL = util.BazaarOSSServer + "/package/" + repoURL + "/icon.png"
+		icon.Funding = repo.Package.Funding
+		icon.PreferredFunding = getPreferredFunding(icon.Funding)
+		icon.PreferredName = getPreferredName(icon.Package)
+		icon.PreferredDesc = getPreferredDesc(icon.Description)
+		icon.Updated = repo.Updated
+		icon.Stars = repo.Stars
+		icon.OpenIssues = repo.OpenIssues
+		icon.Size = repo.Size
 		icon.HSize = humanize.Bytes(uint64(icon.Size))
 		icon.HUpdated = formatUpdated(icon.Updated)
 		pkg := bazaarIndex[strings.Split(repoURL, "@")[0]]
@@ -84,7 +88,7 @@ func Icons() (icons []*Icon) {
 		icons = append(icons, icon)
 		lock.Unlock()
 	})
-	for _, repo := range repos {
+	for _, repo := range stageIndex.Repos {
 		waitGroup.Add(1)
 		p.Invoke(repo)
 	}
@@ -114,23 +118,21 @@ func InstalledIcons() (ret []*Icon) {
 			continue
 		}
 
-		iconConf, parseErr := IconJSON(dirName)
-		if nil != parseErr || nil == iconConf {
+		icon, parseErr := IconJSON(dirName)
+		if nil != parseErr || nil == icon {
 			continue
 		}
 
 		installPath := filepath.Join(util.IconsPath, dirName)
 
-		icon := &Icon{}
 		icon.Installed = true
-		icon.Name = iconConf["name"].(string)
-		icon.Author = iconConf["author"].(string)
-		icon.URL = iconConf["url"].(string)
-		icon.URL = strings.TrimSuffix(icon.URL, "/")
-		icon.Version = iconConf["version"].(string)
 		icon.RepoURL = icon.URL
 		icon.PreviewURL = "/appearance/icons/" + dirName + "/preview.png"
 		icon.PreviewURLThumb = "/appearance/icons/" + dirName + "/preview.png"
+		icon.IconURL = "/appearance/icons/" + dirName + "/icon.png"
+		icon.PreferredFunding = getPreferredFunding(icon.Funding)
+		icon.PreferredName = getPreferredName(icon.Package)
+		icon.PreferredDesc = getPreferredDesc(icon.Description)
 		info, statErr := os.Stat(filepath.Join(installPath, "README.md"))
 		if nil != statErr {
 			logging.LogWarnf("stat install theme README.md failed: %s", statErr)
@@ -140,13 +142,14 @@ func InstalledIcons() (ret []*Icon) {
 		installSize, _ := util.SizeOfDirectory(installPath)
 		icon.InstallSize = installSize
 		icon.HInstallSize = humanize.Bytes(uint64(installSize))
-		readme, readErr := os.ReadFile(filepath.Join(installPath, "README.md"))
+		readmeFilename := getPreferredReadme(icon.Readme)
+		readme, readErr := os.ReadFile(filepath.Join(installPath, readmeFilename))
 		if nil != readErr {
-			logging.LogWarnf("read install icon README.md failed: %s", readErr)
+			logging.LogWarnf("read installed README.md failed: %s", readErr)
 			continue
 		}
 
-		icon.README, _ = renderREADME(icon.URL, readme)
+		icon.PreferredReadme, _ = renderREADME(icon.URL, readme)
 		icon.Outdated = isOutdatedIcon(icon, bazaarIcons)
 		ret = append(ret, icon)
 	}

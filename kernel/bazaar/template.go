@@ -25,6 +25,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/88250/gulu"
 	"github.com/dustin/go-humanize"
 	"github.com/panjf2000/ants/v2"
 	"github.com/siyuan-note/httpclient"
@@ -33,25 +34,24 @@ import (
 )
 
 type Template struct {
-	Package
+	*Package
 }
 
 func Templates() (templates []*Template) {
 	templates = []*Template{}
 
-	pkgIndex, err := getPkgIndex("templates")
+	stageIndex, err := getStageIndex("templates")
 	if nil != err {
 		return
 	}
 	bazaarIndex := getBazaarIndex()
-	repos := pkgIndex["repos"].([]interface{})
 	waitGroup := &sync.WaitGroup{}
 	lock := &sync.Mutex{}
 	p, _ := ants.NewPoolWithFunc(2, func(arg interface{}) {
 		defer waitGroup.Done()
 
-		repo := arg.(map[string]interface{})
-		repoURL := repo["url"].(string)
+		repo := arg.(*StageRepo)
+		repoURL := repo.URL
 
 		template := &Template{}
 		innerU := util.BazaarOSSServer + "/package/" + repoURL + "/template.json"
@@ -71,10 +71,15 @@ func Templates() (templates []*Template) {
 		template.RepoHash = repoURLHash[1]
 		template.PreviewURL = util.BazaarOSSServer + "/package/" + repoURL + "/preview.png?imageslim"
 		template.PreviewURLThumb = util.BazaarOSSServer + "/package/" + repoURL + "/preview.png?imageView2/2/w/436/h/232"
-		template.Updated = repo["updated"].(string)
-		template.Stars = int(repo["stars"].(float64))
-		template.OpenIssues = int(repo["openIssues"].(float64))
-		template.Size = int64(repo["size"].(float64))
+		template.IconURL = util.BazaarOSSServer + "/package/" + repoURL + "/icon.png"
+		template.Funding = repo.Package.Funding
+		template.PreferredFunding = getPreferredFunding(template.Funding)
+		template.PreferredName = getPreferredName(template.Package)
+		template.PreferredDesc = getPreferredDesc(template.Description)
+		template.Updated = repo.Updated
+		template.Stars = repo.Stars
+		template.OpenIssues = repo.OpenIssues
+		template.Size = repo.Size
 		template.HSize = humanize.Bytes(uint64(template.Size))
 		template.HUpdated = formatUpdated(template.Updated)
 		pkg := bazaarIndex[strings.Split(repoURL, "@")[0]]
@@ -85,7 +90,7 @@ func Templates() (templates []*Template) {
 		templates = append(templates, template)
 		lock.Unlock()
 	})
-	for _, repo := range repos {
+	for _, repo := range stageIndex.Repos {
 		waitGroup.Add(1)
 		p.Invoke(repo)
 	}
@@ -100,7 +105,13 @@ func Templates() (templates []*Template) {
 
 func InstalledTemplates() (ret []*Template) {
 	ret = []*Template{}
-	templateDirs, err := os.ReadDir(filepath.Join(util.DataDir, "templates"))
+
+	templatesPath := filepath.Join(util.DataDir, "templates")
+	if !gulu.File.IsDir(templatesPath) {
+		return
+	}
+
+	templateDirs, err := os.ReadDir(templatesPath)
 	if nil != err {
 		logging.LogWarnf("read templates folder failed: %s", err)
 		return
@@ -114,23 +125,21 @@ func InstalledTemplates() (ret []*Template) {
 		}
 		dirName := templateDir.Name()
 
-		templateConf, parseErr := TemplateJSON(dirName)
-		if nil != parseErr || nil == templateConf {
+		template, parseErr := TemplateJSON(dirName)
+		if nil != parseErr || nil == template {
 			continue
 		}
 
 		installPath := filepath.Join(util.DataDir, "templates", dirName)
 
-		template := &Template{}
 		template.Installed = true
-		template.Name = templateConf["name"].(string)
-		template.Author = templateConf["author"].(string)
-		template.URL = templateConf["url"].(string)
-		template.URL = strings.TrimSuffix(template.URL, "/")
-		template.Version = templateConf["version"].(string)
 		template.RepoURL = template.URL
 		template.PreviewURL = "/templates/" + dirName + "/preview.png"
 		template.PreviewURLThumb = "/templates/" + dirName + "/preview.png"
+		template.IconURL = "/templates/" + dirName + "/icon.png"
+		template.PreferredFunding = getPreferredFunding(template.Funding)
+		template.PreferredName = getPreferredName(template.Package)
+		template.PreferredDesc = getPreferredDesc(template.Description)
 		info, statErr := os.Stat(filepath.Join(installPath, "README.md"))
 		if nil != statErr {
 			logging.LogWarnf("stat install theme README.md failed: %s", statErr)
@@ -140,12 +149,14 @@ func InstalledTemplates() (ret []*Template) {
 		installSize, _ := util.SizeOfDirectory(installPath)
 		template.InstallSize = installSize
 		template.HInstallSize = humanize.Bytes(uint64(installSize))
-		readme, readErr := os.ReadFile(filepath.Join(installPath, "README.md"))
+		readmeFilename := getPreferredReadme(template.Readme)
+		readme, readErr := os.ReadFile(filepath.Join(installPath, readmeFilename))
 		if nil != readErr {
-			logging.LogWarnf("read install template README.md failed: %s", readErr)
+			logging.LogWarnf("read installed README.md failed: %s", readErr)
 			continue
 		}
-		template.README, _ = renderREADME(template.URL, readme)
+
+		template.PreferredReadme, _ = renderREADME(template.URL, readme)
 		template.Outdated = isOutdatedTemplate(template, bazaarTemplates)
 		ret = append(ret, template)
 	}

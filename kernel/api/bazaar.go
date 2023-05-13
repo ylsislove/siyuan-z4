@@ -36,8 +36,74 @@ func getBazaarPackageREAME(c *gin.Context) {
 
 	repoURL := arg["repoURL"].(string)
 	repoHash := arg["repoHash"].(string)
+	packageType := arg["packageType"].(string)
 	ret.Data = map[string]interface{}{
-		"html": model.GetPackageREADME(repoURL, repoHash),
+		"html": model.GetPackageREADME(repoURL, repoHash, packageType),
+	}
+}
+
+func getBazaarPlugin(c *gin.Context) {
+	ret := gulu.Ret.NewResult()
+	defer c.JSON(http.StatusOK, ret)
+
+	ret.Data = map[string]interface{}{
+		"packages": model.BazaarPlugins(),
+	}
+}
+
+func getInstalledPlugin(c *gin.Context) {
+	ret := gulu.Ret.NewResult()
+	defer c.JSON(http.StatusOK, ret)
+
+	ret.Data = map[string]interface{}{
+		"packages": model.InstalledPlugins(),
+	}
+}
+
+func installBazaarPlugin(c *gin.Context) {
+	ret := gulu.Ret.NewResult()
+	defer c.JSON(http.StatusOK, ret)
+
+	arg, ok := util.JsonArg(c, ret)
+	if !ok {
+		return
+	}
+
+	repoURL := arg["repoURL"].(string)
+	repoHash := arg["repoHash"].(string)
+	packageName := arg["packageName"].(string)
+	err := model.InstallBazaarPlugin(repoURL, repoHash, packageName)
+	if nil != err {
+		ret.Code = 1
+		ret.Msg = err.Error()
+		return
+	}
+
+	util.PushMsg(model.Conf.Language(69), 3000)
+	ret.Data = map[string]interface{}{
+		"packages": model.BazaarPlugins(),
+	}
+}
+
+func uninstallBazaarPlugin(c *gin.Context) {
+	ret := gulu.Ret.NewResult()
+	defer c.JSON(http.StatusOK, ret)
+
+	arg, ok := util.JsonArg(c, ret)
+	if !ok {
+		return
+	}
+
+	packageName := arg["packageName"].(string)
+	err := model.UninstallBazaarPlugin(packageName)
+	if nil != err {
+		ret.Code = -1
+		ret.Msg = err.Error()
+		return
+	}
+
+	ret.Data = map[string]interface{}{
+		"packages": model.BazaarPlugins(),
 	}
 }
 

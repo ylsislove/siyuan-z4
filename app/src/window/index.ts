@@ -11,7 +11,7 @@ import {openFileById} from "../editor/util";
 import {
     processSync, progressBackgroundTask,
     progressLoading,
-    progressStatus,
+    progressStatus, reloadSync,
     setTitle,
     transactionError
 } from "../dialog/processSystem";
@@ -20,9 +20,12 @@ import {initMessage} from "../dialog/message";
 import {getAllTabs} from "../layout/getAll";
 import {getLocalStorage} from "../protyle/util/compatibility";
 import {init} from "../window/init";
-import {positionPDF} from "./global/positionPDF";
+import {positionPDF, switchTabById} from "./global/function";
+import {loadPlugins} from "../plugin/loader";
 
 class App {
+    public plugins: import("../plugin").Plugin[] = [];
+
     constructor() {
         addScriptSync(`${Constants.PROTYLE_CDN}/js/lute/lute.min.js?v=${Constants.SIYUAN_VERSION}`, "protyleLuteScript");
         addScript(`${Constants.PROTYLE_CDN}/js/protyle-html.js?v=${Constants.SIYUAN_VERSION}`, "protyleWcHtmlScript");
@@ -40,8 +43,14 @@ class App {
                 id: genUUID(),
                 type: "main",
                 msgCallback: (data) => {
+                    this.plugins.forEach((plugin) => {
+                        plugin.eventBus.emit("ws-main", data);
+                    });
                     if (data) {
                         switch (data.cmd) {
+                            case "syncMergeResult":
+                                reloadSync(data.data);
+                                break;
                             case "progress":
                                 progressLoading(data);
                                 break;
@@ -125,7 +134,8 @@ class App {
                     window.siyuan.menus = new Menus();
                     fetchPost("/api/setting/getCloudUser", {}, userResponse => {
                         window.siyuan.user = userResponse.data;
-                        init();
+                        loadPlugins(siyuanApp);
+                        init(siyuanApp);
                         setTitle(window.siyuan.languages.siyuanNote);
                         initMessage();
                     });
@@ -138,9 +148,10 @@ class App {
     }
 }
 
-new App();
+const siyuanApp = new App();
 
 // 再次点击新窗口已打开的 PDF 时，需进行定位
 window.newWindow = {
-    positionPDF: positionPDF
+    positionPDF: positionPDF,
+    switchTabById: switchTabById
 };

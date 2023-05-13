@@ -6,6 +6,10 @@ import {Outline} from "./dock/Outline";
 import {Backlink} from "./dock/Backlink";
 import {Asset} from "../asset";
 import {Search} from "../search";
+import {Files} from "./dock/Files";
+import {Bookmark} from "./dock/Bookmark";
+import {Tag} from "./dock/Tag";
+import {Custom} from "./dock/Custom";
 
 export const getAllModels = () => {
     const models: IModels = {
@@ -14,7 +18,12 @@ export const getAllModels = () => {
         asset: [],
         outline: [],
         backlink: [],
-        search: []
+        search: [],
+        inbox: [],
+        files: [],
+        bookmark: [],
+        tag: [],
+        custom: [],
     };
     const getTabs = (layout: Layout) => {
         for (let i = 0; i < layout.children.length; i++) {
@@ -33,6 +42,14 @@ export const getAllModels = () => {
                     models.asset.push(model);
                 } else if (model instanceof Search) {
                     models.search.push(model);
+                } else if (model instanceof Files) {
+                    models.files.push(model);
+                } else if (model instanceof Bookmark) {
+                    models.bookmark.push(model);
+                } else if (model instanceof Tag) {
+                    models.tag.push(model);
+                } else if (model instanceof Custom) {
+                    models.custom.push(model);
                 }
             } else {
                 getTabs(item as Layout);
@@ -47,12 +64,12 @@ export const getAllModels = () => {
 };
 
 export const getAllTabs = () => {
-    const models: Tab[] = [];
+    const tabs: Tab[] = [];
     const getTabs = (layout: Layout) => {
         for (let i = 0; i < layout.children.length; i++) {
             const item = layout.children[i];
             if (item instanceof Tab) {
-                models.push(item);
+                tabs.push(item);
             } else {
                 getTabs(item as Layout);
             }
@@ -62,7 +79,7 @@ export const getAllTabs = () => {
     if (window.siyuan.layout.centerLayout) {
         getTabs(window.siyuan.layout.centerLayout);
     }
-    return models;
+    return tabs;
 };
 
 export const getAllDocks = () => {

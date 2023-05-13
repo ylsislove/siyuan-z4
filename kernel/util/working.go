@@ -43,7 +43,7 @@ import (
 var Mode = "prod"
 
 const (
-	Ver       = "2.8.6"
+	Ver       = "2.8.7"
 	IsInsider = false
 )
 
@@ -353,6 +353,11 @@ func initPathDir() {
 	widgets := filepath.Join(DataDir, "widgets")
 	if err := os.MkdirAll(widgets, 0755); nil != err && !os.IsExist(err) {
 		logging.LogFatalf(logging.ExitCodeInitWorkspaceErr, "create data widgets folder [%s] failed: %s", widgets, err)
+	}
+
+	plugins := filepath.Join(DataDir, "plugins")
+	if err := os.MkdirAll(plugins, 0755); nil != err && !os.IsExist(err) {
+		logging.LogFatalf(logging.ExitCodeInitWorkspaceErr, "create data plugins folder [%s] failed: %s", widgets, err)
 	}
 
 	emojis := filepath.Join(DataDir, "emojis")

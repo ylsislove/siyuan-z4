@@ -14,7 +14,113 @@ import {confirmDialog} from "./confirmDialog";
 import {escapeHtml} from "../util/escape";
 import {getWorkspaceName} from "../util/noRelyPCFunction";
 import {needSubscribe} from "../util/needSubscribe";
-import {redirectToCheckAuth} from "../util/pathName";
+import {redirectToCheckAuth, setNoteBook} from "../util/pathName";
+import {getAllModels} from "../layout/getAll";
+import {reloadProtyle} from "../protyle/util/reload";
+import {Tab} from "../layout/Tab";
+import {setEmpty} from "../mobile/util/setEmpty";
+import {hideElements} from "../protyle/ui/hideElements";
+
+const updateTitle = (rootID: string, tab: Tab) => {
+    fetchPost("/api/block/getDocInfo", {
+        id: rootID
+    }, (response) => {
+        tab.updateTitle(response.data.name);
+    });
+};
+
+export const reloadSync = (data: { upsertRootIDs: string[], removeRootIDs: string[] }) => {
+    hideMessage();
+    /// #if MOBILE
+    if (window.siyuan.mobile.popEditor) {
+        if (data.removeRootIDs.includes(window.siyuan.mobile.popEditor.protyle.block.rootID)) {
+            hideElements(["dialog"]);
+        } else {
+            reloadProtyle(window.siyuan.mobile.popEditor.protyle);
+            window.siyuan.mobile.popEditor.protyle.breadcrumb.render(window.siyuan.mobile.popEditor.protyle, true);
+        }
+    }
+    if (window.siyuan.mobile.editor) {
+        if (data.removeRootIDs.includes(window.siyuan.mobile.editor.protyle.block.rootID)) {
+            setEmpty();
+        } else {
+            reloadProtyle(window.siyuan.mobile.editor.protyle);
+            fetchPost("/api/block/getDocInfo", {
+                id: window.siyuan.mobile.editor.protyle.block.rootID
+            }, (response) => {
+                (document.getElementById("toolbarName") as HTMLInputElement).value = response.data.name === "Untitled" ? "" : response.data.name;
+            });
+        }
+    }
+    setNoteBook(() => {
+        window.siyuan.mobile.files.init(false);
+    });
+    /// #else
+    const allModels = getAllModels();
+    allModels.editor.forEach(item => {
+        if (data.upsertRootIDs.includes(item.editor.protyle.block.rootID)) {
+            reloadProtyle(item.editor.protyle);
+            updateTitle(item.editor.protyle.block.rootID, item.parent);
+        } else if (data.removeRootIDs.includes(item.editor.protyle.block.rootID)) {
+            item.parent.parent.removeTab(item.parent.id, false, false, false);
+        }
+    });
+    allModels.graph.forEach(item => {
+        if (item.type === "local" && data.removeRootIDs.includes(item.rootId)) {
+            item.parent.parent.removeTab(item.parent.id, false, false, false);
+        } else if (item.type !== "local" || data.upsertRootIDs.includes(item.rootId)) {
+            item.searchGraph(false);
+            if (item.type === "local") {
+                updateTitle(item.rootId, item.parent);
+            }
+        }
+    });
+    allModels.outline.forEach(item => {
+        if (item.type === "local" && data.removeRootIDs.includes(item.blockId)) {
+            item.parent.parent.removeTab(item.parent.id, false, false, false);
+        } else if (item.type !== "local" || data.upsertRootIDs.includes(item.blockId)) {
+            fetchPost("/api/outline/getDocOutline", {
+                id: item.blockId,
+            }, response => {
+                item.update(response);
+            });
+            if (item.type === "local") {
+                updateTitle(item.blockId, item.parent);
+            }
+        }
+    });
+    allModels.backlink.forEach(item => {
+        if (item.type === "local" && data.removeRootIDs.includes(item.rootId)) {
+            item.parent.parent.removeTab(item.parent.id, false, false, false);
+        } else {
+            item.refresh();
+            if (item.type === "local") {
+                updateTitle(item.rootId, item.parent);
+            }
+        }
+    });
+    allModels.files.forEach(item => {
+        setNoteBook(() => {
+            item.init(false);
+        });
+    });
+    allModels.bookmark.forEach(item => {
+        item.update();
+    });
+    allModels.tag.forEach(item => {
+        item.update();
+    });
+    // NOTE asset 无法获取推送地址，先不处理
+    allModels.search.forEach(item => {
+        item.parent.panelElement.querySelector("#searchInput").dispatchEvent(new CustomEvent("input"));
+    });
+    allModels.custom.forEach(item => {
+        if (item.update) {
+            item.update();
+        }
+    });
+    /// #endif
+};
 
 export const lockScreen = () => {
     if (window.siyuan.config.readonly) {

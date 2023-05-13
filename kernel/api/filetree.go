@@ -96,7 +96,7 @@ func heading2Doc(c *gin.Context) {
 
 	name := path.Base(targetPath)
 	box := model.Conf.Box(targetNotebook)
-	files, _, _ := model.ListDocTree(targetNotebook, path.Dir(targetPath), model.Conf.FileTree.Sort, false, model.Conf.FileTree.MaxListCount)
+	files, _, _ := model.ListDocTree(targetNotebook, path.Dir(targetPath), util.SortModeUnassigned, false, model.Conf.FileTree.MaxListCount)
 	evt := util.NewCmdResult("heading2doc", 0, util.PushModeBroadcast)
 	evt.Data = map[string]interface{}{
 		"box":            box,
@@ -141,7 +141,7 @@ func li2Doc(c *gin.Context) {
 
 	name := path.Base(targetPath)
 	box := model.Conf.Box(targetNotebook)
-	files, _, _ := model.ListDocTree(targetNotebook, path.Dir(targetPath), model.Conf.FileTree.Sort, false, model.Conf.FileTree.MaxListCount)
+	files, _, _ := model.ListDocTree(targetNotebook, path.Dir(targetPath), util.SortModeUnassigned, false, model.Conf.FileTree.MaxListCount)
 	evt := util.NewCmdResult("li2doc", 0, util.PushModeBroadcast)
 	evt.Data = map[string]interface{}{
 		"box":            box,
@@ -449,7 +449,7 @@ func createDailyNote(c *gin.Context) {
 	evt.AppId = app
 
 	name := path.Base(p)
-	files, _, _ := model.ListDocTree(box.ID, path.Dir(p), model.Conf.FileTree.Sort, false, model.Conf.FileTree.MaxListCount)
+	files, _, _ := model.ListDocTree(box.ID, path.Dir(p), util.SortModeUnassigned, false, model.Conf.FileTree.MaxListCount)
 	evt.Data = map[string]interface{}{
 		"box":   box,
 		"path":  p,
@@ -475,6 +475,12 @@ func createDocWithMd(c *gin.Context) {
 		return
 	}
 
+	var parentID string
+	parentIDArg := arg["parentID"]
+	if nil != parentIDArg {
+		parentID = parentIDArg.(string)
+	}
+
 	hPath := arg["path"].(string)
 	markdown := arg["markdown"].(string)
 
@@ -490,7 +496,7 @@ func createDocWithMd(c *gin.Context) {
 		hPath = "/" + hPath
 	}
 
-	id, err := model.CreateWithMarkdown(notebook, hPath, markdown)
+	id, err := model.CreateWithMarkdown(notebook, hPath, markdown, parentID)
 	if nil != err {
 		ret.Code = -1
 		ret.Msg = err.Error()
@@ -612,7 +618,7 @@ func listDocsByPath(c *gin.Context) {
 	notebook := arg["notebook"].(string)
 	p := arg["path"].(string)
 	sortParam := arg["sort"]
-	sortMode := model.Conf.FileTree.Sort
+	sortMode := util.SortModeUnassigned
 	if nil != sortParam {
 		sortMode = int(sortParam.(float64))
 	}
@@ -727,7 +733,7 @@ func getDoc(c *gin.Context) {
 func pushCreate(box *model.Box, p, treeID string, arg map[string]interface{}) {
 	evt := util.NewCmdResult("create", 0, util.PushModeBroadcast)
 	name := path.Base(p)
-	files, _, _ := model.ListDocTree(box.ID, path.Dir(p), model.Conf.FileTree.Sort, false, model.Conf.FileTree.MaxListCount)
+	files, _, _ := model.ListDocTree(box.ID, path.Dir(p), util.SortModeUnassigned, false, model.Conf.FileTree.MaxListCount)
 	evt.Data = map[string]interface{}{
 		"box":   box,
 		"path":  p,

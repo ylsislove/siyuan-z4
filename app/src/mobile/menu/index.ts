@@ -35,6 +35,18 @@ export const initRightMenu = () => {
     <svg class="b3-menu__icon"><use xlink:href="#iconAccount"></use></svg><span class="b3-menu__label">${window.siyuan.languages.login}</span>
 </div>`;
     }
+
+    let aiHTML = `<div class="b3-menu__item${window.siyuan.config.readonly ? " fn__none" : ""}" id="menuAI">
+        <svg class="b3-menu__icon"><use xlink:href="#iconSparkles"></use></svg><span class="b3-menu__label">AI</span>
+    </div>`;
+    const isHuawei = () => {
+        return 0 < window.siyuan.config.system.osPlatform.toLowerCase().indexOf("huawei");
+    };
+    if (isHuawei()) {
+        // Access to the OpenAI API is no longer supported on Huawei devices https://github.com/siyuan-note/siyuan/issues/8192
+        aiHTML = "";
+    }
+
     menuElement.innerHTML = `<div class="b3-menu__title">
     <svg class="b3-menu__icon"><use xlink:href="#iconLeft"></use></svg>
     <span class="b3-menu__label">${window.siyuan.languages.back}</span>
@@ -76,9 +88,7 @@ export const initRightMenu = () => {
     <div class="b3-menu__item${window.siyuan.config.readonly ? " fn__none" : ""}" id="menuRiffCard">
         <svg class="b3-menu__icon"><use xlink:href="#iconRiffCard"></use></svg><span class="b3-menu__label">${window.siyuan.languages.riffCard}</span>
     </div>
-    <div class="b3-menu__item${window.siyuan.config.readonly ? " fn__none" : ""}" id="menuAI">
-        <svg class="b3-menu__icon"><use xlink:href="#iconSparkles"></use></svg><span class="b3-menu__label">AI</span>
-    </div>
+    ${aiHTML}
     <div class="b3-menu__item${window.siyuan.config.readonly ? " fn__none" : ""}" id="menuAppearance">
         <svg class="b3-menu__icon"><use xlink:href="#iconTheme"></use></svg><span class="b3-menu__label">${window.siyuan.languages.appearance}</span>
     </div>
@@ -93,7 +103,7 @@ export const initRightMenu = () => {
         <svg class="b3-menu__icon"><use xlink:href="#iconHelp"></use></svg><span class="b3-menu__label">${window.siyuan.languages.help}</span>
     </div>
     <a class="b3-menu__item" href="${"zh_CN" === window.siyuan.config.lang ? "https://ld246.com/article/1649901726096" : "https://github.com/siyuan-note/siyuan/issues"}" target="_blank">
-        <svg class="b3-menu__icon"><use xlink:href="#iconHeart"></use></svg>
+        <svg class="b3-menu__icon"><use xlink:href="#iconFeedback"></use></svg>
         <span class="b3-menu__label">${window.siyuan.languages.feedback}</span>
     </a>
 </div>`;
@@ -193,7 +203,7 @@ export const initRightMenu = () => {
                 event.preventDefault();
                 event.stopPropagation();
                 break;
-            } else if (target.id === "menuHistory" && !window.siyuan.config.readonly) {
+            } else if (target.id === "menuHistory") {
                 openHistory();
                 event.preventDefault();
                 event.stopPropagation();

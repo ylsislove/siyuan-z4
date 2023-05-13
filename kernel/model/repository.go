@@ -49,6 +49,7 @@ import (
 	"github.com/siyuan-note/siyuan/kernel/cache"
 	"github.com/siyuan-note/siyuan/kernel/conf"
 	"github.com/siyuan-note/siyuan/kernel/filesys"
+	"github.com/siyuan-note/siyuan/kernel/sql"
 	"github.com/siyuan-note/siyuan/kernel/task"
 	"github.com/siyuan-note/siyuan/kernel/treenode"
 	"github.com/siyuan-note/siyuan/kernel/util"
@@ -830,10 +831,7 @@ var syncingFiles = sync.Map{}
 var syncingStorages = false
 
 func waitForSyncingStorages() {
-	for i := 0; i < 30; i++ {
-		if syncingStorages {
-			return
-		}
+	for syncingStorages {
 		time.Sleep(time.Second)
 	}
 }
@@ -1053,14 +1051,11 @@ func bootSyncRepo() (err error) {
 
 	if 0 < len(fetchedFiles) {
 		go func() {
-			time.Sleep(7 * time.Second) // 等待一段时间后前端完成界面初始化后再同步
 			syncErr := syncRepo(false, false)
 			if nil != err {
 				logging.LogErrorf("boot background sync repo failed: %s", syncErr)
 				return
 			}
-			syncingFiles = sync.Map{}
-			syncingStorages = false
 		}()
 	}
 	return
@@ -1198,7 +1193,7 @@ func processSyncMergeResult(exit, byHand bool, start time.Time, mergeResult *dej
 	// 有数据变更，需要重建索引
 	var upserts, removes []string
 	var upsertTrees int
-	var needReloadFlashcard, needReloadOcrTexts bool
+	var needReloadFlashcard, needReloadOcrTexts, needReloadFiletree bool
 	for _, file := range mergeResult.Upserts {
 		upserts = append(upserts, file.Path)
 		if strings.HasPrefix(file.Path, "/storage/riff/") {
@@ -1207,6 +1202,10 @@ func processSyncMergeResult(exit, byHand bool, start time.Time, mergeResult *dej
 
 		if strings.HasPrefix(file.Path, "/data/assets/ocr-texts.json") {
 			needReloadOcrTexts = true
+		}
+
+		if strings.HasSuffix(file.Path, "/.siyuan/conf.json") {
+			needReloadFiletree = true
 		}
 
 		if strings.HasSuffix(file.Path, ".sy") {
@@ -1222,6 +1221,10 @@ func processSyncMergeResult(exit, byHand bool, start time.Time, mergeResult *dej
 		if strings.HasPrefix(file.Path, "/data/assets/ocr-texts.json") {
 			needReloadOcrTexts = true
 		}
+
+		if strings.HasSuffix(file.Path, "/.siyuan/conf.json") {
+			needReloadFiletree = true
+		}
 	}
 
 	if needReloadFlashcard {
@@ -1232,39 +1235,55 @@ func processSyncMergeResult(exit, byHand bool, start time.Time, mergeResult *dej
 		LoadAssetsTexts()
 	}
 
+	syncingFiles = sync.Map{}
+	syncingStorages = false
+
 	cache.ClearDocsIAL()              // 同步后文档树文档图标没有更新 https://github.com/siyuan-note/siyuan/issues/4939
 	if needFullReindex(upsertTrees) { // 改进同步后全量重建索引判断 https://github.com/siyuan-note/siyuan/issues/5764
 		FullReindex()
 		return
 	}
 
-	incReindex(upserts, removes)
-	if !exit {
-		ReloadUI()
+	if needReloadFiletree {
+		util.BroadcastByType("filetree", "reloadFiletree", 0, "", nil)
 	}
 
+	if exit { // 退出时同步不用推送事件
+		return
+	}
+
+	upsertRootIDs, removeRootIDs := incReindex(upserts, removes)
 	elapsed := time.Since(start)
-	if !exit {
-		go func() {
-			time.Sleep(2 * time.Second)
-			util.PushStatusBar(fmt.Sprintf(Conf.Language(149), elapsed.Seconds()))
+	go func() {
+		sql.WaitForWritingDatabase()
+		util.WaitForUILoaded()
 
-			if 0 < len(mergeResult.Conflicts) {
-				syConflict := false
-				for _, file := range mergeResult.Conflicts {
-					if strings.HasSuffix(file.Path, ".sy") {
-						syConflict = true
-						break
-					}
-				}
+		if util.ContainerAndroid == util.Container || util.ContainerIOS == util.Container {
+			// 移动端不推送差异详情
+			upsertRootIDs = []string{}
+		}
 
-				if syConflict {
-					// 数据同步发生冲突时在界面上进行提醒 https://github.com/siyuan-note/siyuan/issues/7332
-					util.PushMsg(Conf.Language(108), 7000)
+		util.BroadcastByType("main", "syncMergeResult", 0, "",
+			map[string]interface{}{"upsertRootIDs": upsertRootIDs, "removeRootIDs": removeRootIDs})
+
+		time.Sleep(2 * time.Second)
+		util.PushStatusBar(fmt.Sprintf(Conf.Language(149), elapsed.Seconds()))
+
+		if 0 < len(mergeResult.Conflicts) {
+			syConflict := false
+			for _, file := range mergeResult.Conflicts {
+				if strings.HasSuffix(file.Path, ".sy") {
+					syConflict = true
+					break
 				}
 			}
-		}()
-	}
+
+			if syConflict {
+				// 数据同步发生冲突时在界面上进行提醒 https://github.com/siyuan-note/siyuan/issues/7332
+				util.PushMsg(Conf.Language(108), 7000)
+			}
+		}
+	}()
 }
 
 func logSyncMergeResult(mergeResult *dejavu.MergeResult) {
@@ -1661,7 +1680,7 @@ type Sync struct {
 }
 
 func GetCloudSpace() (s *Sync, b *Backup, hSize, hAssetSize, hTotalSize, hExchangeSize, hTrafficUploadSize, hTrafficDownloadSize, hTrafficAPIGet, hTrafficAPIPut string, err error) {
-	stat, err := getCloudSpaceOSS()
+	stat, err := getCloudSpace()
 	if nil != err {
 		err = errors.New(Conf.Language(30) + " " + err.Error())
 		return
@@ -1708,7 +1727,7 @@ func GetCloudSpace() (s *Sync, b *Backup, hSize, hAssetSize, hTotalSize, hExchan
 	return
 }
 
-func getCloudSpaceOSS() (stat *cloud.Stat, err error) {
+func getCloudSpace() (stat *cloud.Stat, err error) {
 	repo, err := newRepository()
 	if nil != err {
 		return
