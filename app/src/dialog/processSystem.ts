@@ -20,6 +20,7 @@ import {reloadProtyle} from "../protyle/util/reload";
 import {Tab} from "../layout/Tab";
 import {setEmpty} from "../mobile/util/setEmpty";
 import {hideElements} from "../protyle/ui/hideElements";
+import {App} from "../index";
 
 const updateTitle = (rootID: string, tab: Tab) => {
     fetchPost("/api/block/getDocInfo", {
@@ -29,22 +30,22 @@ const updateTitle = (rootID: string, tab: Tab) => {
     });
 };
 
-export const reloadSync = (data: { upsertRootIDs: string[], removeRootIDs: string[] }) => {
+export const reloadSync = (app: App, data: { upsertRootIDs: string[], removeRootIDs: string[] }) => {
     hideMessage();
     /// #if MOBILE
     if (window.siyuan.mobile.popEditor) {
         if (data.removeRootIDs.includes(window.siyuan.mobile.popEditor.protyle.block.rootID)) {
             hideElements(["dialog"]);
         } else {
-            reloadProtyle(window.siyuan.mobile.popEditor.protyle);
+            reloadProtyle(window.siyuan.mobile.popEditor.protyle, false);
             window.siyuan.mobile.popEditor.protyle.breadcrumb.render(window.siyuan.mobile.popEditor.protyle, true);
         }
     }
     if (window.siyuan.mobile.editor) {
         if (data.removeRootIDs.includes(window.siyuan.mobile.editor.protyle.block.rootID)) {
-            setEmpty();
+            setEmpty(app);
         } else {
-            reloadProtyle(window.siyuan.mobile.editor.protyle);
+            reloadProtyle(window.siyuan.mobile.editor.protyle, false);
             fetchPost("/api/block/getDocInfo", {
                 id: window.siyuan.mobile.editor.protyle.block.rootID
             }, (response) => {
@@ -59,7 +60,7 @@ export const reloadSync = (data: { upsertRootIDs: string[], removeRootIDs: strin
     const allModels = getAllModels();
     allModels.editor.forEach(item => {
         if (data.upsertRootIDs.includes(item.editor.protyle.block.rootID)) {
-            reloadProtyle(item.editor.protyle);
+            reloadProtyle(item.editor.protyle, false);
             updateTitle(item.editor.protyle.block.rootID, item.parent);
         } else if (data.removeRootIDs.includes(item.editor.protyle.block.rootID)) {
             item.parent.parent.removeTab(item.parent.id, false, false, false);
@@ -245,9 +246,12 @@ export const transactionError = () => {
         /// #if MOBILE
         exitSiYuan();
         /// #else
-        exportLayout(false, () => {
-            exitSiYuan();
-        }, false, true);
+        exportLayout({
+            reload: false,
+            onlyData: false,
+            errorExit: true,
+            cb: exitSiYuan
+        });
         /// #endif
     });
     btnsElement[1].addEventListener("click", () => {

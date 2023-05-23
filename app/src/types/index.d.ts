@@ -2,16 +2,7 @@ type TLayout = "normal" | "bottom" | "left" | "right" | "center"
 type TSearchFilter = "mathBlock" | "table" | "blockquote" | "superBlock" | "paragraph" | "document" | "heading"
     | "list" | "listItem" | "codeBlock" | "htmlBlock"
 type TDirection = "lr" | "tb"
-type TDockType =
-    "file"
-    | "outline"
-    | "bookmark"
-    | "tag"
-    | "graph"
-    | "globalGraph"
-    | "backlink"
-    | "backlinkOld"
-    | "inbox"
+type TPluginDockPosition = "LeftTop" | "LeftBottom" | "RightTop" | "RightBottom" | "BottomLeft" | "BottomRight"
 type TDockPosition = "Left" | "Right" | "Bottom"
 type TWS = "main" | "filetree" | "protyle"
 type TEditorMode = "preview" | "wysiwyg"
@@ -31,7 +22,7 @@ type TOperation =
     | "removeFlashcards"
 type TBazaarType = "templates" | "icons" | "widgets" | "themes" | "plugins"
 type TCardType = "doc" | "notebook" | "all"
-type TEventBus = "ws-main"
+type TEventBus = "ws-main" | "click-blockicon" | "click-editorcontent" | "click-pdf"
 
 declare module "blueimp-md5"
 
@@ -39,7 +30,7 @@ interface Window {
     dataLayer: any[]
     siyuan: ISiyuan
     webkit: any
-    html2canvas: (element: Element) => Promise<any>;
+    html2canvas: (element: Element, opitons: { useCORS: boolean }) => Promise<any>;
     JSAndroid: {
         returnDesktop(): void
         openExternal(url: string): void
@@ -162,7 +153,7 @@ interface IBackStack {
     callback?: string[],
     position?: { start: number, end: number }
     protyle?: IProtyle,
-    isZoom?: boolean
+    zoomId?: string
 }
 
 interface IEmoji {
@@ -251,6 +242,7 @@ interface ISiyuan {
 }
 
 interface IScrollAttr {
+    rootId: string,
     startId: string,
     endId: string
     scrollTop: number,
@@ -278,6 +270,7 @@ interface IObject {
 }
 
 declare interface ILayoutJSON extends ILayoutOptions {
+    scrollAttr?: IScrollAttr,
     instance?: string,
     width?: string,
     height?: string,
@@ -291,26 +284,47 @@ declare interface ILayoutJSON extends ILayoutOptions {
     rootId?: string
     active?: boolean
     pin?: boolean
-    data?: {
-        cardType: TCardType,
-        id: string,
-        title?: string
-    }
+    customModelData?: any
+    customModelType?: string
     config?: ISearchOption
     children?: ILayoutJSON[] | ILayoutJSON
 }
 
 declare interface IDockTab {
-    type: TDockType;
+    type: string;
     size: { width: number, height: number }
     show: boolean
     icon: string
-    hotkeyLangId: string
+    title: string
+    hotkey?: string
+    hotkeyLangId?: string   // 常量中无法存变量
+}
+
+declare interface IPluginData {
+    name: string,
+    js: string,
+    css: string,
+    i18n: IObject
+}
+
+declare interface IPluginDockTab {
+    position: TPluginDockPosition,
+    size: { width: number, height: number },
+    icon: string,
+    hotkey?: string,
+    title: string,
 }
 
 declare interface IOpenFileOptions {
+    app: import("../index").App,
     searchData?: ISearchOption, // 搜索必填
-    customData?: any, // card 必填
+    // card 和自定义页签 必填
+    custom?: {
+        title: string,
+        icon: string,
+        data?: any
+        fn?: (options: { tab: import("../layout/Tab").Tab, data: any }) => import("../layout/Model").Model,
+    }
     assetPath?: string, // asset 必填
     fileName?: string, // file 必填
     rootIcon?: string, // 文档图标
@@ -548,6 +562,7 @@ declare interface IConfig {
         name: boolean
         alias: boolean
         memo: boolean
+        indexAssetPath: boolean
         ial: boolean
         limit: number
         caseSensitive: boolean
@@ -709,6 +724,7 @@ declare interface IMenu {
     iconHTML?: string
     current?: boolean
     bind?: (element: HTMLElement) => void
+    index?: number
 }
 
 declare interface IBazaarItem {

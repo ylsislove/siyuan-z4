@@ -26,10 +26,11 @@ import {countBlockWord, countSelectWord} from "../layout/status";
 import {showMessage} from "../dialog/message";
 import {objEquals} from "../util/functions";
 import {resize} from "../protyle/util/resize";
-import {newCardModel} from "../card/newCardTab";
 import {Search} from "../search";
+import {App} from "../index";
 
 export const openFileById = async (options: {
+    app: App,
     id: string,
     position?: string,
     mode?: TEditorMode,
@@ -48,6 +49,7 @@ export const openFileById = async (options: {
             options.removeCurrentTab = true;
         }
         openFile({
+            app: options.app,
             fileName: data.data.rootTitle,
             rootIcon: data.data.rootIcon,
             rootID: data.data.rootID,
@@ -63,12 +65,13 @@ export const openFileById = async (options: {
     });
 };
 
-export const openAsset = (assetPath: string, page: number | string, position?: string) => {
+export const openAsset = (app: App, assetPath: string, page: number | string, position?: string) => {
     const suffix = pathPosix().extname(assetPath.split("?page")[0]);
     if (!Constants.SIYUAN_ASSETS_EXTS.includes(suffix)) {
         return;
     }
     openFile({
+        app,
         assetPath,
         page,
         position,
@@ -96,9 +99,9 @@ export const openFile = (options: IOpenFileOptions) => {
             }
             return;
         }
-    } else if (options.customData) {
+    } else if (options.custom) {
         const custom = allModels.custom.find((item) => {
-            if (objEquals(item.data, options.customData)) {
+            if (objEquals(item.data, options.custom.data)) {
                 if (!pdfIsLoading(item.parent.parent.element)) {
                     item.parent.parent.switchTab(item.parent.headElement);
                     item.parent.parent.showHeading();
@@ -339,7 +342,11 @@ const switchEditor = (editor: Editor, options: IOpenFileOptions, allModels: IMod
             highlightById(editor.editor.protyle, options.id, true);
         } else if (options.action.includes(Constants.CB_GET_FOCUS)) {
             if (nodeElement) {
-                focusBlock(nodeElement);
+                const newRange = focusBlock(nodeElement);
+                if (newRange) {
+                    // 需要更新 range，否则文档大纲点击导致切换页签时因为 resize 中 `保持光标位置不变` 会导致光标跳动
+                    editor.editor.protyle.toolbar.range = newRange;
+                }
                 scrollCenter(editor.editor.protyle, nodeElement, true);
             } else if (editor.editor.protyle.block.rootID === options.id) {
                 // 由于 https://github.com/siyuan-note/siyuan/issues/5420，移除定位
@@ -376,6 +383,7 @@ const newTab = (options: IOpenFileOptions) => {
                 title: getDisplayName(options.assetPath),
                 callback(tab) {
                     tab.addModel(new Asset({
+                        app: options.app,
                         tab,
                         path: options.assetPath,
                         page: options.page,
@@ -384,14 +392,14 @@ const newTab = (options: IOpenFileOptions) => {
                 }
             });
         }
-    } else if (options.customData) {
+    } else if (options.custom) {
         tab = new Tab({
-            icon: "iconRiffCard",
-            title: window.siyuan.languages.spaceRepetition,
+            icon: options.custom.icon,
+            title: options.custom.title,
             callback(tab) {
-                tab.addModel(newCardModel({
+                tab.addModel(options.custom.fn({
                     tab,
-                    data: options.customData
+                    data: options.custom.data
                 }));
                 setPanelFocus(tab.panelElement.parentElement.parentElement);
             }
@@ -402,6 +410,7 @@ const newTab = (options: IOpenFileOptions) => {
             title: window.siyuan.languages.search,
             callback(tab) {
                 tab.addModel(new Search({
+                    app: options.app,
                     tab,
                     config: options.searchData
                 }));
@@ -416,12 +425,14 @@ const newTab = (options: IOpenFileOptions) => {
                 let editor;
                 if (options.zoomIn) {
                     editor = new Editor({
+                        app: options.app,
                         tab,
                         blockId: options.id,
                         action: [Constants.CB_GET_ALL, Constants.CB_GET_FOCUS],
                     });
                 } else {
                     editor = new Editor({
+                        app: options.app,
                         tab,
                         blockId: options.id,
                         mode: options.mode,
@@ -435,48 +446,56 @@ const newTab = (options: IOpenFileOptions) => {
     return tab;
 };
 
-export const updatePanelByEditor = (protyle?: IProtyle, focus = true, pushBackStack = false, reload = false) => {
+export const updatePanelByEditor = (options: {
+    protyle?: IProtyle,
+    focus: boolean,
+    pushBackStack: boolean,
+    reload: boolean,
+    resize: boolean
+}) => {
     let title = window.siyuan.languages.siyuanNote;
-    if (protyle && protyle.path) {
+    if (options.protyle && options.protyle.path) {
         // https://ld246.com/article/1637636106054/comment/1641485541929#comments
-        if (protyle.element.classList.contains("fn__none") ||
-            (!hasClosestByClassName(protyle.element, "layout__wnd--active") &&
+        if (options.protyle.element.classList.contains("fn__none") ||
+            (!hasClosestByClassName(options.protyle.element, "layout__wnd--active") &&
                 document.querySelector(".layout__wnd--active")  // https://github.com/siyuan-note/siyuan/issues/4414
             )
         ) {
             return;
         }
-        title = protyle.title.editElement.textContent;
-        resize(protyle);
-        if (focus) {
-            if (protyle.toolbar.range) {
-                focusByRange(protyle.toolbar.range);
-                countSelectWord(protyle.toolbar.range, protyle.block.rootID);
-                if (pushBackStack && protyle.preview.element.classList.contains("fn__none")) {
-                    pushBack(protyle, protyle.toolbar.range);
+        title = options.protyle.title.editElement.textContent;
+        if (options.resize) {
+            resize(options.protyle);
+        }
+        if (options.focus) {
+            if (options.protyle.toolbar.range) {
+                focusByRange(options.protyle.toolbar.range);
+                countSelectWord(options.protyle.toolbar.range, options.protyle.block.rootID);
+                if (options.pushBackStack && options.protyle.preview.element.classList.contains("fn__none")) {
+                    pushBack(options.protyle, options.protyle.toolbar.range);
                 }
             } else {
-                focusBlock(protyle.wysiwyg.element.firstElementChild);
-                if (pushBackStack && protyle.preview.element.classList.contains("fn__none")) {
-                    pushBack(protyle, undefined, protyle.wysiwyg.element.firstElementChild);
+                focusBlock(options.protyle.wysiwyg.element.firstElementChild);
+                if (options.pushBackStack && options.protyle.preview.element.classList.contains("fn__none")) {
+                    pushBack(options.protyle, undefined, options.protyle.wysiwyg.element.firstElementChild);
                 }
-                countBlockWord([], protyle.block.rootID);
+                countBlockWord([], options.protyle.block.rootID);
             }
         }
-        if (window.siyuan.config.fileTree.alwaysSelectOpenedFile && protyle) {
+        if (window.siyuan.config.fileTree.alwaysSelectOpenedFile && options.protyle) {
             const fileModel = getDockByType("file")?.data.file;
             if (fileModel instanceof Files) {
-                const target = fileModel.element.querySelector(`li[data-path="${protyle.path}"]`);
+                const target = fileModel.element.querySelector(`li[data-path="${options.protyle.path}"]`);
                 if (!target || (target && !target.classList.contains("b3-list-item--focus"))) {
-                    fileModel.selectItem(protyle.notebookId, protyle.path);
+                    fileModel.selectItem(options.protyle.notebookId, options.protyle.path);
                 }
             }
         }
     }
     // 切换页签或关闭所有页签时，需更新对应的面板
     const models = getAllModels();
-    updateOutline(models, protyle, reload);
-    updateBacklinkGraph(models, protyle);
+    updateOutline(models, options.protyle, options.reload);
+    updateBacklinkGraph(models, options.protyle);
     setTitle(title);
 };
 
@@ -495,7 +514,7 @@ export const isCurrentEditor = (blockId: string) => {
     return true;
 };
 
-const updateOutline = (models: IModels, protyle: IProtyle, reload = false) => {
+export const updateOutline = (models: IModels, protyle: IProtyle, reload = false) => {
     models.outline.find(item => {
         if (reload || (item.type === "pin" && (!protyle || item.blockId !== protyle.block?.rootID))) {
             let blockId = "";

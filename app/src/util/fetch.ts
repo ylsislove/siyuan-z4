@@ -29,20 +29,23 @@ export const fetchPost = (url: string, data?: any, cb?: (response: IWebSocketDat
     }
     fetch(url, init).then((response) => {
         if (response.status === 404) {
-            cb({
+            return {
                 data: null,
                 msg: response.statusText,
                 code: response.status,
-            });
+            };
         } else {
-            if (response.headers.get("content-type").indexOf("application/json") > -1) {
+            if (response.headers.get("content-type")?.indexOf("application/json") > -1) {
                 return response.json();
             } else {
                 return response.text();
             }
         }
     }).then((response: IWebSocketData) => {
-        if (!response) {
+        if (typeof response === "string") {
+            if (cb) {
+                cb(response);
+            }
             return;
         }
         if (["/api/search/searchRefBlock", "/api/graph/getGraph", "/api/graph/getLocalGraph"].includes(url)) {
@@ -50,7 +53,11 @@ export const fetchPost = (url: string, data?: any, cb?: (response: IWebSocketDat
                 return;
             }
         }
-        if (processMessage(response) && cb) {
+        if (typeof response === "object" && typeof response.msg === "string" && typeof response.code === "number") {
+            if (processMessage(response) && cb) {
+                cb(response);
+            }
+        } else if (cb) {
             cb(response);
         }
     }).catch((e) => {

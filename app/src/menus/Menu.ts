@@ -82,6 +82,16 @@ export class Menu {
         }
     }
 
+    public addSeparator(index?: number) {
+        this.addItem({type: "separator", index});
+    }
+
+    public addItem(option: IMenu) {
+        const menuItem = new MenuItem(option);
+        this.append(menuItem.element, option.index);
+        return menuItem.element;
+    }
+
     public remove() {
         if (window.siyuan.menus.menu.removeCB) {
             window.siyuan.menus.menu.removeCB();
@@ -101,9 +111,16 @@ export class Menu {
         window.siyuan.menus.menu.element.removeAttribute("data-name");    // 标识再次点击不消失
     }
 
-    public append(element?: HTMLElement) {
+    public append(element?: HTMLElement, index?: number) {
         if (!element) {
             return;
+        }
+        if (typeof index === "number") {
+            const insertElement = this.element.querySelectorAll(".b3-menu__items > .b3-menu__separator")[index];
+            if (insertElement) {
+                insertElement.before(element);
+                return;
+            }
         }
         this.element.lastElementChild.append(element);
     }
@@ -170,7 +187,7 @@ export class MenuItem {
             });
         }
         let html = `<span class="b3-menu__label">${options.label}</span>`;
-        if (options.iconHTML) {
+        if (typeof options.iconHTML === "string") {
             html = options.iconHTML + html;
         } else {
             html = `<svg class="b3-menu__icon${["HTML (SiYuan)", window.siyuan.languages.template].includes(options.label) ? " ft__error" : ""}" style="${options.icon === "iconClose" ? "height:10px;" : ""}"><use xlink:href="#${options.icon || ""}"></use></svg>${html}`;

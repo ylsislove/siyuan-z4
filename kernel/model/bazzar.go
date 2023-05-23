@@ -35,7 +35,7 @@ func GetPackageREADME(repoURL, repoHash, packageType string) (ret string) {
 func BazaarPlugins() (plugins []*bazaar.Plugin) {
 	plugins = bazaar.Plugins()
 	for _, plugin := range plugins {
-		plugin.Installed = gulu.File.IsDir(filepath.Join(util.DataDir, "plugins", plugin.Name))
+		plugin.Installed = util.IsPathRegularDirOrSymlinkDir(filepath.Join(util.DataDir, "plugins", plugin.Name))
 		if plugin.Installed {
 			if plugin.Installed {
 				if pluginConf, err := bazaar.PluginJSON(plugin.Name); nil == err && nil != plugin {
@@ -57,7 +57,6 @@ func InstalledPlugins() (plugins []*bazaar.Plugin) {
 		petal := getPetalByName(plugin.Name, petals)
 		if nil != petal {
 			plugin.Enabled = petal.Enabled
-			break
 		}
 	}
 	return
@@ -97,7 +96,7 @@ func UninstallBazaarPlugin(pluginName string) error {
 func BazaarWidgets() (widgets []*bazaar.Widget) {
 	widgets = bazaar.Widgets()
 	for _, widget := range widgets {
-		widget.Installed = gulu.File.IsDir(filepath.Join(util.DataDir, "widgets", widget.Name))
+		widget.Installed = util.IsPathRegularDirOrSymlinkDir(filepath.Join(util.DataDir, "widgets", widget.Name))
 		if widget.Installed {
 			if widget.Installed {
 				if widgetConf, err := bazaar.WidgetJSON(widget.Name); nil == err && nil != widget {
@@ -250,7 +249,7 @@ func UninstallBazaarTheme(themeName string) error {
 func BazaarTemplates() (templates []*bazaar.Template) {
 	templates = bazaar.Templates()
 	for _, template := range templates {
-		template.Installed = gulu.File.IsExist(filepath.Join(util.DataDir, "templates", template.Name))
+		template.Installed = util.IsPathRegularDirOrSymlinkDir(filepath.Join(util.DataDir, "templates", template.Name))
 		if template.Installed {
 			if themeConf, err := bazaar.TemplateJSON(template.Name); nil == err && nil != themeConf {
 				if template.Version != themeConf.Version {

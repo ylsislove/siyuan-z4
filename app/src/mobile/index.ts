@@ -35,6 +35,7 @@ class App {
         addScript(`${Constants.PROTYLE_CDN}/js/protyle-html.js?v=${Constants.SIYUAN_VERSION}`, "protyleWcHtmlScript");
         addBaseURL();
         window.siyuan = {
+            notebooks: [],
             transactions: [],
             reqIds: {},
             backStack: [],
@@ -42,13 +43,14 @@ class App {
             blockPanels: [],
             mobile: {},
             ws: new Model({
+                app: this,
                 id: genUUID(),
                 type: "main",
-                msgCallback: (data)=> {
+                msgCallback: (data) => {
                     this.plugins.forEach((plugin) => {
                         plugin.eventBus.emit("ws-main", data);
                     });
-                    onMessage(data);
+                    onMessage(this, data);
                 }
             })
         };
@@ -64,7 +66,7 @@ class App {
             getLocalStorage(() => {
                 fetchGet(`/appearance/langs/${window.siyuan.config.appearance.lang}.json?v=${Constants.SIYUAN_VERSION}`, (lauguages) => {
                     window.siyuan.languages = lauguages;
-                    window.siyuan.menus = new Menus();
+                    window.siyuan.menus = new Menus(this);
                     document.title = window.siyuan.languages.siyuanNote;
                     bootSync();
                     loadAssets(confResponse.data.conf.appearance);
@@ -74,10 +76,12 @@ class App {
                         window.siyuan.user = userResponse.data;
                         fetchPost("/api/system/getEmojiConf", {}, emojiResponse => {
                             window.siyuan.emojis = emojiResponse.data as IEmoji[];
-                            initFramework();
-                            initRightMenu();
-                            loadPlugins(siyuanApp);
-                            openChangelog();
+                            setNoteBook(() => {
+                                initFramework(this);
+                                initRightMenu(this);
+                                loadPlugins(this);
+                                openChangelog();
+                            });
                         });
                     });
                     addGA();
@@ -85,9 +89,10 @@ class App {
             });
             document.addEventListener("touchstart", handleTouchStart, false);
             document.addEventListener("touchmove", handleTouchMove, false);
-            document.addEventListener("touchend", handleTouchEnd, false);
+            document.addEventListener("touchend", (event) => {
+                handleTouchEnd(this, event);
+            }, false);
         });
-        setNoteBook();
         promiseTransactions();
     }
 }
@@ -102,7 +107,7 @@ window.showKeyboardToolbar = (height) => {
 window.hideKeyboardToolbar = hideKeyboardToolbar;
 window.openFileByURL = (openURL) => {
     if (openURL && isSYProtocol(openURL)) {
-        openMobileFileById(getIdFromSYProtocol(openURL),
+        openMobileFileById(siyuanApp, getIdFromSYProtocol(openURL),
             getSearch("focus", openURL) === "1" ? [Constants.CB_GET_ALL, Constants.CB_GET_FOCUS] : [Constants.CB_GET_FOCUS, Constants.CB_GET_CONTEXT]);
         return true;
     }

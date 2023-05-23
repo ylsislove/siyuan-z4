@@ -15,7 +15,7 @@ Build Your Eternal Digital Garden
 
 ## 💡 Introduction
 
-SiYuan is a local-first personal knowledge management system, support fine-grained block-level reference and Markdown
+SiYuan is a privacy-first personal knowledge management system, support fine-grained block-level reference and Markdown
 WYSIWYG.
 
 ![feature0.png](https://b3logfile.com/file/2022/10/feature0-EHMFc7T.png)
@@ -188,6 +188,7 @@ The data is saved in the workspace folder, in the workspace data folder:
 * `storage` is used to save query conditions, layouts and flashcards, etc.
 * `templates` is used to save template snippets
 * `widgets` is used to save widgets
+* `plugins` is used to save plugins
 * The rest of the folders are the notebook folders created by the user, files with the suffix of `.sy` in the notebook folder are used to save the document data, and the data format is JSON
 
 ### Does it support data synchronization through a third-party sync disk?
@@ -263,10 +264,6 @@ The first sub-block under the list item is the block icon omitted. You can move 
 All local features are free, even for commercial use.
 
 [Cloud Service](https://b3log.org/siyuan/pricing.html) requires an annual subscription. At present, only users in mainland China are supported to subscribe, and users outside of mainland China are not allowed to subscribe.
-
-If you don't need a subscription but would like to support development, you are welcome to make a donation:
-
-* [B3log - Open Collective](https://opencollective.com/b3log)
 
 ## 🙏 Acknowledgement
 

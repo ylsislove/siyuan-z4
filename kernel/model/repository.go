@@ -36,6 +36,7 @@ import (
 	"github.com/88250/gulu"
 	"github.com/88250/lute"
 	"github.com/88250/lute/ast"
+	"github.com/88250/lute/html"
 	"github.com/88250/lute/parse"
 	"github.com/88250/lute/render"
 	"github.com/dustin/go-humanize"
@@ -567,7 +568,9 @@ func checkoutRepo(id string) {
 		return
 	}
 
-	FullReindex()
+	task.AppendTask(task.DatabaseIndexFull, fullReindex)
+	task.AppendTask(task.DatabaseIndexRef, IndexRefs)
+	task.AppendTask(task.ReloadUI, util.ReloadUIResetScroll)
 
 	if syncEnabled {
 		func() {
@@ -809,7 +812,7 @@ func IndexRepo(memo string) (err error) {
 		eventbus.CtxPushMsg: eventbus.CtxPushMsgToStatusBarAndProgress,
 	})
 	if nil != err {
-		util.PushStatusBar("Index data repo failed: " + err.Error())
+		util.PushStatusBar("Index data repo failed: " + html.EscapeString(err.Error()))
 		return
 	}
 	elapsed := time.Since(start)
@@ -990,7 +993,7 @@ func bootSyncRepo() (err error) {
 		autoSyncErrCount++
 		planSyncAfter(fixSyncInterval)
 
-		msg := fmt.Sprintf("sync repo failed: %s", err)
+		msg := fmt.Sprintf("sync repo failed: %s", html.EscapeString(err.Error()))
 		logging.LogErrorf(msg)
 		util.PushStatusBar(msg)
 		util.PushErrMsg(msg, 0)

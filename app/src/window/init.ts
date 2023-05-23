@@ -11,7 +11,7 @@ import {getSearch} from "../util/functions";
 import {initWindow} from "../boot/onGetConfig";
 import {App} from "../index";
 
-export const init = (app:App) => {
+export const init = (app: App) => {
     webFrame.setZoomFactor(window.siyuan.storage[Constants.LOCAL_ZOOM]);
     globalShortcut(app);
     fetchPost("/api/system/getEmojiConf", {}, response => {
@@ -19,13 +19,13 @@ export const init = (app:App) => {
 
         const layout = JSON.parse(sessionStorage.getItem("layout") || "{}");
         if (layout.layout) {
-            JSONToCenter(layout.layout);
+            JSONToCenter(app, layout.layout);
             window.siyuan.layout.centerLayout = window.siyuan.layout.layout;
             return;
         }
         const tabJSON = JSON.parse(getSearch("json"));
         tabJSON.active = true;
-        JSONToCenter({
+        JSONToCenter(app, {
             direction: "lr",
             resize: "lr",
             size: "auto",
@@ -39,7 +39,7 @@ export const init = (app:App) => {
         window.siyuan.layout.centerLayout = window.siyuan.layout.layout;
     });
     initStatus(true);
-    initWindow();
+    initWindow(app);
     appearance.onSetappearance(window.siyuan.config.appearance);
     initAssets();
     renderSnippet();

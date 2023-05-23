@@ -2,10 +2,13 @@ import {confirmDialog} from "../dialog/confirmDialog";
 import {Plugin} from "./index";
 import {showMessage} from "../dialog/message";
 import {Dialog} from "../dialog";
-import {MenuItem} from "../menus/Menu";
 import {Menu as SiyuanMenu} from "../menus/Menu";
 import {fetchGet, fetchPost, fetchSyncPost} from "../util/fetch";
 import {isMobile} from "../util/functions";
+/// #if !MOBILE
+import {openFile} from "../editor/util";
+/// #endif
+import {updateHotkeyTip} from "../protyle/util/compatibility";
 
 export class Menu {
     private menu: SiyuanMenu;
@@ -35,16 +38,14 @@ export class Menu {
         if (this.isOpen) {
             return;
         }
-        const menuItem = new MenuItem(option);
-        this.menu.append(menuItem.element);
-        return menuItem.element;
+        return this.menu.addItem(option);
     }
 
-    addSeparator() {
+    addSeparator(index?: number) {
         if (this.isOpen) {
             return;
         }
-        this.addItem({type: "separator"});
+        this.menu.addSeparator(index);
     }
 
     open(options: { x: number, y: number, h?: number, w?: number, isLeft: false }) {
@@ -67,14 +68,25 @@ export class Menu {
     }
 }
 
+let openTab;
+/// #if MOBILE
+openTab = () => {
+    // TODO: Mobile
+};
+/// #else
+openTab = openFile;
+/// #endif
+
 export const API = {
     confirm: confirmDialog,
     showMessage,
+    adaptHotkey: updateHotkeyTip,
     fetchPost,
     fetchSyncPost,
     fetchGet,
-    Plugin: Plugin,
+    isMobile,
+    openTab,
+    Plugin,
     Dialog,
     Menu,
-    isMobile
 };

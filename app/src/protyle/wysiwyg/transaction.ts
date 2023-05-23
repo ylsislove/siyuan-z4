@@ -126,14 +126,13 @@ const promiseTransaction = () => {
                     return;
                 }
                 // 折叠标题后未触发动态加载 https://github.com/siyuan-note/siyuan/issues/4168
-                if (protyle.wysiwyg.element.lastElementChild.getAttribute("data-eof") !== "true" &&
+                if (protyle.wysiwyg.element.lastElementChild.getAttribute("data-eof") !== "2" &&
                     !protyle.scroll.element.classList.contains("fn__none") &&
                     protyle.contentElement.scrollHeight - protyle.contentElement.scrollTop < protyle.contentElement.clientHeight * 2    // https://github.com/siyuan-note/siyuan/issues/7785
                 ) {
                     fetchPost("/api/filetree/getDoc", {
                         id: protyle.wysiwyg.element.lastElementChild.getAttribute("data-node-id"),
                         mode: 2,
-                        k: protyle.options.key || "",
                         size: window.siyuan.config.editor.dynamicLoadBlocks,
                     }, getResponse => {
                         onGet(getResponse, protyle, [Constants.CB_GET_APPEND, Constants.CB_GET_UNCHANGEID]);
@@ -647,7 +646,7 @@ export const onTransaction = (protyle: IProtyle, operation: IOperation, focus: b
         return;
     }
     if (operation.action === "append") {
-        reloadProtyle(protyle);
+        reloadProtyle(protyle, false);
     }
 };
 

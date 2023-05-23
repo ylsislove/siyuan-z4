@@ -24,6 +24,7 @@ import {matchHotKey} from "../protyle/util/hotKey";
 import * as dayjs from "dayjs";
 import {Constants} from "../constants";
 import {exportImage} from "../protyle/export/util";
+import {App} from "../index";
 
 const bindAttrInput = (inputElement: HTMLInputElement, confirmElement: Element) => {
     inputElement.addEventListener("keydown", (event) => {
@@ -526,7 +527,7 @@ export const exportMd = (id: string) => {
                 dialog.bindInput(inputElement, () => {
                     (btnsElement[1] as HTMLButtonElement).click();
                 });
-                let name =  replaceFileName(result.data);
+                let name = replaceFileName(result.data);
                 const maxNameLen = 32;
                 if (name.length > maxNameLen) {
                     name = name.substring(0, maxNameLen);
@@ -630,13 +631,118 @@ export const exportMd = (id: string) => {
                 click: () => {
                     saveExport({type: "word", id});
                 }
+            }, {
+                label: window.siyuan.languages.more,
+                icon: "iconMore",
+                type: "submenu",
+                submenu: [{
+                    label: "reStructuredText",
+                    click: () => {
+                        const msgId = showMessage(window.siyuan.languages.exporting, -1);
+                        fetchPost("/api/export/exportReStructuredText", {
+                            id,
+                        }, response => {
+                            hideMessage(msgId);
+                            openByMobile(response.data.zip);
+                        });
+                    }
+                }, {
+                    label: "AsciiDoc",
+                    click: () => {
+                        const msgId = showMessage(window.siyuan.languages.exporting, -1);
+                        fetchPost("/api/export/exportAsciiDoc", {
+                            id,
+                        }, response => {
+                            hideMessage(msgId);
+                            openByMobile(response.data.zip);
+                        });
+                    }
+                }, {
+                    label: "Textile",
+                    click: () => {
+                        const msgId = showMessage(window.siyuan.languages.exporting, -1);
+                        fetchPost("/api/export/exportTextile", {
+                            id,
+                        }, response => {
+                            hideMessage(msgId);
+                            openByMobile(response.data.zip);
+                        });
+                    }
+                }, {
+                    label: "OPML",
+                    click: () => {
+                        const msgId = showMessage(window.siyuan.languages.exporting, -1);
+                        fetchPost("/api/export/exportOPML", {
+                            id,
+                        }, response => {
+                            hideMessage(msgId);
+                            openByMobile(response.data.zip);
+                        });
+                    }
+                }, {
+                    label: "Org-Mode",
+                    click: () => {
+                        const msgId = showMessage(window.siyuan.languages.exporting, -1);
+                        fetchPost("/api/export/exportOrgMode", {
+                            id,
+                        }, response => {
+                            hideMessage(msgId);
+                            openByMobile(response.data.zip);
+                        });
+                    }
+                }, {
+                    label: "MediaWiki",
+                    click: () => {
+                        const msgId = showMessage(window.siyuan.languages.exporting, -1);
+                        fetchPost("/api/export/exportMediaWiki", {
+                            id,
+                        }, response => {
+                            hideMessage(msgId);
+                            openByMobile(response.data.zip);
+                        });
+                    }
+                }, {
+                    label: "ODT",
+                    click: () => {
+                        const msgId = showMessage(window.siyuan.languages.exporting, -1);
+                        fetchPost("/api/export/exportODT", {
+                            id,
+                        }, response => {
+                            hideMessage(msgId);
+                            openByMobile(response.data.zip);
+                        });
+                    }
+                }, {
+                    label: "RTF",
+                    click: () => {
+                        const msgId = showMessage(window.siyuan.languages.exporting, -1);
+                        fetchPost("/api/export/exportRTF", {
+                            id,
+                        }, response => {
+                            hideMessage(msgId);
+                            openByMobile(response.data.zip);
+                        });
+                    }
+                }, {
+                    label: "EPUB",
+                    click: () => {
+                        const msgId = showMessage(window.siyuan.languages.exporting, -1);
+                        fetchPost("/api/export/exportEPUB", {
+                            id,
+                        }, response => {
+                            hideMessage(msgId);
+                            openByMobile(response.data.zip);
+                        });
+                    }
+                },
+                ]
             }
             /// #endif
         ]
     }).element;
 };
 
-export const openMenu = (src: string, onlyMenu: boolean, showAccelerator: boolean) => {
+export const openMenu = (app: App, src: string, onlyMenu: boolean, showAccelerator: boolean) => {
     const submenu = [];
     if (isLocalPath(src)) {
         if (Constants.SIYUAN_ASSETS_EXTS.includes(pathPosix().extname(src)) &&
@@ -648,7 +754,7 @@ export const openMenu = (src: string, onlyMenu: boolean, showAccelerator: boolea
                 label: window.siyuan.languages.insertRight,
                 accelerator: showAccelerator ? "Click" : "",
                 click() {
-                    openAsset(src.trim(), parseInt(getSearch("page", src)), "right");
+                    openAsset(app, src.trim(), parseInt(getSearch("page", src)), "right");
                 }
             });
             /// #endif

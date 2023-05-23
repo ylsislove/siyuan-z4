@@ -31,6 +31,7 @@
 @import "business/export";
 @import "business/card";
 @import "business/custom";
+@import "business/resize";
 
 /*
 .status: 2
@@ -386,12 +387,11 @@ html {
 
 .switch-doc {
   max-height: 70vh;
-  max-width: 768px;
+  max-width: 100%;
   min-width: 426px;
 
   .b3-list:last-child {
     border-left: 1px solid var(--b3-theme-surface-lighter);
-    max-height: calc(70vh - 35px)
   }
 
   &__path {

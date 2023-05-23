@@ -58,8 +58,8 @@ export const workspaceMenu = (app:App, rect: DOMRect) => {
         getAllDocks().forEach(item => {
             dockMenu.push({
                 icon: item.icon,
-                accelerator: window.siyuan.config.keymap.general[item.hotkeyLangId].custom,
-                label: window.siyuan.languages[item.hotkeyLangId],
+                accelerator: item.hotkey,
+                label: item.title,
                 click() {
                     getDockByType(item.type).toggleModel(item.type);
                 }
@@ -137,7 +137,11 @@ export const workspaceMenu = (app:App, rect: DOMRect) => {
                         if (item.name === value) {
                             saveDialog.destroy();
                             confirmDialog(window.siyuan.languages.save, window.siyuan.languages.exportTplTip, () => {
-                                item.layout = exportLayout(false, undefined, true);
+                                item.layout = exportLayout({
+                                    reload: false,
+                                    onlyData: true,
+                                    errorExit: false,
+                                });
                                 setStorageVal(Constants.LOCAL_LAYOUTS, window.siyuan.storage[Constants.LOCAL_LAYOUTS]);
                             });
                             return true;
@@ -148,7 +152,11 @@ export const workspaceMenu = (app:App, rect: DOMRect) => {
                     }
                     window.siyuan.storage[Constants.LOCAL_LAYOUTS].push({
                         name: value,
-                        layout: exportLayout(false, undefined, true)
+                        layout: exportLayout({
+                            reload: false,
+                            onlyData: true,
+                            errorExit: false,
+                        })
                     });
                     setStorageVal(Constants.LOCAL_LAYOUTS, window.siyuan.storage[Constants.LOCAL_LAYOUTS]);
                     saveDialog.destroy();
@@ -234,13 +242,13 @@ export const workspaceMenu = (app:App, rect: DOMRect) => {
                     label: window.siyuan.languages.spaceRepetition,
                     accelerator: window.siyuan.config.keymap.general.riffCard.custom,
                     click: () => {
-                        openCard();
+                        openCard(app);
                     }
                 }, {
                     iconHTML: Constants.ZWSP,
                     label: window.siyuan.languages.mgmt,
                     click: () => {
-                        viewCards("", window.siyuan.languages.all, "");
+                        viewCards(app, "", window.siyuan.languages.all, "");
                     }
                 }],
             }).element);
@@ -257,7 +265,7 @@ export const workspaceMenu = (app:App, rect: DOMRect) => {
                 icon: "iconHistory",
                 accelerator: window.siyuan.config.keymap.general.dataHistory.custom,
                 click: () => {
-                    openHistory();
+                    openHistory(app);
                 }
             }).element);
             window.siyuan.menus.menu.append(new MenuItem({type: "separator"}).element);

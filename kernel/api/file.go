@@ -92,24 +92,31 @@ func getFile(c *gin.Context) {
 	filePath = filepath.Join(util.WorkspaceDir, filePath)
 	info, err := os.Stat(filePath)
 	if os.IsNotExist(err) {
-		c.Status(404)
+		ret.Code = 404
+		c.JSON(http.StatusOK, ret)
 		return
 	}
 	if nil != err {
 		logging.LogErrorf("stat [%s] failed: %s", filePath, err)
-		c.Status(500)
+		ret.Code = 500
+		ret.Msg = err.Error()
+		c.JSON(http.StatusOK, ret)
 		return
 	}
 	if info.IsDir() {
 		logging.LogErrorf("file [%s] is a directory", filePath)
-		c.Status(405)
+		ret.Code = 405
+		ret.Msg = "file is a directory"
+		c.JSON(http.StatusOK, ret)
 		return
 	}
 
 	data, err := filelock.ReadFile(filePath)
 	if nil != err {
 		logging.LogErrorf("read file [%s] failed: %s", filePath, err)
-		c.Status(500)
+		ret.Code = 500
+		ret.Msg = err.Error()
+		c.JSON(http.StatusOK, ret)
 		return
 	}
 
@@ -139,24 +146,27 @@ func readDir(c *gin.Context) {
 	dirPath = filepath.Join(util.WorkspaceDir, dirPath)
 	info, err := os.Stat(dirPath)
 	if os.IsNotExist(err) {
-		c.Status(404)
+		ret.Code = 404
 		return
 	}
 	if nil != err {
 		logging.LogErrorf("stat [%s] failed: %s", dirPath, err)
-		c.Status(500)
+		ret.Code = 500
+		ret.Msg = err.Error()
 		return
 	}
 	if !info.IsDir() {
 		logging.LogErrorf("file [%s] is not a directory", dirPath)
-		c.Status(405)
+		ret.Code = 405
+		ret.Msg = "file is not a directory"
 		return
 	}
 
 	entries, err := os.ReadDir(dirPath)
 	if nil != err {
 		logging.LogErrorf("read dir [%s] failed: %s", dirPath, err)
-		c.Status(500)
+		ret.Code = 500
+		ret.Msg = err.Error()
 		return
 	}
 
@@ -169,6 +179,41 @@ func readDir(c *gin.Context) {
 	}
 
 	ret.Data = files
+}
+
+func renameFile(c *gin.Context) {
+	ret := gulu.Ret.NewResult()
+	defer c.JSON(http.StatusOK, ret)
+
+	arg, ok := util.JsonArg(c, ret)
+	if !ok {
+		c.JSON(http.StatusOK, ret)
+		return
+	}
+
+	filePath := arg["path"].(string)
+	filePath = filepath.Join(util.WorkspaceDir, filePath)
+	_, err := os.Stat(filePath)
+	if os.IsNotExist(err) {
+		ret.Code = 404
+		return
+	}
+	if nil != err {
+		logging.LogErrorf("stat [%s] failed: %s", filePath, err)
+		ret.Code = 500
+		ret.Msg = err.Error()
+		return
+	}
+
+	newPath := arg["newPath"].(string)
+	newPath = filepath.Join(util.WorkspaceDir, newPath)
+
+	if err = filelock.Rename(filePath, newPath); nil != err {
+		logging.LogErrorf("rename file [%s] to [%s] failed: %s", filePath, newPath, err)
+		ret.Code = 500
+		ret.Msg = err.Error()
+		return
+	}
 }
 
 func removeFile(c *gin.Context) {
@@ -185,17 +230,20 @@ func removeFile(c *gin.Context) {
 	filePath = filepath.Join(util.WorkspaceDir, filePath)
 	_, err := os.Stat(filePath)
 	if os.IsNotExist(err) {
-		c.Status(404)
+		ret.Code = 404
 		return
 	}
 	if nil != err {
 		logging.LogErrorf("stat [%s] failed: %s", filePath, err)
-		c.Status(500)
+		ret.Code = 500
+		ret.Msg = err.Error()
 		return
 	}
 
 	if err = filelock.Remove(filePath); nil != err {
-		c.Status(500)
+		logging.LogErrorf("remove [%s] failed: %s", filePath, err)
+		ret.Code = 500
+		ret.Msg = err.Error()
 		return
 	}
 }
@@ -219,7 +267,8 @@ func putFile(c *gin.Context) {
 		fileHeader, _ := c.FormFile("file")
 		if nil == fileHeader {
 			logging.LogErrorf("form file is nil [path=%s]", filePath)
-			c.Status(400)
+			ret.Code = 400
+			ret.Msg = "form file is nil"
 			return
 		}
 
@@ -264,14 +313,15 @@ func putFile(c *gin.Context) {
 		modTimeInt, parseErr := strconv.ParseInt(modTimeStr, 10, 64)
 		if nil != parseErr {
 			logging.LogErrorf("parse mod time [%s] failed: %s", modTimeStr, parseErr)
-			c.Status(500)
+			ret.Code = 500
+			ret.Msg = parseErr.Error()
 			return
 		}
 		modTime = millisecond2Time(modTimeInt)
 	}
 	if err = os.Chtimes(filePath, modTime, modTime); nil != err {
 		logging.LogErrorf("change time failed: %s", err)
-		ret.Code = -1
+		ret.Code = 500
 		ret.Msg = err.Error()
 		return
 	}

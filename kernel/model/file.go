@@ -488,7 +488,7 @@ func StatTree(id string) (ret *util.BlockStatResult) {
 	}
 }
 
-func GetDoc(startID, endID, id string, index int, keyword string, mode int, size int, isBacklink bool) (blockCount int, dom, parentID, parent2ID, rootID, typ string, eof, scroll bool, boxID, docPath string, isBacklinkExpand bool, err error) {
+func GetDoc(startID, endID, id string, index int, query string, queryTypes map[string]bool, queryMethod, mode int, size int, isBacklink bool) (blockCount int, dom, parentID, parent2ID, rootID, typ string, eof, scroll bool, boxID, docPath string, isBacklinkExpand bool, err error) {
 	//os.MkdirAll("pprof", 0755)
 	//cpuProfile, _ := os.Create("pprof/GetDoc")
 	//pprof.StartCPUProfile(cpuProfile)
@@ -655,8 +655,8 @@ func GetDoc(startID, endID, id string, index int, keyword string, mode int, size
 		// 引用计数浮窗请求，需要按照反链逻辑组装 https://github.com/siyuan-note/siyuan/issues/6853
 		nodes, isBacklinkExpand = getBacklinkRenderNodes(node)
 	} else {
-		// 如果同时存在 startID 和 endID，则只加载 startID 和 endID 之间的块 [startID, endID]
-		if "" != startID && "" != endID {
+		// 如果同时存在 startID 和 endID，并且是动态加载的情况，则只加载 startID 和 endID 之间的块 [startID, endID]
+		if "" != startID && "" != endID && scroll {
 			nodes, eof = loadNodesByStartEnd(tree, startID, endID)
 			if 1 > len(nodes) {
 				// 按 mode 加载兜底
@@ -671,8 +671,15 @@ func GetDoc(startID, endID, id string, index int, keyword string, mode int, size
 	virtualBlockRefKeywords := getBlockVirtualRefKeywords(tree.Root)
 
 	subTree := &parse.Tree{ID: rootID, Root: &ast.Node{Type: ast.NodeDocument}, Marks: tree.Marks}
-	keyword = strings.Join(strings.Split(keyword, " "), search.TermSep)
-	keywords := search.SplitKeyword(keyword)
+
+	var keywords []string
+	if "" != query && (0 == queryMethod || 1 == queryMethod) { // 只有关键字搜索和查询语法搜索才支持高亮
+		if 0 == queryMethod {
+			query = stringQuery(query)
+		}
+		typeFilter := buildTypeFilter(queryTypes)
+		keywords = highlightByQuery(query, typeFilter, rootID)
+	}
 
 	for _, n := range nodes {
 		var unlinks []*ast.Node
