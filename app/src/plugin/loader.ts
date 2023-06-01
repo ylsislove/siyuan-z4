@@ -1,10 +1,11 @@
-import {fetchPost} from "../util/fetch";
+import {fetchSyncPost} from "../util/fetch";
 import {App} from "../index";
 import {Plugin} from "./index";
 /// #if !MOBILE
 import {exportLayout} from "../layout/util";
 /// #endif
 import {API} from "./API";
+import {getFrontend, isMobile, isWindow} from "../util/functions";
 
 const getObject = (key: string) => {
     const api = {
@@ -18,20 +19,20 @@ const runCode = (code: string, sourceURL: string) => {
     return window.eval("(function anonymous(require, module, exports){".concat(code, "\n})\n//# sourceURL=").concat(sourceURL, "\n"));
 };
 
-export const loadPlugins = (app: App) => {
-    fetchPost("/api/petal/loadPetals", {}, response => {
-        let css = "";
-        response.data.forEach((item: IPluginData) => {
-            loadPluginJS(app, item);
-            css += item.css || "" + "\n";
-        });
-        const styleElement = document.createElement("style");
-        styleElement.textContent = css;
-        document.head.append(styleElement);
+export const loadPlugins = async (app: App) => {
+    const response = await fetchSyncPost("/api/petal/loadPetals", {frontend: getFrontend()});
+    let css = "";
+    // 为加快启动速度，不进行 await
+    response.data.forEach((item: IPluginData) => {
+        loadPluginJS(app, item);
+        css += item.css || "" + "\n";
     });
+    const styleElement = document.createElement("style");
+    styleElement.textContent = css;
+    document.head.append(styleElement);
 };
 
-const loadPluginJS = (app: App, item: IPluginData) => {
+const loadPluginJS = async (app: App, item: IPluginData) => {
     const exportsObj: { [key: string]: any } = {};
     const moduleObj = {exports: exportsObj};
     try {
@@ -56,54 +57,149 @@ const loadPluginJS = (app: App, item: IPluginData) => {
     });
     app.plugins.push(plugin);
     try {
-        plugin.onload();
+        await plugin.onload();
     } catch (e) {
-        console.error(`plugin ${item.name} load error:`, e);
+        console.error(`plugin ${item.name} onload error:`, e);
     }
     return plugin;
 };
 
-export const loadPlugin = (app: App, item: IPluginData) => {
-    const plugin = loadPluginJS(app, item);
+// 启用插件
+export const loadPlugin = async (app: App, item: IPluginData) => {
+    const plugin = await loadPluginJS(app, item);
+    const styleElement = document.createElement("style");
+    styleElement.textContent = item.css;
+    document.head.append(styleElement);
+    afterLoadPlugin(plugin);
+    /// #if !MOBILE
+    exportLayout({
+        reload: false,
+        onlyData: false,
+        errorExit: false
+    });
+    /// #endif
+};
+
+
+const updateDock = (dockItem: IDockTab[], index: number, plugin: Plugin, type: string) => {
+    const dockKeys = Object.keys(plugin.docks);
+    dockItem.forEach((tabItem: IDockTab, tabIndex: number) => {
+        if (dockKeys.includes(tabItem.type)) {
+            if (type === "Left") {
+                plugin.docks[tabItem.type].config.position = index === 0 ? "LeftTop" : "LeftBottom";
+            } else if (type === "Right") {
+                plugin.docks[tabItem.type].config.position = index === 0 ? "RightTop" : "RightBottom";
+            } else if (type === "Bottom") {
+                plugin.docks[tabItem.type].config.position = index === 0 ? "BottomLeft" : "BottomRight";
+            }
+            plugin.docks[tabItem.type].config.index = tabIndex;
+            plugin.docks[tabItem.type].config.show = tabItem.show;
+            plugin.docks[tabItem.type].config.size = tabItem.size;
+        }
+    });
+};
+
+const mergePluginHotkey = (plugin: Plugin) => {
+    if (!window.siyuan.config.keymap.plugin) {
+        window.siyuan.config.keymap.plugin = {};
+    }
+    plugin.commands.forEach(command => {
+        if (!window.siyuan.config.keymap.plugin[plugin.name]) {
+            command.customHotkey = command.hotkey;
+            window.siyuan.config.keymap.plugin[plugin.name] = {
+                [command.langKey]: {
+                    default: command.hotkey,
+                    custom: command.hotkey,
+                }
+            };
+            return;
+        }
+        if (!window.siyuan.config.keymap.plugin[plugin.name][command.langKey]) {
+            command.customHotkey = command.hotkey;
+            window.siyuan.config.keymap.plugin[plugin.name][command.langKey] = {
+                default: command.hotkey,
+                custom: command.hotkey,
+            };
+            return;
+        }
+        if (window.siyuan.config.keymap.plugin[plugin.name][command.langKey]) {
+            command.customHotkey = window.siyuan.config.keymap.plugin[plugin.name][command.langKey].custom || command.hotkey;
+            window.siyuan.config.keymap.plugin[plugin.name][command.langKey]["default"] = command.hotkey;
+        }
+    });
+};
+
+export const afterLoadPlugin = (plugin: Plugin) => {
+    try {
+        plugin.onLayoutReady();
+    } catch (e) {
+        console.error(`plugin ${plugin.name} onLayoutReady error:`, e);
+    }
+
+    if (!isWindow() || isMobile()) {
+        plugin.topBarIcons.forEach(element => {
+            if (isMobile()) {
+                document.querySelector("#menuAbout").after(element);
+            } else if (!isWindow()) {
+                document.querySelector("#" + (element.getAttribute("data-position") === "right" ? "barSearch" : "drag")).before(element);
+            }
+        });
+    }
+    /// #if !MOBILE
+    mergePluginHotkey(plugin);
+    plugin.statusBarIcons.forEach(element => {
+        const statusElement = document.getElementById("status")
+        if (element.getAttribute("data-position") === "right") {
+            statusElement.insertAdjacentElement("beforeend", element);
+        } else {
+            statusElement.insertAdjacentElement("afterbegin", element);
+        }
+    });
+    /// #endif
+    if (isWindow()) {
+        return;
+    }
+
+    /// #if !MOBILE
+    window.siyuan.config.uiLayout.left.data.forEach((dockItem: IDockTab[], index: number) => {
+        updateDock(dockItem, index, plugin, "Left");
+    });
+    window.siyuan.config.uiLayout.right.data.forEach((dockItem: IDockTab[], index: number) => {
+        updateDock(dockItem, index, plugin, "Right");
+    });
+    window.siyuan.config.uiLayout.bottom.data.forEach((dockItem: IDockTab[], index: number) => {
+        updateDock(dockItem, index, plugin, "Bottom");
+    });
     Object.keys(plugin.docks).forEach(key => {
         const dock = plugin.docks[key];
         if (dock.config.position.startsWith("Left")) {
             window.siyuan.layout.leftDock.genButton([{
                 type: key,
                 size: dock.config.size,
-                show: false,
+                show: dock.config.show,
                 icon: dock.config.icon,
                 title: dock.config.title,
                 hotkey: dock.config.hotkey
-            }], dock.config.position === "LeftBottom" ? 1 : 0, true);
+            }], dock.config.position === "LeftBottom" ? 1 : 0, dock.config.index);
         } else if (dock.config.position.startsWith("Bottom")) {
             window.siyuan.layout.bottomDock.genButton([{
                 type: key,
                 size: dock.config.size,
-                show: false,
+                show: dock.config.show,
                 icon: dock.config.icon,
                 title: dock.config.title,
                 hotkey: dock.config.hotkey
-            }], dock.config.position === "BottomRight" ? 1 : 0, true);
+            }], dock.config.position === "BottomRight" ? 1 : 0, dock.config.index);
         } else if (dock.config.position.startsWith("Right")) {
             window.siyuan.layout.rightDock.genButton([{
                 type: key,
                 size: dock.config.size,
-                show: false,
+                show: dock.config.show,
                 icon: dock.config.icon,
                 title: dock.config.title,
                 hotkey: dock.config.hotkey
-            }], dock.config.position === "RightBottom" ? 1 : 0, true);
+            }], dock.config.position === "RightBottom" ? 1 : 0, dock.config.index);
         }
-    });
-    const styleElement = document.createElement("style");
-    styleElement.textContent = item.css;
-    document.head.append(styleElement);
-    /// #if !MOBILE
-    exportLayout({
-        reload: false,
-        onlyData: false,
-        errorExit: false
     });
     /// #endif
 };

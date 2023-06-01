@@ -26,7 +26,7 @@ import {blockRender} from "../markdown/blockRender";
 /// #if !BROWSER
 import {openBy} from "../../editor/util";
 /// #endif
-/// if !MOBILE
+/// #if !MOBILE
 import {moveResize} from "../../dialog/moveResize";
 /// #endif
 import {fetchPost} from "../../util/fetch";
@@ -1013,7 +1013,7 @@ export class Toolbar {
                 });
             }, Constants.TIMEOUT_LOAD);
         };
-        /// if !MOBILE
+        /// #if !MOBILE
         moveResize(this.subElement, () => {
             const pinElement = headerElement.querySelector('[data-type="pin"]');
             pinElement.classList.add("block__icon--active");
@@ -1199,6 +1199,12 @@ export class Toolbar {
         if (!protyle.disabled) {
             textElement.select();
         }
+        this.app.plugins.forEach(item => {
+            item.eventBus.emit("open-noneditableblock", {
+                protyle,
+                toolbar: this
+            });
+        });
     }
 
     public showCodeLanguage(protyle: IProtyle, languageElement: HTMLElement) {

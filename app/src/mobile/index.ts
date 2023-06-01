@@ -22,7 +22,7 @@ import {getSearch} from "../util/functions";
 import {initRightMenu} from "./menu";
 import {openChangelog} from "../boot/openChangelog";
 import {registerServiceWorker} from "../util/serviceWorker";
-import {loadPlugins} from "../plugin/loader";
+import {afterLoadPlugin, loadPlugins} from "../plugin/loader";
 
 class App {
     public plugins: import("../plugin").Plugin[] = [];
@@ -60,9 +60,10 @@ class App {
                 window.siyuan.menus.menu.remove();
             }
         });
-        fetchPost("/api/system/getConf", {}, confResponse => {
+        fetchPost("/api/system/getConf", {}, async (confResponse) => {
             confResponse.data.conf.keymap = Constants.SIYUAN_KEYMAP;
             window.siyuan.config = confResponse.data.conf;
+            await loadPlugins(this);
             getLocalStorage(() => {
                 fetchGet(`/appearance/langs/${window.siyuan.config.appearance.lang}.json?v=${Constants.SIYUAN_VERSION}`, (lauguages) => {
                     window.siyuan.languages = lauguages;
@@ -79,8 +80,10 @@ class App {
                             setNoteBook(() => {
                                 initFramework(this);
                                 initRightMenu(this);
-                                loadPlugins(this);
                                 openChangelog();
+                                this.plugins.forEach(item => {
+                                    afterLoadPlugin(item);
+                                });
                             });
                         });
                     });

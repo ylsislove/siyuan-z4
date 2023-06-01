@@ -20,6 +20,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"runtime"
 	"sort"
 	"strings"
 	"sync"
@@ -36,7 +37,7 @@ type Plugin struct {
 	Enabled bool `json:"enabled"`
 }
 
-func Plugins() (plugins []*Plugin) {
+func Plugins(frontend string) (plugins []*Plugin) {
 	plugins = []*Plugin{}
 
 	stageIndex, err := getStageIndex("plugins")
@@ -64,8 +65,14 @@ func Plugins() (plugins []*Plugin) {
 			logging.LogErrorf("get bazaar package [%s] failed: %d", innerU, innerResp.StatusCode)
 			return
 		}
-		plugin.URL = strings.TrimSuffix(plugin.URL, "/")
 
+		if disallowDisplayBazaarPackage(plugin.Package) {
+			return
+		}
+
+		plugin.Incompatible = isIncompatiblePlugin(plugin, frontend)
+
+		plugin.URL = strings.TrimSuffix(plugin.URL, "/")
 		repoURLHash := strings.Split(repoURL, "@")
 		plugin.RepoURL = "https://github.com/" + repoURLHash[0]
 		plugin.RepoHash = repoURLHash[1]
@@ -101,7 +108,39 @@ func Plugins() (plugins []*Plugin) {
 	return
 }
 
-func InstalledPlugins() (ret []*Plugin) {
+func IsIncompatibleInstalledPlugin(name, frontend string) (found, incompatible bool) {
+	pluginsPath := filepath.Join(util.DataDir, "plugins")
+	if !util.IsPathRegularDirOrSymlinkDir(pluginsPath) {
+		return
+	}
+
+	pluginDirs, err := os.ReadDir(pluginsPath)
+	if nil != err {
+		logging.LogWarnf("read plugins folder failed: %s", err)
+		return
+	}
+
+	for _, pluginDir := range pluginDirs {
+		if !util.IsDirRegularOrSymlink(pluginDir) {
+			continue
+		}
+		dirName := pluginDir.Name()
+		if name != dirName {
+			continue
+		}
+
+		plugin, parseErr := PluginJSON(dirName)
+		if nil != parseErr || nil == plugin {
+			return
+		}
+
+		found = true
+		incompatible = isIncompatiblePlugin(plugin, frontend)
+	}
+	return
+}
+
+func InstalledPlugins(frontend string, checkUpdate bool) (ret []*Plugin) {
 	ret = []*Plugin{}
 
 	pluginsPath := filepath.Join(util.DataDir, "plugins")
@@ -115,7 +154,10 @@ func InstalledPlugins() (ret []*Plugin) {
 		return
 	}
 
-	bazaarPlugins := Plugins()
+	var bazaarPlugins []*Plugin
+	if checkUpdate {
+		bazaarPlugins = Plugins(frontend)
+	}
 
 	for _, pluginDir := range pluginDirs {
 		if !util.IsDirRegularOrSymlink(pluginDir) {
@@ -129,7 +171,6 @@ func InstalledPlugins() (ret []*Plugin) {
 		}
 
 		installPath := filepath.Join(util.DataDir, "plugins", dirName)
-
 		plugin.Installed = true
 		plugin.RepoURL = plugin.URL
 		plugin.PreviewURL = "/plugins/" + dirName + "/preview.png"
@@ -156,6 +197,7 @@ func InstalledPlugins() (ret []*Plugin) {
 
 		plugin.PreferredReadme, _ = renderREADME(plugin.URL, readme)
 		plugin.Outdated = isOutdatedPlugin(plugin, bazaarPlugins)
+		plugin.Incompatible = isIncompatiblePlugin(plugin, frontend)
 		ret = append(ret, plugin)
 	}
 	return
@@ -177,4 +219,40 @@ func UninstallPlugin(installPath string) error {
 	}
 	//logging.Logger.Infof("uninstalled plugin [%s]", installPath)
 	return nil
+}
+
+func isIncompatiblePlugin(plugin *Plugin, currentFrontend string) bool {
+	if 1 > len(plugin.Backends) {
+		return false
+	}
+
+	backendOk := false
+	for _, backend := range plugin.Backends {
+		if backend == getCurrentBackend() || "all" == backend {
+			backendOk = true
+			break
+		}
+	}
+
+	frontendOk := false
+	for _, frontend := range plugin.Frontends {
+		if frontend == currentFrontend || "all" == frontend {
+			frontendOk = true
+			break
+		}
+	}
+	return !backendOk || !frontendOk
+}
+
+func getCurrentBackend() string {
+	switch util.Container {
+	case util.ContainerDocker:
+		return "docker"
+	case util.ContainerIOS:
+		return "ios"
+	case util.ContainerAndroid:
+		return "android"
+	default:
+		return runtime.GOOS
+	}
 }

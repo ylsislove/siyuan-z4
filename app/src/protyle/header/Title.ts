@@ -367,7 +367,7 @@ export class Title {
                 accelerator: window.siyuan.config.keymap.editor.general.spaceRepetition.custom,
                 click: () => {
                     fetchPost("/api/riff/getTreeRiffDueCards", {rootID: protyle.block.rootID}, (response) => {
-                        openCardByData(this.app, response.data, "doc", protyle.block.rootID, this.editElement.textContent);
+                        openCardByData(this.app, response.data, "doc", protyle.block.rootID, this.editElement.textContent || "Untitled");
                     });
                 }
             }, {
@@ -411,6 +411,13 @@ export class Title {
 ${window.siyuan.languages.createdAt} ${dayjs(response.data.ial.id.substr(0, 14)).format("YYYY-MM-DD HH:mm:ss")}`
             }).element);
             window.siyuan.menus.menu.popup(position);
+            this.app?.plugins?.forEach((plugin) => {
+                plugin.eventBus.emit("click-editortitleicon", {
+                    protyle,
+                    menu: window.siyuan.menus.menu,
+                    data: response.data,
+                });
+            });
         });
     }
 

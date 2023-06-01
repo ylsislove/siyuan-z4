@@ -19,6 +19,8 @@ import {App} from "../../index";
 import {Plugin} from "../../plugin";
 import {Custom} from "./Custom";
 
+const TYPES = ["file", "outline", "inbox", "bookmark", "tag", "graph", "globalGraph", "backlink"];
+
 export class Dock {
     public element: HTMLElement;
     public layout: Layout;
@@ -63,7 +65,26 @@ export class Dock {
         this.position = options.position;
         this.pin = options.data.pin;
         this.data = {};
-        if (options.data.data.length === 0) {
+        let showDock = false;
+        if (options.data.data.length !== 0) {
+            if (!showDock) {
+                options.data.data[0].find(item => {
+                    if (TYPES.includes(item.type)) {
+                        showDock = true;
+                        return true;
+                    }
+                });
+            }
+            if (!showDock && options.data.data[1]) {
+                options.data.data[1].find(item => {
+                    if (TYPES.includes(item.type)) {
+                        showDock = true;
+                        return true;
+                    }
+                });
+            }
+        }
+        if (!showDock) {
             this.element.firstElementChild.innerHTML = `<span class="dock__item dock__item--pin b3-tooltips b3-tooltips__${this.getClassDirect(0)}" aria-label="${this.pin ? window.siyuan.languages.unpin : window.siyuan.languages.pin}">
     <svg><use xlink:href="#iconPin"></use></svg>
 </span>`;
@@ -609,27 +630,45 @@ export class Dock {
         return max;
     }
 
-    public genButton(data: IDockTab[], index: number, append = false) {
+    public genButton(data: IDockTab[], index: number, tabIndex?: number) {
         let html = "";
         data.forEach(item => {
+            if (typeof tabIndex === "undefined" && !TYPES.includes(item.type)) {
+                return;
+            }
             html += `<span data-height="${item.size.height}" data-width="${item.size.width}" data-type="${item.type}" data-index="${index}" data-hotkey="${item.hotkey || ""}" data-hotkeyLangId="${item.hotkeyLangId || ""}" data-title="${item.title}" class="dock__item${item.show ? " dock__item--active" : ""} b3-tooltips b3-tooltips__${this.getClassDirect(index)}" aria-label="${item.title} ${item.hotkey ? updateHotkeyTip(item.hotkey) : ""}${window.siyuan.languages.dockTip}">
     <svg><use xlink:href="#${item.icon}"></use></svg>
 </span>`;
             this.data[item.type] = true;
         });
         if (index === 0) {
-            if (append) {
-                this.element.firstElementChild.lastElementChild.insertAdjacentHTML("beforebegin", html);
+            if (typeof tabIndex === "number") {
+                if (this.element.firstElementChild.children[tabIndex]) {
+                    this.element.firstElementChild.children[tabIndex].insertAdjacentHTML("beforebegin", html);
+                } else {
+                    this.element.firstElementChild.lastElementChild.insertAdjacentHTML("beforebegin", html);
+                }
             } else {
                 this.element.firstElementChild.innerHTML = `${html}<span class="dock__item dock__item--pin b3-tooltips b3-tooltips__${this.getClassDirect(index)}" aria-label="${this.pin ? window.siyuan.languages.unpin : window.siyuan.languages.pin}">
     <svg><use xlink:href="#iconPin"></use></svg>
 </span>`;
             }
         } else {
-            if (append) {
-                this.element.lastElementChild.insertAdjacentHTML("beforeend", html);
+            if (typeof tabIndex === "number") {
+                if (this.element.lastElementChild.children[tabIndex]) {
+                    this.element.lastElementChild.children[tabIndex].insertAdjacentHTML("beforebegin", html);
+                } else {
+                    this.element.lastElementChild.insertAdjacentHTML("beforeend", html);
+                }
             } else {
                 this.element.lastElementChild.innerHTML = html;
+            }
+        }
+
+        if (typeof tabIndex === "number") {
+            this.element.classList.remove("fn__none");
+            if (data[0].show) {
+                this.toggleModel(data[0].type, true);
             }
         }
     }

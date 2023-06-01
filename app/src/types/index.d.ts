@@ -22,7 +22,8 @@ type TOperation =
     | "removeFlashcards"
 type TBazaarType = "templates" | "icons" | "widgets" | "themes" | "plugins"
 type TCardType = "doc" | "notebook" | "all"
-type TEventBus = "ws-main" | "click-blockicon" | "click-editorcontent" | "click-pdf"
+type TEventBus = "ws-main" | "click-blockicon" | "click-editorcontent" | "click-pdf" |
+    "click-editortitleicon" | "open-noneditableblock"
 
 declare module "blueimp-md5"
 
@@ -300,6 +301,16 @@ declare interface IDockTab {
     hotkeyLangId?: string   // 常量中无法存变量
 }
 
+declare interface ICommand {
+    langKey: string, // 多语言 key
+    hotkey: string,
+    customHotkey?: string,
+    callback?: () => void
+    fileTreeCallback?: (file: import("../layout/dock/Files").Files) => void
+    editorCallback?: (protyle: IProtyle) => void
+    dockCallback?: (element: HTMLElement) => void
+}
+
 declare interface IPluginData {
     name: string,
     js: string,
@@ -313,6 +324,8 @@ declare interface IPluginDockTab {
     icon: string,
     hotkey?: string,
     title: string,
+    index?: number
+    show?: boolean
 }
 
 declare interface IOpenFileOptions {
@@ -323,7 +336,11 @@ declare interface IOpenFileOptions {
         title: string,
         icon: string,
         data?: any
-        fn?: (options: { tab: import("../layout/Tab").Tab, data: any }) => import("../layout/Model").Model,
+        fn?: (options: {
+            tab: import("../layout/Tab").Tab,
+            data: any,
+            app: import("../index").App
+        }) => import("../layout/Model").Model,
     }
     assetPath?: string, // asset 必填
     fileName?: string, // file 必填
@@ -373,6 +390,7 @@ declare interface IExport {
 
 declare interface IEditor {
     justify: boolean;
+    fontSizeScrollZoom: boolean;
     rtl: boolean;
     readOnly: boolean;
     listLogicalOutdent: boolean;
@@ -452,6 +470,9 @@ declare interface IAccount {
 }
 
 declare interface IConfig {
+    bazaar: {
+        trust: boolean
+    }
     repo: {
         key: string
     },
@@ -624,6 +645,11 @@ declare interface IGraph {
 }
 
 declare interface IKeymap {
+    plugin: {
+        [key: string]: {
+            [key: string]: IKeymapItem
+        }
+    }
     general: { [key: string]: IKeymapItem }
     editor: {
         general: { [key: string]: IKeymapItem }
@@ -725,9 +751,11 @@ declare interface IMenu {
     current?: boolean
     bind?: (element: HTMLElement) => void
     index?: number
+    element?: HTMLElement
 }
 
 declare interface IBazaarItem {
+    incompatible?: boolean  // 仅 plugin
     enabled: boolean
     preferredName: string
     preferredDesc: string

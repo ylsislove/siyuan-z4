@@ -436,7 +436,7 @@ export const globalShortcut = (app: App) => {
             if (event.key === "Shift") {
                 window.siyuan.shiftIsPressed = true;
                 if (!event.repeat) {
-                    showPopover(app,true);
+                    showPopover(app, true);
                 }
             } else {
                 window.siyuan.shiftIsPressed = false;
@@ -478,8 +478,11 @@ export const globalShortcut = (app: App) => {
                         rootId = ` data-node-id="${item.model.editor.protyle.block.rootID}"`;
                         icon = unicode2Emoji(item.docIcon || Constants.SIYUAN_IMAGE_FILE, false, "b3-list-item__graphic", true);
                     } else if (initData) {
-                        rootId = ` data-node-id="${JSON.parse(initData).rootId}"`;
-                        icon = unicode2Emoji(item.docIcon || Constants.SIYUAN_IMAGE_FILE, false, "b3-list-item__graphic", true);
+                        const initDataObj = JSON.parse(initData);
+                        if (initDataObj.instance === "Editor") {
+                            rootId = ` data-node-id="${initDataObj.rootId}"`;
+                            icon = unicode2Emoji(item.docIcon || Constants.SIYUAN_IMAGE_FILE, false, "b3-list-item__graphic", true);
+                        }
                     }
                     tabHtml += `<li data-index="${index}" data-id="${item.id}"${rootId} class="b3-list-item${currentId === item.id ? " b3-list-item--focus" : ""}"${currentId === item.id ? ' data-original="true"' : ""}>${icon}<span class="b3-list-item__text">${escapeHtml(item.title)}</span></li>`;
                 });
@@ -799,8 +802,27 @@ export const globalShortcut = (app: App) => {
         }
 
         // 面板的操作
-        if (!isTabWindow && panelTreeKeydown(event)) {
+        if (!isTabWindow && panelTreeKeydown(app, event)) {
             return;
+        }
+
+        let matchCommand = false;
+        app.plugins.find(item => {
+            item.commands.find(command => {
+                if (command.callback &&
+                    !command.fileTreeCallback && !command.editorCallback&& !command.dockCallback
+                    && matchHotKey(command.customHotkey, event)) {
+                    matchCommand = true;
+                    command.callback();
+                    return true;
+                }
+            });
+            if (matchCommand) {
+                return true;
+            }
+        });
+        if (matchCommand) {
+            return true;
         }
 
         let searchKey = "";
@@ -1056,8 +1078,9 @@ const editKeydown = (app: App, event: KeyboardEvent) => {
         return true;
     }
     const target = event.target as HTMLElement;
-    if (target.tagName === "INPUT" || target.tagName === "TEXTAREA" ||
-        hasClosestByAttribute(target, "contenteditable", null)) {
+    if (target.tagName !== "TABLE" && (
+        target.tagName === "INPUT" || target.tagName === "TEXTAREA" || hasClosestByAttribute(target, "contenteditable", null)
+    )) {
         return false;
     }
     if (matchHotKey(window.siyuan.config.keymap.editor.general.refresh.custom, event)) {
@@ -1108,6 +1131,24 @@ const fileTreeKeydown = (app: App, event: KeyboardEvent) => {
         return false;
     }
     const files = dockFile.data.file as Files;
+
+    let matchCommand = false;
+    app.plugins.find(item => {
+        item.commands.find(command => {
+            if (command.fileTreeCallback && matchHotKey(command.customHotkey, event)) {
+                matchCommand = true;
+                command.fileTreeCallback(files);
+                return true;
+            }
+        });
+        if (matchCommand) {
+            return true;
+        }
+    });
+    if (matchCommand) {
+        return true;
+    }
+
     if (matchHotKey(window.siyuan.config.keymap.general.selectOpen1.custom, event)) {
         event.preventDefault();
         const element = document.querySelector(".layout__wnd--active > .fn__flex > .layout-tab-bar > .item--focus") ||
@@ -1398,7 +1439,7 @@ const fileTreeKeydown = (app: App, event: KeyboardEvent) => {
     }
 };
 
-const panelTreeKeydown = (event: KeyboardEvent) => {
+const panelTreeKeydown = (app: App, event: KeyboardEvent) => {
     // 面板折叠展开操作
     const target = event.target as HTMLElement;
     if (target.tagName === "INPUT" || target.tagName === "TEXTAREA" ||
@@ -1446,6 +1487,23 @@ const panelTreeKeydown = (event: KeyboardEvent) => {
         activePanelElement.classList.contains("sy__globalGraph") ||
         activePanelElement.classList.contains("sy__graph")) {
         return false;
+    }
+
+    let matchCommand = false;
+    app.plugins.find(item => {
+        item.commands.find(command => {
+            if (command.dockCallback && matchHotKey(command.customHotkey, event)) {
+                matchCommand = true;
+                command.dockCallback(activePanelElement as HTMLElement);
+                return true;
+            }
+        });
+        if (matchCommand) {
+            return true;
+        }
+    });
+    if (matchCommand) {
+        return true;
     }
     const model = (getInstanceById(activePanelElement.getAttribute("data-id"), window.siyuan.layout.layout) as Tab)?.model;
     if (!model) {

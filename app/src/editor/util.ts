@@ -9,7 +9,7 @@ import {Constants} from "../constants";
 import {setEditMode} from "../protyle/util/setEditMode";
 import {Files} from "../layout/dock/Files";
 import {setPadding} from "../protyle/ui/initUI";
-import {fetchPost} from "../util/fetch";
+import {fetchPost, fetchSyncPost} from "../util/fetch";
 import {focusBlock, focusByRange} from "../protyle/util/selection";
 import {onGet} from "../protyle/util/onGet";
 /// #if !BROWSER
@@ -40,28 +40,24 @@ export const openFileById = async (options: {
     removeCurrentTab?: boolean
     afterOpen?: () => void
 }) => {
-    fetchPost("/api/block/getBlockInfo", {id: options.id}, (data) => {
-        if (data.code === 3) {
-            showMessage(data.msg);
-            return;
-        }
-        if (typeof options.removeCurrentTab === "undefined") {
-            options.removeCurrentTab = true;
-        }
-        openFile({
-            app: options.app,
-            fileName: data.data.rootTitle,
-            rootIcon: data.data.rootIcon,
-            rootID: data.data.rootID,
-            id: options.id,
-            position: options.position,
-            mode: options.mode,
-            action: options.action,
-            zoomIn: options.zoomIn,
-            keepCursor: options.keepCursor,
-            removeCurrentTab: options.removeCurrentTab,
-            afterOpen: options.afterOpen
-        });
+    const response = await fetchSyncPost("/api/block/getBlockInfo", {id: options.id});
+    if (response.code === 3) {
+        showMessage(response.msg);
+        return;
+    }
+    return openFile({
+        app: options.app,
+        fileName: response.data.rootTitle,
+        rootIcon: response.data.rootIcon,
+        rootID: response.data.rootID,
+        id: options.id,
+        position: options.position,
+        mode: options.mode,
+        action: options.action,
+        zoomIn: options.zoomIn,
+        keepCursor: options.keepCursor,
+        removeCurrentTab: options.removeCurrentTab,
+        afterOpen: options.afterOpen
     });
 };
 
@@ -80,6 +76,9 @@ export const openAsset = (app: App, assetPath: string, page: number | string, po
 };
 
 export const openFile = (options: IOpenFileOptions) => {
+    if (typeof options.removeCurrentTab === "undefined") {
+        options.removeCurrentTab = true;
+    }
     const allModels = getAllModels();
     // 文档已打开
     if (options.assetPath) {
@@ -97,7 +96,7 @@ export const openFile = (options: IOpenFileOptions) => {
             if (options.afterOpen) {
                 options.afterOpen();
             }
-            return;
+            return asset.parent;
         }
     } else if (options.custom) {
         const custom = allModels.custom.find((item) => {
@@ -110,7 +109,17 @@ export const openFile = (options: IOpenFileOptions) => {
             }
         });
         if (custom) {
-            return;
+            if (options.afterOpen) {
+                options.afterOpen();
+            }
+            return custom.parent;
+        }
+        const hasModel = getUnInitTab(options);
+        if (hasModel) {
+            if (options.afterOpen) {
+                options.afterOpen();
+            }
+            return hasModel;
         }
     } else if (options.searchData) {
         const search = allModels.search.find((item) => {
@@ -123,7 +132,7 @@ export const openFile = (options: IOpenFileOptions) => {
             }
         });
         if (search) {
-            return;
+            return search.parent;
         }
     } else if (!options.position) {
         let editor: Editor;
@@ -149,7 +158,7 @@ export const openFile = (options: IOpenFileOptions) => {
             if (options.afterOpen) {
                 options.afterOpen();
             }
-            return true;
+            return editor.parent;
         }
         // 没有初始化的页签无法检测到
         const hasEditor = getUnInitTab(options);
@@ -157,7 +166,7 @@ export const openFile = (options: IOpenFileOptions) => {
             if (options.afterOpen) {
                 options.afterOpen();
             }
-            return;
+            return hasEditor;
         }
     }
 
@@ -198,6 +207,7 @@ export const openFile = (options: IOpenFileOptions) => {
         wnd = getWndByLayout(window.siyuan.layout.centerLayout);
     }
     if (wnd) {
+        let createdTab: Tab;
         if ((options.position === "right" || options.position === "bottom") && wnd.children[0].headElement) {
             const direction = options.position === "right" ? "lr" : "tb";
             let targetWnd: Wnd;
@@ -229,18 +239,21 @@ export const openFile = (options: IOpenFileOptions) => {
                 });
                 if (!hasEditor) {
                     hasEditor = getUnInitTab(options);
+                    createdTab = hasEditor;
                 }
                 if (!hasEditor) {
-                    targetWnd.addTab(newTab(options));
+                    createdTab = newTab(options);
+                    targetWnd.addTab(createdTab);
                 }
             } else {
-                wnd.split(direction).addTab(newTab(options));
+                createdTab = newTab(options);
+                wnd.split(direction).addTab(createdTab);
             }
             wnd.showHeading();
             if (options.afterOpen) {
                 options.afterOpen();
             }
-            return;
+            return createdTab;
         }
         if (pdfIsLoading(wnd.element)) {
             if (options.afterOpen) {
@@ -249,9 +262,9 @@ export const openFile = (options: IOpenFileOptions) => {
             return;
         }
         if (options.keepCursor && wnd.children[0].headElement) {
-            const tab = newTab(options);
-            tab.headElement.setAttribute("keep-cursor", options.id);
-            wnd.addTab(tab, options.keepCursor);
+            createdTab = newTab(options);
+            createdTab.headElement.setAttribute("keep-cursor", options.id);
+            wnd.addTab(createdTab, options.keepCursor);
         } else if (window.siyuan.config.fileTree.openFilesUseCurrentTab) {
             let unUpdateTab: Tab;
             // 不能 reverse, 找到也不能提前退出循环，否则 https://github.com/siyuan-note/siyuan/issues/3271
@@ -264,17 +277,20 @@ export const openFile = (options: IOpenFileOptions) => {
                     }
                 }
             });
-            wnd.addTab(newTab(options));
+            createdTab = newTab(options)
+            wnd.addTab(createdTab);
             if (unUpdateTab && options.removeCurrentTab) {
                 wnd.removeTab(unUpdateTab.id, false, true, false);
             }
         } else {
-            wnd.addTab(newTab(options));
+            createdTab = newTab(options)
+            wnd.addTab(createdTab);
         }
         wnd.showHeading();
         if (options.afterOpen) {
             options.afterOpen();
         }
+        return createdTab;
     }
 };
 
@@ -284,7 +300,8 @@ const getUnInitTab = (options: IOpenFileOptions) => {
         const initData = item.headElement?.getAttribute("data-initdata");
         if (initData) {
             const initObj = JSON.parse(initData);
-            if (initObj.rootId === options.rootID || initObj.blockId === options.rootID) {
+            if (initObj.instance === "Editor" &&
+                (initObj.rootId === options.rootID || initObj.blockId === options.rootID)) {
                 initObj.blockId = options.id;
                 initObj.mode = options.mode;
                 if (options.zoomIn) {
@@ -294,6 +311,9 @@ const getUnInitTab = (options: IOpenFileOptions) => {
                 }
                 delete initObj.scrollAttr;
                 item.headElement.setAttribute("data-initdata", JSON.stringify(initObj));
+                item.parent.switchTab(item.headElement);
+                return true;
+            } else if (initObj.instance === "Custom" && objEquals(initObj.customModelData, options.custom.data)) {
                 item.parent.switchTab(item.headElement);
                 return true;
             }
@@ -398,6 +418,7 @@ const newTab = (options: IOpenFileOptions) => {
             title: options.custom.title,
             callback(tab) {
                 tab.addModel(options.custom.fn({
+                    app: options.app,
                     tab,
                     data: options.custom.data
                 }));

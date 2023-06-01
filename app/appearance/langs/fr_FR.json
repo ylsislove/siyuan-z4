@@ -1,4 +1,21 @@
 {
+  "incompatiblePluginTip": "Ce plugin n'est pas supporté sur le terminal actuel",
+  "incompatible": "Incompatible",
+  "trust": "Confiance",
+  "bazaarTrust": "Le package marketplace est similaire à une application tierce, il peut faire ce qu'il veut, donc l'installation d'un package marketplace sur le marché présente certains risques de sécurité.",
+  "bazaarTrust3": "Nous attachons une grande importance aux problèmes de sécurité potentiels. Afin d'éviter au maximum les risques de sécurité, les mesures suivantes ont été prises :",
+  "bazaarTrustCodeReview": "Vérifier le code avant de le lister",
+  "bazaarTrustCodeReviewTip": "Avant que le package marketplace ne soit mis en rayon, nous allons revoir son code",
+  "bazaarTrustOpenSource": "Source ouverte",
+  "bazaarTrustOpenSourceTip": "Le code de la plupart des packages du marché est open source, vous pouvez consulter le code et prêter attention aux problèmes de référentiel avant l'installation",
+  "bazaarCommunityReview": "Examen communautaire par les pairs",
+  "bazaarPeerReviewTip": "De nombreux développeurs de la communauté peuvent consulter le code du package du marché",
+  "bazaarUserReport": "Rapport d'utilisateur",
+  "bazaarUserReportTip": "Si vous trouvez du code malveillant ou des problèmes de sécurité dans le package du marché, veuillez nous faire part de vos commentaires",
+  "bazaarTrust1": "Une fois que vous avez choisi de faire confiance au marché, il ne peut pas être fermé. Si vous avez installé un package de marché contenant du code malveillant, veuillez le supprimer manuellement sur le système de fichiers",
+  "bazaarTrust2": "Avertissement : pour plus de détails, veuillez vous reporter aux termes pertinents de la licence open source AGPLv3 utilisée par SiYuan",
+  "pinTableHead": "Épingler la tête du tableau",
+  "unpinTableHead": "Désépingler l'en-tête du tableau",
   "enablePluginTip": "Avez-vous besoin d'activer ce plugin maintenant ? Vous pouvez l'activer, le désactiver ou le désinstaller plus tard dans [Téléchargé - Plugin]",
   "color": "Couleur",
   "confirmPassword": "J'ai déjà retenu le mot de passe",
@@ -581,6 +598,8 @@
   "kernelFault2": "Si le problème persiste, veuillez rechercher de l'aide ou signaler les bogues <a href=\"https://github.com/siyuan-note/siyuan/issues\" target=\"_blank\">ici</a>",
   "fontSize": "Taille de la police",
   "fontSizeTip": "La taille de police par défaut est de <code class='fn__code'>16</code>, ce paramètre affecte l'éditeur et l'affichage de la taille de police PDF/HTML exportée",
+  "fontSizeScrollZoom": "Ajuster rapidement la taille de la police",
+  "fontSizeScrollZoomTip": "Après l'activation, maintenez enfoncée la touche <code class='fn__code'>Ctrl</code> pour ajuster rapidement la taille de la police via la molette de la souris ou le geste de zoom par pincement du trackpad",
   "font1": "Ce paramètre n'affecte que l'affichage de la famille de polices dans l'éditeur, choisissez <code class='fn__code'>Default</code> pour utiliser la famille de polices du thème.",
   "newNameFile": "Le nom du nouveau sous-document est",
   "newNameSettingFile": "Le nom du nouveau document est",
@@ -1141,6 +1160,8 @@
     "200": "Le temps de réponse de la recherche globale est lent, il est recommandé d'ajouter un filtrage de type ou des mots-clés pour restreindre la portée de la recherche",
     "201": "Échec de la purge du référentiel de données : %s",
     "202": "Nettoyage du référentiel de données...",
-    "203": "Le référentiel de données est purgé, [%d] instantanés et [%d] objets de données ont été supprimés, et un total de [%s] espace disque a été libéré"
+    "203": "Le référentiel de données est purgé, [%d] instantanés et [%d] objets de données ont été supprimés, et un total de [%s] espace disque a été libéré",
+    "204": "La documentation du guide de l'utilisateur ne prend pas en charge le partage avec la communauté",
+    "205": "Le plugin n'est pas pris en charge dans l'environnement actuel"
   }
 }

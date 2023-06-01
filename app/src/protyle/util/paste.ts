@@ -258,19 +258,20 @@ export const paste = async (protyle: IProtyle, event: (ClipboardEvent | DragEven
                 if (isDynamicRef(textPlain)) {
                     protyle.toolbar.setInlineMark(protyle, "block-ref", "range", {
                         type: "id",
-                        color: `${textPlain.substring(2, 22 + 2)}${Constants.ZWSP}s${Constants.ZWSP}${Lute.EscapeHTMLStr(range.toString())}`
+                        // range 不能 escape，否则 https://github.com/siyuan-note/siyuan/issues/8359
+                        color: `${textPlain.substring(2, 22 + 2)}${Constants.ZWSP}s${Constants.ZWSP}${range.toString()}`
                     });
                     return;
                 } else if (isFileAnnotation(textPlain)) {
                     protyle.toolbar.setInlineMark(protyle, "file-annotation-ref", "range", {
                         type: "file-annotation-ref",
-                        color: textPlain.substring(2).replace(/ ".+">>$/, "") + Constants.ZWSP + Lute.EscapeHTMLStr(range.toString())
+                        color: textPlain.substring(2).replace(/ ".+">>$/, "") + Constants.ZWSP + range.toString()
                     });
                     return;
                 } else if (protyle.lute.IsValidLinkDest(textPlain)) {
                     protyle.toolbar.setInlineMark(protyle, "a", "range", {
                         type: "a",
-                        color: textPlain + Constants.ZWSP + Lute.EscapeHTMLStr(range.toString())
+                        color: textPlain + Constants.ZWSP + range.toString()
                     });
                     return;
                 }

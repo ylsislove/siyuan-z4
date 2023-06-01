@@ -2,6 +2,35 @@ export const isMobile = () => {
     return document.getElementById("sidebar") ? true : false;
 };
 
+// "windows" | "linux" | "darwin" | "docker" | "android" | "ios"
+export const getBackend = () => {
+    if (["docker", "ios", "android"].includes(window.siyuan.config.system.container)) {
+        return window.siyuan.config.system.container
+    } else {
+        return window.siyuan.config.system.os
+    }
+};
+
+// "desktop" | "desktop-window" | "mobile" | "browser-desktop" | "browser-mobile"
+export const getFrontend = () => {
+    /// #if MOBILE
+    if (window.navigator.userAgent.startsWith("SiYuan/")) {
+        return "mobile";
+    } else {
+        return "browser-mobile";
+    }
+    /// #else
+    if (window.navigator.userAgent.startsWith("SiYuan/")) {
+        if (isWindow()) {
+            return "desktop-window";
+        }
+        return "desktop";
+    } else {
+        return "browser-desktop";
+    }
+    /// #endif
+};
+
 export const isWindow = () => {
     return document.getElementById("toolbar") ? false : true;
 };

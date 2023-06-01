@@ -54,7 +54,7 @@ export class Tab {
                     id = (this.model as Editor).editor.protyle.block.rootID;
                 } else if (!this.model) {
                     const initData = JSON.parse(this.headElement.getAttribute("data-initdata") || "{}");
-                    if (initData) {
+                    if (initData && initData.instance === "Editor") {
                         id = initData.blockId;
                     }
                 }
@@ -209,5 +209,9 @@ export class Tab {
         if (this.docIcon || this.icon) {
             this.headElement.querySelector(".item__text").classList.remove("fn__none");
         }
+    }
+
+    public close() {
+        this.parent.removeTab(this.id);
     }
 }

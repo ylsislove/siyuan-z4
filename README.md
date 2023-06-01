@@ -18,6 +18,8 @@ Build Your Eternal Digital Garden
 SiYuan is a privacy-first personal knowledge management system, support fine-grained block-level reference and Markdown
 WYSIWYG.
 
+Welcome to [SiYuan English Discussion Forum](https://liuyun.io) to learn more.
+
 ![feature0.png](https://b3logfile.com/file/2022/10/feature0-EHMFc7T.png)
 
 ## 🔮 Features
@@ -68,10 +70,22 @@ Cloud services require a paid subscription.
 * WeChat notification
 * Cloud inbox
 
+## 🏗️ Architecture design and open source ecosystem
+
+![SiYuan Arch](https://b3logfile.com/file/2023/05/SiYuan_Arch-Sgu8vXT.png "SiYuan Arch")
+
+* [bazzar](https://github.com/siyuan-note/bazaar): Community marketplace
+* [dejavu](https://github.com/siyuan-note/dejavu): Data repo
+* [riff](https://github.com/siyuan-note/riff): Spaced repetition system
+* [petal](https://github.com/siyuan-note/petal): Plugin system
+* [chrome](https://github.com/siyuan-note/siyuan-chrome): Chrome extension
+* [lute](https://github.com/88250/lute): A structured editor engine that supports Go and JavaScript
+* [ios](https://github.com/siyuan-note/siyuan-ios): iOS APP
+* [android](https://github.com/siyuan-note/siyuan-android): Android APP
+
 ## 🌟 Star History
 
 [![Star History Chart](https://api.star-history.com/svg?repos=siyuan-note/siyuan&type=Date)](https://star-history.com/#siyuan-note/siyuan&Date)
-
 
 ## 🗺️ Roadmap
 
@@ -156,9 +170,9 @@ We release insider preview before major updates, please visit [https://github.co
 
 ## 🏘️ Community
 
-* [Issues](https://github.com/siyuan-note/siyuan/issues) Official support channels
-* [Discord](https://discord.com/invite/bzfCBwMzdP) A community built by enthusiastic users
-* [Awesome SiYuan](https://github.com/siyuan-note/awesome) Resources organized by enthusiastic users
+* [English Discussion Forum](https://liuyun.io)
+* [Discord](https://discord.com/invite/bzfCBwMzdP)
+* [Awesome SiYuan](https://github.com/siyuan-note/awesome)
 
 ## 🛠️ Development Guide
 

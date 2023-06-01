@@ -9,6 +9,7 @@ import {Tab} from "../layout/Tab";
 import {getDockByType, setPanelFocus} from "../layout/util";
 import {hasClosestByAttribute} from "../protyle/util/hasClosest";
 import {BlockPanel} from "../block/Panel";
+import {genUUID} from "../util/genID";
 
 export class Plugin {
     private app: App;
@@ -17,6 +18,8 @@ export class Plugin {
     public data: any = {};
     public name: string;
     public topBarIcons: Element[] = [];
+    public statusBarIcons: Element[] = [];
+    public commands: ICommand[] = [];
     public models: {
         /// #if !MOBILE
         [key: string]: (options: { tab: Tab, data: any }) => Custom
@@ -54,31 +57,49 @@ export class Plugin {
         // 布局加载完成
     }
 
+    public addCommand(command: ICommand) {
+        this.commands.push(command);
+    }
+
+    public addIcons(svg: string) {
+        document.body.insertAdjacentHTML("afterbegin", `<svg data-name="${this.name}" style="position: absolute; width: 0; height: 0; overflow: hidden;" xmlns="http://www.w3.org/2000/svg">
+<defs>${svg}</defs></svg>`);
+    }
+
     public addTopBar(options: {
         icon: string,
         title: string,
-        position?: "right",
+        position?: "right" | "left",
         callback: (evt: MouseEvent) => void
     }) {
         const iconElement = document.createElement("div");
+        iconElement.setAttribute("data-menu", "true");
+        iconElement.addEventListener("click", options.callback);
+        iconElement.id = "plugin" + genUUID();
         if (isMobile()) {
             iconElement.className = "b3-menu__item";
-            iconElement.setAttribute("aria-label", options.title);
-            iconElement.setAttribute("data-menu", "true");
             iconElement.innerHTML = (options.icon.startsWith("icon") ? `<svg class="b3-menu__icon"><use xlink:href="#${options.icon}"></use></svg>` : options.icon) +
                 `<span class="b3-menu__label">${options.title}</span>`;
-            iconElement.addEventListener("click", options.callback);
-            document.querySelector("#menuAbout").after(iconElement);
         } else if (!isWindow()) {
             iconElement.className = "toolbar__item b3-tooltips b3-tooltips__sw";
             iconElement.setAttribute("aria-label", options.title);
-            iconElement.setAttribute("data-menu", "true");
             iconElement.innerHTML = options.icon.startsWith("icon") ? `<svg><use xlink:href="#${options.icon}"></use></svg>` : options.icon;
             iconElement.addEventListener("click", options.callback);
-            document.querySelector("#" + (options.position === "right" ? "barSearch" : "drag")).before(iconElement);
+            iconElement.setAttribute("data-position", options.position || "right");
         }
         this.topBarIcons.push(iconElement);
         return iconElement;
+    }
+
+    public addStatusBar(options: {
+        element: HTMLElement,
+        position?: "right" | "left",
+    }) {
+        /// #if !MOBILE
+        options.element.setAttribute("data-position", options.position || "right");
+        this.statusBarIcons.push(options.element);
+        return options.element;
+        /// #endif
     }
 
     public openSetting() {
@@ -173,6 +194,9 @@ export class Plugin {
     }) {
         /// #if !MOBILE
         const type2 = this.name + options.type;
+        if (typeof options.config.index === "undefined") {
+            options.config.index = 1000;
+        }
         this.docks[type2] = {
             config: options.config,
             model: (arg: { tab: Tab }) => {

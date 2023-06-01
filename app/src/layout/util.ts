@@ -37,6 +37,7 @@ import {Custom} from "./dock/Custom";
 import {newCardModel} from "../card/newCardTab";
 import {openRecentDocs} from "../business/openRecentDocs";
 import {App} from "../index";
+import {afterLoadPlugin} from "../plugin/loader";
 
 export const setPanelFocus = (element: Element) => {
     if (element.classList.contains("layout__tab--active") || element.classList.contains("layout__wnd--active")) {
@@ -239,51 +240,24 @@ export const exportLayout = (options: {
     });
 };
 
-const pushPluginDock = (app: App, dockItem: IDockTab[], position: TPluginDockPosition) => {
-    const needPushData: { [key: string]: IPluginDockTab } = {};
-    app.plugins.forEach((pluginItem) => {
-        let isExist = false;
-        dockItem.forEach(existSubItem => {
-            if (Object.keys(pluginItem.docks).includes(existSubItem.type)) {
-                isExist = true;
-            }
-        });
-        if (!isExist) {
-            Object.keys(pluginItem.docks).forEach(pluginDockKey => {
-                if (pluginItem.docks[pluginDockKey].config.position === position) {
-                    needPushData[pluginDockKey] = pluginItem.docks[pluginDockKey].config;
-                }
-            });
-        }
-    });
-    dockItem.forEach(existSubItem => {
+const initInternalDock = (dockItem: IDockTab[]) => {
+    dockItem.forEach((existSubItem) => {
         if (existSubItem.hotkeyLangId) {
             existSubItem.title = window.siyuan.languages[existSubItem.hotkeyLangId];
             existSubItem.hotkey = window.siyuan.config.keymap.general[existSubItem.hotkeyLangId].custom;
         }
     });
-    Object.keys(needPushData).forEach(key => {
-        const item = needPushData[key];
-        dockItem.push({
-            type: key,
-            size: item.size,
-            show: false,
-            icon: item.icon,
-            hotkey: item.hotkey || "",
-            title: item.title,
-        });
-    });
 };
 
 const JSONToDock = (json: any, app: App) => {
-    json.left.data.forEach((existItem: IDockTab[], index: number) => {
-        pushPluginDock(app, existItem, index === 0 ? "LeftTop" : "LeftBottom");
+    json.left.data.forEach((existItem: IDockTab[]) => {
+        initInternalDock(existItem);
     });
-    json.right.data.forEach((existItem: IDockTab[], index: number) => {
-        pushPluginDock(app, existItem, index === 0 ? "RightTop" : "RightBottom");
+    json.right.data.forEach((existItem: IDockTab[]) => {
+        initInternalDock(existItem);
     });
-    json.bottom.data.forEach((existItem: IDockTab[], index: number) => {
-        pushPluginDock(app, existItem, index === 0 ? "BottomLeft" : "BottomRight");
+    json.bottom.data.forEach((existItem: IDockTab[]) => {
+        initInternalDock(existItem);
     });
     window.siyuan.layout.centerLayout = window.siyuan.layout.layout.children[0].children[1] as Layout;
     window.siyuan.layout.leftDock = new Dock({position: "Left", data: json.left, app});
@@ -291,7 +265,7 @@ const JSONToDock = (json: any, app: App) => {
     window.siyuan.layout.bottomDock = new Dock({position: "Bottom", data: json.bottom, app});
 };
 
-export const JSONToCenter = (app: App, json: ILayoutJSON, layout?: Layout | Wnd | Tab | Model, isStart = false) => {
+export const JSONToCenter = (app: App, json: ILayoutJSON, layout?: Layout | Wnd | Tab | Model) => {
     let child: Layout | Wnd | Tab | Model;
     if (json.instance === "Layout") {
         if (!layout) {
@@ -402,75 +376,75 @@ export const JSONToCenter = (app: App, json: ILayoutJSON, layout?: Layout | Wnd 
             config: json.config
         }));
     } else if (json.instance === "Custom") {
-        if (json.customModelType === "siyuan-card") {
-            (layout as Tab).addModel(newCardModel({
-                app,
-                tab: (layout as Tab),
-                data: json.customModelData
-            }));
-        } else {
-            app.plugins.find(item => {
-                if (item.models[json.customModelType]) {
-                    (layout as Tab).addModel(item.models[json.customModelType]({
-                        tab: (layout as Tab),
-                        data: json.customModelData
-                    }));
-                    return true;
-                }
-            });
+        if (window.siyuan.config.fileTree.openFilesUseCurrentTab) {
+            (layout as Tab).headElement.classList.add("item--unupdate");
         }
+        (layout as Tab).headElement.setAttribute("data-initdata", JSON.stringify(json));
     }
     if (json.children) {
         if (Array.isArray(json.children)) {
-            json.children.forEach((item: any, index: number) => {
-                JSONToCenter(app, item, layout ? child : window.siyuan.layout.layout, isStart);
-                if (item.instance === "Tab" && index === (json.children as ILayoutJSON[]).length - 1) {
-                    const activeTabElement = (child as Wnd).headersElement.querySelector('[data-init-active="true"]') as HTMLElement;
-                    if (activeTabElement) {
-                        if (window.siyuan.config.fileTree.closeTabsOnStart && isStart &&
-                            !item.pin && item.title) {
-                            // 启动时关闭所有页签就不应该再初始化它
-                        } else {
-                            activeTabElement.removeAttribute("data-init-active");
-                            (child as Wnd).switchTab(activeTabElement, false, false);
-                        }
-                    }
-                }
+            json.children.forEach((item: any) => {
+                JSONToCenter(app, item, layout ? child : window.siyuan.layout.layout);
             });
         } else {
-            JSONToCenter(app, json.children, child, isStart);
+            JSONToCenter(app, json.children, child);
         }
     }
 };
 
 export const JSONToLayout = (app: App, isStart: boolean) => {
-    JSONToCenter(app, window.siyuan.config.uiLayout.layout, undefined, isStart);
+    JSONToCenter(app, window.siyuan.config.uiLayout.layout, undefined);
     JSONToDock(window.siyuan.config.uiLayout, app);
     // 启动时不打开页签，需要移除没有钉住的页签
     if (window.siyuan.config.fileTree.closeTabsOnStart && isStart) {
         getAllTabs().forEach(item => {
             if (item.headElement && !item.headElement.classList.contains("item--pin")) {
-                item.parent.removeTab(item.id);
+                item.parent.removeTab(item.id, false, false, false);
             }
         });
     }
-    const idZoomIn = getIdZoomInByPath();
-
-
-    setTimeout(() => {
-        // 启动时 layout 中有该文档，该文档还原会在此之后，因此需有延迟
-        if (idZoomIn.id) {
-            openFileById({
-                app,
-                id: idZoomIn.id,
-                action: idZoomIn.isZoomIn ? [Constants.CB_GET_ALL, Constants.CB_GET_FOCUS] : [Constants.CB_GET_FOCUS, Constants.CB_GET_CONTEXT],
-                zoomIn: idZoomIn.isZoomIn
-            });
+    app.plugins.forEach(item => {
+        afterLoadPlugin(item);
+    });
+    // 移除没有插件的 tab
+    document.querySelectorAll('li[data-type="tab-header"]').forEach((item: HTMLElement) => {
+        const initData = item.getAttribute("data-initdata");
+        if (initData) {
+            const initDataObj = JSON.parse(initData);
+            if (initDataObj.instance === "Custom") {
+                let hasPlugin = false;
+                app.plugins.find(plugin => {
+                    if (Object.keys(plugin.models).includes(initDataObj.customModelType)) {
+                        hasPlugin = true;
+                        return true;
+                    }
+                });
+                if (!hasPlugin) {
+                    const tabId = item.getAttribute("data-id");
+                    const tab = getInstanceById(tabId) as Tab;
+                    if (tab) {
+                        tab.parent.removeTab(tabId, false, false, false);
+                    }
+                }
+            }
         }
-        app.plugins.forEach(item => {
-            item.onLayoutReady();
+    });
+    const idZoomIn = getIdZoomInByPath();
+    if (idZoomIn.id) {
+        openFileById({
+            app,
+            id: idZoomIn.id,
+            action: idZoomIn.isZoomIn ? [Constants.CB_GET_ALL, Constants.CB_GET_FOCUS] : [Constants.CB_GET_FOCUS, Constants.CB_GET_CONTEXT],
+            zoomIn: idZoomIn.isZoomIn
         });
-    }, Constants.TIMEOUT_LOAD);
+    } else {
+        document.querySelectorAll('li[data-type="tab-header"][data-init-active="true"]').forEach((item: HTMLElement) => {
+            item.removeAttribute("data-init-active");
+            const tab = getInstanceById(item.getAttribute("data-id")) as Tab;
+            tab.parent.switchTab(item, false, false);
+        });
+    }
+    resizeTopbar();
 };
 
 export const layoutToJSON = (layout: Layout | Wnd | Tab | Model, json: any, dropEditScroll = false) => {
@@ -605,18 +579,57 @@ export const layoutToJSON = (layout: Layout | Wnd | Tab | Model, json: any, drop
     }
 };
 
-export const resizeDrag = () => {
-    const dragElement = document.getElementById("drag");
+export const resizeTopbar = () => {
+    const toolbarElement = document.querySelector("#toolbar");
+    const dragElement = toolbarElement.querySelector("#drag") as HTMLElement;
+
+    dragElement.style.padding = "";
+    const barMoreElement = toolbarElement.querySelector("#barMore");
+    barMoreElement.classList.remove("fn__none");
+    barMoreElement.removeAttribute("data-hideids");
+
+    Array.from(toolbarElement.querySelectorAll('[data-hide="true"]')).forEach((item) => {
+        item.classList.remove("fn__none");
+        item.removeAttribute("data-hide");
+    });
+
+    let afterDragElement = dragElement.nextElementSibling;
+    const hideIds: string[] = [];
+    while (toolbarElement.scrollWidth > toolbarElement.clientWidth + 2) {
+        hideIds.push(afterDragElement.id);
+        afterDragElement.classList.add("fn__none");
+        afterDragElement.setAttribute("data-hide", "true");
+        afterDragElement = afterDragElement.nextElementSibling;
+        if (afterDragElement.id === "barMore") {
+            break;
+        }
+    }
+
+    let beforeDragElement = dragElement.previousElementSibling;
+    while (toolbarElement.scrollWidth > toolbarElement.clientWidth + 2) {
+        hideIds.push(beforeDragElement.id);
+        beforeDragElement.classList.add("fn__none");
+        beforeDragElement.setAttribute("data-hide", "true");
+        beforeDragElement = beforeDragElement.previousElementSibling;
+        if (beforeDragElement.id === "barWorkspace") {
+            break;
+        }
+    }
+    if (hideIds.length > 0) {
+        barMoreElement.classList.remove("fn__none");
+    } else {
+        barMoreElement.classList.add("fn__none");
+    }
+    barMoreElement.setAttribute("data-hideids", hideIds.join(","));
+
     const width = dragElement.clientWidth;
     const dragRect = dragElement.getBoundingClientRect();
     const left = dragRect.left;
     const right = window.innerWidth - dragRect.right;
-    if (left > right && left - right < width) {
+    if (left > right && left - right < width / 3) {
         dragElement.style.paddingRight = (left - right) + "px";
-    } else if (left < right && right - left < width) {
+    } else if (left < right && right - left < width / 3) {
         dragElement.style.paddingLeft = (right - left) + "px";
-    } else {
-        dragElement.style.padding = "";
     }
 };
 
@@ -732,21 +745,50 @@ export const copyTab = (app: App, tab: Tab) => {
                 }
             } else if (!tab.model && tab.headElement) {
                 const initData = JSON.parse(tab.headElement.getAttribute("data-initdata") || "{}");
-                if (initData.scrollAttr) {
-                    initData.scrollAttr.rootId = initData.rootId;
+                if (initData) {
+                    // 历史数据兼容 2023-05-24
+                    if (initData.scrollAttr) {
+                        initData.scrollAttr.rootId = initData.rootId;
+                    }
+                    model = newModelByInitData(app, newTab, initData);
                 }
-                model = new Editor({
-                    app,
-                    tab: newTab,
-                    blockId: initData.blockId,
-                    mode: initData.mode,
-                    action: typeof initData.action === "string" ? [initData.action] : initData.action,
-                    scrollAttr: initData.scrollAttr,
-                });
             }
             newTab.addModel(model);
         }
     });
+};
+
+export const newModelByInitData = (app: App, tab: Tab, json: any) => {
+    let model: Model;
+    if (json.instance === "Custom") {
+        if (json.customModelType === "siyuan-card") {
+            model = newCardModel({
+                app,
+                tab: tab,
+                data: json.customModelData
+            });
+        } else {
+            app.plugins.find(item => {
+                if (item.models[json.customModelType]) {
+                    model = item.models[json.customModelType]({
+                        tab: tab,
+                        data: json.customModelData
+                    });
+                    return true;
+                }
+            });
+        }
+    } else if (json.instance === "Editor") {
+        model = new Editor({
+            app,
+            tab,
+            blockId: json.blockId,
+            mode: json.mode,
+            action: typeof json.action === "string" ? [json.action] : json.action,
+            scrollAttr: json.scrollAttr,
+        });
+    }
+    return model;
 };
 
 export const pdfIsLoading = (element: HTMLElement) => {
@@ -944,7 +986,7 @@ export const newCenterEmptyTab = (app: App) => {
                 let target = event.target as HTMLElement;
                 while (target && !target.isEqualNode(tab.panelElement)) {
                     if (target.id === "editorEmptySearch") {
-                        openSearch( {
+                        openSearch({
                             app,
                             hotkey: window.siyuan.config.keymap.general.globalSearch.custom,
                         });

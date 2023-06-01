@@ -39,8 +39,9 @@ export const commonHotkey = (app: App, protyle: IProtyle, event: KeyboardEvent) 
         netImg2LocalAssets(protyle);
         event.preventDefault();
         event.stopPropagation();
-        return;
+        return true;
     }
+
     if (matchHotKey(window.siyuan.config.keymap.editor.general.spaceRepetition.custom, event) ||
         matchHotKey(window.siyuan.config.keymap.general.dailyNote.custom, event)) {
         // 阻止输入 https://ld246.com/article/1679618995926
@@ -70,6 +71,23 @@ export const commonHotkey = (app: App, protyle: IProtyle, event: KeyboardEvent) 
             focusByOffset(target, offset.start, offset.end);
             return true;
         }
+    }
+
+    let matchCommand = false;
+    app.plugins.find(item => {
+        item.commands.find(command => {
+            if (command.editorCallback && matchHotKey(command.customHotkey, event)) {
+                matchCommand = true;
+                command.editorCallback(protyle);
+                return true;
+            }
+        });
+        if (matchCommand) {
+            return true;
+        }
+    });
+    if (matchCommand) {
+        return true;
     }
     /// #endif
 };
@@ -182,9 +200,9 @@ export const duplicateBlock = (nodeElements: Element[], protyle: IProtyle) => {
     let focusElement;
     const doOperations: IOperation[] = [];
     const undoOperations: IOperation[] = [];
-    nodeElements.forEach((item, index) => {
+    nodeElements.reverse().forEach((item, index) => {
         const tempElement = item.cloneNode(true) as HTMLElement;
-        if (index === nodeElements.length - 1) {
+        if (index === 0) {
             focusElement = tempElement;
         }
         const newId = Lute.NewNodeID();
@@ -193,12 +211,12 @@ export const duplicateBlock = (nodeElements: Element[], protyle: IProtyle) => {
             childItem.setAttribute("data-node-id", Lute.NewNodeID());
         });
         item.classList.remove("protyle-wysiwyg--select");
-        item.after(tempElement);
+        nodeElements[0].after(tempElement);
         doOperations.push({
             action: "insert",
             data: tempElement.outerHTML,
             id: newId,
-            previousID: item.getAttribute("data-node-id"),
+            previousID: nodeElements[0].getAttribute("data-node-id"),
         });
         undoOperations.push({
             action: "delete",
