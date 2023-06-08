@@ -2,10 +2,11 @@ import {fetchSyncPost} from "../util/fetch";
 import {App} from "../index";
 import {Plugin} from "./index";
 /// #if !MOBILE
-import {exportLayout} from "../layout/util";
+import {exportLayout, resizeTopbar} from "../layout/util";
 /// #endif
 import {API} from "./API";
 import {getFrontend, isMobile, isWindow} from "../util/functions";
+import {Constants} from "../constants";
 
 const getObject = (key: string) => {
     const api = {
@@ -38,7 +39,7 @@ const loadPluginJS = async (app: App, item: IPluginData) => {
     try {
         runCode(item.js, "plugin:" + encodeURIComponent(item.name))(getObject, moduleObj, exportsObj);
     } catch (e) {
-        console.error(`eval plugin ${item.name} error:`, e);
+        console.error(`plugin ${item.name} run error:`, e);
         return;
     }
     const pluginClass = (moduleObj.exports || exportsObj).default || moduleObj.exports;
@@ -141,14 +142,18 @@ export const afterLoadPlugin = (plugin: Plugin) => {
             if (isMobile()) {
                 document.querySelector("#menuAbout").after(element);
             } else if (!isWindow()) {
-                document.querySelector("#" + (element.getAttribute("data-position") === "right" ? "barSearch" : "drag")).before(element);
+                if (window.siyuan.storage[Constants.LOCAL_PLUGINTOPUNPIN].includes(element.id)) {
+                    element.classList.add("fn__none");
+                }
+                document.querySelector("#" + (element.getAttribute("data-position") === "right" ? "barPlugins" : "drag")).before(element);
             }
         });
     }
     /// #if !MOBILE
+    resizeTopbar();
     mergePluginHotkey(plugin);
     plugin.statusBarIcons.forEach(element => {
-        const statusElement = document.getElementById("status")
+        const statusElement = document.getElementById("status");
         if (element.getAttribute("data-position") === "right") {
             statusElement.insertAdjacentElement("beforeend", element);
         } else {

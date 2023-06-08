@@ -34,19 +34,18 @@ export class Protyle {
 
     public readonly version: string;
     public protyle: IProtyle;
-    private app: App;
 
     /**
      * @param id 要挂载 Protyle 的元素或者元素 ID。
      * @param options Protyle 参数
      */
     constructor(app: App, id: HTMLElement, options?: IOptions) {
-        this.app = app;
         this.version = Constants.SIYUAN_VERSION;
         const getOptions = new Options(options);
         const mergedOptions = getOptions.merge();
 
         this.protyle = {
+            app,
             transactionTime: new Date().getTime(),
             id: genUUID(),
             disabled: false,
@@ -56,17 +55,17 @@ export class Protyle {
             block: {},
         };
 
-        this.protyle.hint = new Hint(app, this.protyle);
+        this.protyle.hint = new Hint(this.protyle);
         if (mergedOptions.render.breadcrumb) {
-            this.protyle.breadcrumb = new Breadcrumb(app, this.protyle);
+            this.protyle.breadcrumb = new Breadcrumb(this.protyle);
         }
         /// #if !MOBILE
         if (mergedOptions.render.title) {
-            this.protyle.title = new Title(app, this.protyle);
+            this.protyle.title = new Title(this.protyle);
         }
         /// #endif
         if (mergedOptions.render.background) {
-            this.protyle.background = new Background(app, this.protyle);
+            this.protyle.background = new Background(this.protyle);
         }
 
         this.protyle.element.innerHTML = "";
@@ -75,11 +74,11 @@ export class Protyle {
             this.protyle.element.appendChild(this.protyle.breadcrumb.element.parentElement);
         }
         this.protyle.undo = new Undo();
-        this.protyle.wysiwyg = new WYSIWYG(app, this.protyle);
-        this.protyle.toolbar = new Toolbar(app, this.protyle);
+        this.protyle.wysiwyg = new WYSIWYG(this.protyle);
+        this.protyle.toolbar = new Toolbar(this.protyle);
         this.protyle.scroll = new Scroll(this.protyle); // 不能使用 render.scroll 来判读是否初始化，除非重构后面用到的相关变量
         if (this.protyle.options.render.gutter) {
-            this.protyle.gutter = new Gutter(app, this.protyle);
+            this.protyle.gutter = new Gutter(this.protyle);
         }
         if (mergedOptions.upload.url || mergedOptions.upload.handler) {
             this.protyle.upload = new Upload();
@@ -123,7 +122,7 @@ export class Protyle {
                                         id: this.protyle.block.rootID,
                                         size: window.siyuan.config.editor.dynamicLoadBlocks,
                                     }, getResponse => {
-                                        onGet(getResponse, this.protyle);
+                                        onGet({data: getResponse, protyle: this.protyle});
                                     });
                                 } else {
                                     reloadProtyle(this.protyle, false);
@@ -260,7 +259,7 @@ export class Protyle {
             mode: (mergedOptions.action && mergedOptions.action.includes(Constants.CB_GET_CONTEXT)) ? 3 : 0,
             size: mergedOptions.action?.includes(Constants.CB_GET_ALL) ? Constants.SIZE_GET_MAX : window.siyuan.config.editor.dynamicLoadBlocks,
         }, getResponse => {
-            onGet(getResponse, this.protyle, mergedOptions.action);
+            onGet({data: getResponse, protyle: this.protyle, action: mergedOptions.action});
             this.afterOnGet(mergedOptions);
         });
     }
@@ -328,7 +327,7 @@ export class Protyle {
             sanitize: this.protyle.options.preview.markdown.sanitize,
         });
 
-        this.protyle.preview = new Preview(this.app, this.protyle);
+        this.protyle.preview = new Preview(this.protyle);
 
         initUI(this.protyle);
     }

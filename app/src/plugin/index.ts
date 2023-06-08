@@ -9,7 +9,7 @@ import {Tab} from "../layout/Tab";
 import {getDockByType, setPanelFocus} from "../layout/util";
 import {hasClosestByAttribute} from "../protyle/util/hasClosest";
 import {BlockPanel} from "../block/Panel";
-import {genUUID} from "../util/genID";
+import {Setting} from "./Setting";
 
 export class Plugin {
     private app: App;
@@ -17,7 +17,17 @@ export class Plugin {
     public eventBus: EventBus;
     public data: any = {};
     public name: string;
+    // TODO
+    public customBlockRenders: {
+        [key: string]: {
+            icon: string,
+            action: "edit" | "more"[],
+            genCursor: boolean,
+            render: (options: { app: App, element: Element }) => void
+        }
+    } = {};
     public topBarIcons: Element[] = [];
+    public setting: Setting;
     public statusBarIcons: Element[] = [];
     public commands: ICommand[] = [];
     public models: {
@@ -72,10 +82,14 @@ export class Plugin {
         position?: "right" | "left",
         callback: (evt: MouseEvent) => void
     }) {
+        if (!options.icon.startsWith("icon") && !options.icon.startsWith("<svg")) {
+            console.error(`plugin ${this.name} addTopBar error: icon must be svg id or svg tag`);
+            return;
+        }
         const iconElement = document.createElement("div");
         iconElement.setAttribute("data-menu", "true");
         iconElement.addEventListener("click", options.callback);
-        iconElement.id = "plugin" + genUUID();
+        iconElement.id = `plugin_${this.name}_${this.topBarIcons.length}`;
         if (isMobile()) {
             iconElement.className = "b3-menu__item";
             iconElement.innerHTML = (options.icon.startsWith("icon") ? `<svg class="b3-menu__icon"><use xlink:href="#${options.icon}"></use></svg>` : options.icon) +
@@ -103,7 +117,10 @@ export class Plugin {
     }
 
     public openSetting() {
-        // 打开设置
+        if (!this.setting) {
+            return;
+        }
+        this.setting.open(this.name);
     }
 
     public loadData(storageName: string) {

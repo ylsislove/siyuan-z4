@@ -36,7 +36,7 @@ import (
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/cookie"
 	"github.com/gin-gonic/gin"
-	"github.com/mssola/user_agent"
+	"github.com/mssola/useragent"
 	"github.com/olahol/melody"
 	"github.com/siyuan-note/logging"
 	"github.com/siyuan-note/siyuan/kernel/api"
@@ -75,6 +75,7 @@ func Serve(fastMode bool) {
 	servePlugins(ginServer)
 	serveEmojis(ginServer)
 	serveTemplates(ginServer)
+	serveRepoDiff(ginServer)
 	api.ServeAPI(ginServer)
 
 	var host string
@@ -205,10 +206,19 @@ func serveAppearance(ginServer *gin.Engine) {
 
 		if strings.Contains(userAgentHeader, "Electron") {
 			location.Path = "/stage/build/app/"
-		} else if user_agent.New(userAgentHeader).Mobile() {
-			location.Path = "/stage/build/mobile/"
-		} else {
+		} else if strings.Contains(userAgentHeader, "Pad") {
+			// Improve detecting Pad device, treat it as desktop device https://github.com/siyuan-note/siyuan/issues/8435
 			location.Path = "/stage/build/desktop/"
+		} else {
+			if idx := strings.Index(userAgentHeader, "Mozilla/"); 0 < idx {
+				userAgentHeader = userAgentHeader[idx:]
+			}
+			ua := useragent.New(userAgentHeader)
+			if ua.Mobile() {
+				location.Path = "/stage/build/mobile/"
+			} else {
+				location.Path = "/stage/build/desktop/"
+			}
 		}
 
 		c.Redirect(302, location.String())
@@ -340,6 +350,15 @@ func serveAssets(ginServer *gin.Engine) {
 	})
 }
 
+func serveRepoDiff(ginServer *gin.Engine) {
+	ginServer.GET("/repo/diff/*path", model.CheckAuth, func(context *gin.Context) {
+		requestPath := context.Param("path")
+		p := filepath.Join(util.TempDir, "repo", "diff", requestPath)
+		http.ServeFile(context.Writer, context.Request, p)
+		return
+	})
+}
+
 func serveDebug(ginServer *gin.Engine) {
 	ginServer.GET("/debug/pprof/", gin.WrapF(pprof.Index))
 	ginServer.GET("/debug/pprof/allocs", gin.WrapF(pprof.Index))
@@ -401,7 +420,7 @@ func serveWebSocket(ginServer *gin.Engine) {
 
 		if !authOk {
 			s.CloseWithMsg([]byte("  unauthenticated"))
-			//logging.LogWarnf("closed an unauthenticated session [%s]", util.GetRemoteAddr(s))
+			logging.LogWarnf("closed an unauthenticated session [%s]", util.GetRemoteAddr(s))
 			return
 		}
 
@@ -418,7 +437,7 @@ func serveWebSocket(ginServer *gin.Engine) {
 
 	util.WebSocketServer.HandleError(func(s *melody.Session, err error) {
 		//sessionId, _ := s.Get("id")
-		//logging.LogDebugf("ws [%s] failed: %s", sessionId, err)
+		//logging.LogWarnf("ws [%s] failed: %s", sessionId, err)
 	})
 
 	util.WebSocketServer.HandleClose(func(s *melody.Session, i int, str string) error {

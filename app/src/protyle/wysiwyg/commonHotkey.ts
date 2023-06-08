@@ -20,9 +20,8 @@ import {transaction, updateTransaction} from "./transaction";
 import {onGet} from "../util/onGet";
 import {Constants} from "../../constants";
 import * as dayjs from "dayjs";
-import {App} from "../../index";
 
-export const commonHotkey = (app: App, protyle: IProtyle, event: KeyboardEvent) => {
+export const commonHotkey = (protyle: IProtyle, event: KeyboardEvent) => {
     const target = event.target as HTMLElement;
     if (matchHotKey(window.siyuan.config.keymap.editor.general.copyHPath.custom, event)) {
         fetchPost("/api/filetree/getHPathByID", {
@@ -53,20 +52,20 @@ export const commonHotkey = (app: App, protyle: IProtyle, event: KeyboardEvent) 
         if (matchHotKey(window.siyuan.config.keymap.editor.general.backlinks.custom, event)) {
             event.preventDefault();
             event.stopPropagation();
-            openBacklink(app, protyle);
+            openBacklink(protyle);
             return true;
         }
         if (matchHotKey(window.siyuan.config.keymap.editor.general.graphView.custom, event)) {
             event.preventDefault();
             event.stopPropagation();
-            openGraph(app, protyle);
+            openGraph(protyle);
             return true;
         }
         if (matchHotKey(window.siyuan.config.keymap.editor.general.outline.custom, event)) {
             event.preventDefault();
             event.stopPropagation();
             const offset = getSelectionOffset(target);
-            openOutline(app, protyle);
+            openOutline(protyle);
             // switchWnd 后，range会被清空，需要重新设置
             focusByOffset(target, offset.start, offset.end);
             return true;
@@ -74,7 +73,7 @@ export const commonHotkey = (app: App, protyle: IProtyle, event: KeyboardEvent) 
     }
 
     let matchCommand = false;
-    app.plugins.find(item => {
+    protyle.app.plugins.find(item => {
         item.commands.find(command => {
             if (command.editorCallback && matchHotKey(command.customHotkey, event)) {
                 matchCommand = true;
@@ -241,7 +240,7 @@ export const goHome = (protyle: IProtyle) => {
             mode: 0,
             size: window.siyuan.config.editor.dynamicLoadBlocks,
         }, getResponse => {
-            onGet(getResponse, protyle, [Constants.CB_GET_FOCUS]);
+            onGet({data: getResponse, protyle, action: [Constants.CB_GET_FOCUS]});
         });
     }
 };
@@ -254,7 +253,7 @@ export const goEnd = (protyle: IProtyle) => {
             mode: 4,
             size: window.siyuan.config.editor.dynamicLoadBlocks,
         }, getResponse => {
-            onGet(getResponse, protyle, [Constants.CB_GET_FOCUS]);
+            onGet({data: getResponse, protyle, action: [Constants.CB_GET_FOCUS]});
         });
     } else {
         protyle.contentElement.scrollTop = protyle.contentElement.scrollHeight;

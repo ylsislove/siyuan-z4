@@ -15,6 +15,7 @@ import {webFrame} from "electron";
 /// #endif
 import {Constants} from "../constants";
 import {isBrowser, isWindow} from "../util/functions";
+import {Menu} from "../plugin/API";
 
 export const updateEditModeElement = () => {
     const target = document.querySelector("#barReadonly");
@@ -47,6 +48,9 @@ export const initBar = (app: App) => {
 </button>
 <div class="fn__flex-1 fn__ellipsis" id="drag"><span class="fn__none">开发版，使用前请进行备份 Development version, please backup before use</span></div>
 <div id="toolbarVIP" class="fn__flex${window.siyuan.config.readonly ? " fn__none" : ""}"></div>
+<div id="barPlugins" class="toolbar__item b3-tooltips b3-tooltips__sw" aria-label="${window.siyuan.languages.plugin}">
+    <svg><use xlink:href="#iconPlugin"></use></svg>
+</div>
 <div id="barSearch" class="toolbar__item b3-tooltips b3-tooltips__sw" aria-label="${window.siyuan.languages.globalSearch} ${updateHotkeyTip(window.siyuan.config.keymap.general.globalSearch.custom)}">
     <svg><use xlink:href="#iconSearch"></use></svg>
 </div>
@@ -85,7 +89,7 @@ export const initBar = (app: App) => {
                 window.siyuan.menus.menu.element.setAttribute("data-name", "barmore");
                 (target.getAttribute("data-hideids") || "").split(",").forEach((itemId) => {
                     const hideElement = toolbarElement.querySelector("#" + itemId);
-                    const useElement = hideElement.querySelector("use")
+                    const useElement = hideElement.querySelector("use");
                     const menuOptions: IMenu = {
                         label: itemId === "toolbarVIP" ? window.siyuan.languages.account : hideElement.getAttribute("aria-label"),
                         icon: itemId === "toolbarVIP" ? "iconAccount" : (useElement ? useElement.getAttribute("xlink:href").substring(1) : undefined),
@@ -98,7 +102,7 @@ export const initBar = (app: App) => {
                         }
                     };
                     if (!useElement) {
-                        const svgElement = hideElement.querySelector("svg")
+                        const svgElement = hideElement.querySelector("svg").cloneNode(true) as HTMLElement;
                         svgElement.classList.add("b3-menu__icon");
                         menuOptions.iconHTML = svgElement.outerHTML;
                     }
@@ -175,6 +179,10 @@ export const initBar = (app: App) => {
                     app,
                     hotkey: window.siyuan.config.keymap.general.globalSearch.custom
                 });
+                event.stopPropagation();
+                break;
+            } else if (targetId === "barPlugins") {
+                openPlugin(app, target);
                 event.stopPropagation();
                 break;
             } else if (targetId === "barZoom") {
@@ -258,4 +266,75 @@ export const setZoom = (type: "zoomIn" | "zoomOut" | "restore") => {
         barZoomElement.classList.remove("fn__none");
     }
     /// #endif
+};
+
+const openPlugin = (app: App, target: Element) => {
+    const menu = new Menu("topBarPlugin");
+    let hasPlugin = false;
+    app.plugins.forEach((plugin) => {
+        // @ts-ignore
+        const hasSetting = plugin.setting || plugin.__proto__.hasOwnProperty("openSetting");
+        plugin.topBarIcons.forEach(item => {
+            const hasUnpin = window.siyuan.storage[Constants.LOCAL_PLUGINTOPUNPIN].includes(item.id);
+            const submenu = [{
+                icon: "iconPin",
+                label: hasUnpin ? window.siyuan.languages.pin : window.siyuan.languages.unpin,
+                click() {
+                    if (hasUnpin) {
+                        window.siyuan.storage[Constants.LOCAL_PLUGINTOPUNPIN].splice(window.siyuan.storage[Constants.LOCAL_PLUGINTOPUNPIN].indexOf(item.id), 1);
+                        item.classList.remove("fn__none");
+                    } else {
+                        window.siyuan.storage[Constants.LOCAL_PLUGINTOPUNPIN].push(item.id);
+                        window.siyuan.storage[Constants.LOCAL_PLUGINTOPUNPIN] = Array.from(new Set(window.siyuan.storage[Constants.LOCAL_PLUGINTOPUNPIN]));
+                        item.classList.add("fn__none");
+                    }
+                    setStorageVal(Constants.LOCAL_PLUGINTOPUNPIN, window.siyuan.storage[Constants.LOCAL_PLUGINTOPUNPIN]);
+                }
+            }];
+            if (hasSetting) {
+                submenu.push({
+                    icon: "iconSettings",
+                    label: window.siyuan.languages.config,
+                    click() {
+                        plugin.openSetting();
+                    },
+                });
+            }
+            const menuOption: IMenu = {
+                icon: "iconInfo",
+                label: item.getAttribute("aria-label"),
+                click() {
+                    item.dispatchEvent(new CustomEvent("click"));
+                },
+                type: "submenu",
+                submenu
+            };
+            if (item.querySelector("use")) {
+                menuOption.icon = item.querySelector("use").getAttribute("xlink:href").replace("#", "");
+            } else {
+                const svgElement = item.querySelector("svg").cloneNode(true) as HTMLElement;
+                svgElement.classList.add("b3-menu__icon");
+                menuOption.iconHTML = svgElement.outerHTML;
+            }
+            menu.addItem(menuOption);
+            hasPlugin = true;
+        });
+    });
+
+    if (hasPlugin) {
+        menu.addSeparator();
+    }
+    menu.addItem({
+        icon: "iconSettings",
+        label: window.siyuan.languages.config,
+        click() {
+            const dialogSetting = openSetting(app);
+            dialogSetting.element.querySelector('.b3-tab-bar [data-name="bazaar"]').dispatchEvent(new CustomEvent("click"));
+        }
+    });
+    let rect = target.getBoundingClientRect();
+    if (rect.width === 0) {
+        rect = document.querySelector("#barMore").getBoundingClientRect();
+    }
+    menu.open({x: rect.right, y: rect.bottom, isLeft: true});
 };

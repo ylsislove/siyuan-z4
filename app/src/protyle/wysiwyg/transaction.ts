@@ -135,7 +135,11 @@ const promiseTransaction = () => {
                         mode: 2,
                         size: window.siyuan.config.editor.dynamicLoadBlocks,
                     }, getResponse => {
-                        onGet(getResponse, protyle, [Constants.CB_GET_APPEND, Constants.CB_GET_UNCHANGEID]);
+                        onGet({
+                            data: getResponse,
+                            protyle,
+                            action: [Constants.CB_GET_APPEND, Constants.CB_GET_UNCHANGEID],
+                        });
                     });
                 }
                 return;

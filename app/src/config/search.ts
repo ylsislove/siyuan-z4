@@ -39,7 +39,7 @@ export const initConfigSearch = (element: HTMLElement, app: App) => {
             "apiKeyTip", "apiProxy", "apiProxyTip", "apiBaseURL", "apiBaseURLTip"])),
 
         // 图片
-        getLang(["assets", "clearUnused"]),
+        getLang(["assets", "unreferencedAssets", "missingAssets"]),
 
         // 导出
         getLang(["paragraphBeginningSpace", "md4", "export", "export1", "export2", "export5", "export11",
@@ -47,11 +47,9 @@ export const initConfigSearch = (element: HTMLElement, app: App) => {
             "export23", "export24"]),
 
         // 外观
-        getLang(["language", "language1", "appearance", "appearance1", "appearance2",
-            "appearance3", "appearance4",
-            "appearance5", "appearance6", "appearance8", "appearance9", "appearance10", "appearance11",
-            "appearance14", "appearance15", "appearance16", "appearance17",
-            "resetLayout", "reset", "icon", "themeLight", "themeDark", "close", "themeOS", "theme",
+        getLang(["language", "language1", "appearance", "appearance1", "appearance2", "appearance3", "appearance4",
+            "appearance5", "appearance6", "appearance8", "appearance9", "appearance10", "appearance11", "appearance16",
+            "appearance17", "resetLayout", "reset", "icon", "themeLight", "themeDark", "close", "themeOS", "theme",
             "theme2", "theme11", "theme12", "customEmoji", "customEmojiTip", "refresh"]),
 
         // 集市
@@ -59,7 +57,8 @@ export const initConfigSearch = (element: HTMLElement, app: App) => {
 
         // 搜索
         getLang(["search", "searchLimit", "searchLimit1", "memo", "name", "alias", "keywordsLimit",
-            "doc", "headings", "list1", "listItem", "code", "math", "table", "quote", "superBlock", "paragraph"]),
+            "doc", "headings", "list1", "listItem", "code", "math", "table", "quote", "superBlock", "paragraph",
+            "indexAssetPath"]),
 
         // 快捷键
         getLang(["keymap", "keymapTip2"].concat(Object.keys(Constants.SIYUAN_KEYMAP.general))

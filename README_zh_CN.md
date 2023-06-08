@@ -3,10 +3,23 @@
 <br>
 构建你永恒的数字花园
 <br><br>
-<a title="Releases" target="_blank" href="https://github.com/siyuan-note/siyuan/releases"><img src="https://img.shields.io/github/release/siyuan-note/siyuan.svg?style=flat-square&color=FF9900"></a>
+<a title="Build Status" target="_blank" href="https://github.com/siyuan-note/siyuan/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/siyuan-note/siyuan/cd.yml?style=flat-square"></a>
+<a title="Releases" target="_blank" href="https://github.com/siyuan-note/siyuan/releases"><img src="https://img.shields.io/github/release/siyuan-note/siyuan.svg?style=flat-square&color=9CF"></a>
 <a title="Downloads" target="_blank" href="https://github.com/siyuan-note/siyuan/releases"><img src="https://img.shields.io/github/downloads/siyuan-note/siyuan/total.svg?style=flat-square&color=blueviolet"></a>
-<a title="Docker Pulls" target="_blank" href="https://hub.docker.com/r/b3log/siyuan"><img src="https://img.shields.io/docker/pulls/b3log/siyuan.svg?style=flat-square&color=99CCFF"></a>
+<br>
+<a title="Docker Pulls" target="_blank" href="https://hub.docker.com/r/b3log/siyuan"><img src="https://img.shields.io/docker/pulls/b3log/siyuan.svg?style=flat-square&color=green"></a>
+<a title="Docker Image Size" target="_blank" href="https://hub.docker.com/r/b3log/siyuan"><img src="https://img.shields.io/docker/image-size/b3log/siyuan.svg?style=flat-square&color=ff96b4"></a>
 <a title="Hits" target="_blank" href="https://github.com/siyuan-note/siyuan"><img src="https://hits.b3log.org/siyuan-note/siyuan.svg"></a>
+<br>
+<a title="AGPLv3" target="_blank" href="https://www.gnu.org/licenses/agpl-3.0.txt"><img src="http://img.shields.io/badge/license-AGPLv3-orange.svg?style=flat-square"></a>
+<a title="Code Size" target="_blank" href="https://github.com/siyuan-note/siyuan"><img src="https://img.shields.io/github/languages/code-size/siyuan-note/siyuan.svg?style=flat-square&color=yellow"></a>
+<a title="GitHub Pull Requests" target="_blank" href="https://github.com/siyuan-note/siyuan/pulls"><img src="https://img.shields.io/github/issues-pr-closed/siyuan-note/siyuan.svg?style=flat-square&color=FF9966"></a>
+<br>
+<a title="GitHub Commits" target="_blank" href="https://github.com/siyuan-note/siyuan/commits/master"><img src="https://img.shields.io/github/commit-activity/m/siyuan-note/siyuan.svg?style=flat-square"></a>
+<a title="Last Commit" target="_blank" href="https://github.com/siyuan-note/siyuan/commits/master"><img src="https://img.shields.io/github/last-commit/siyuan-note/siyuan.svg?style=flat-square&color=FF9900"></a>
+<br><br>
+<a title="Twitter" target="_blank" href="https://twitter.com/b3logos"><img alt="Twitter Follow" src="https://img.shields.io/twitter/follow/b3logos?label=Follow&style=social"></a>
+<a title="Discord" target="_blank" href="https://discord.com/channels/808152298789666826"><img alt="Discord" src="https://img.shields.io/discord/808152298789666826?logo=discord&label=Chat&style=social"></a>
 </p>
 
 <p align="center">
@@ -184,24 +197,6 @@
 
 ## ❓ 常见问题和解答
 
-### 听说思源笔记会通过用户电脑挖矿？
-
-以前不会、现在不会，将来也不会。详情请看[如何评价思源笔记? - 知乎](https://www.zhihu.com/question/434530733/answer/2644563326)。
-
-### 思源适合我吗？或者说我应该如何选择笔记软件？
-
-这个问题因人而异，很难统一回答。如果你不太确定思源是否适合你，请看如下建议：
-
-* 如果你需要经常分享笔记或者与别人协作编辑，并且需要数据表格功能，推荐使用：
-
-  * [FlowUs 息流 - 新一代知识管理与协作平台](https://flowus.cn/)
-  * [我来 wolai - 不仅仅是未来的云端协作平台与个人笔记](https://www.wolai.com/)
-  * [Notion - One workspace. Every team.](https://www.notion.so/)
-* 如果你喜欢使用纯文本 Markdown 文件存储笔记，推荐使用：
-
-  * [Obsidian - A second brain, for you, forever.](https://obsidian.md/)
-  * [Logseq - A privacy-first, open-source knowledge base](https://logseq.com/)
-
 ### 思源是如何存储数据的？
 
 数据保存在工作空间文件夹下，在工作空间 data 文件夹下：
@@ -337,7 +332,7 @@
 * [https://github.com/jinzhu/copier](https://github.com/jinzhu/copier) `MIT License`
 * [https://github.com/mattn/go-sqlite3](https://github.com/mattn/go-sqlite3) `MIT License`
 * [https://github.com/mitchellh/go-ps](https://github.com/mitchellh/go-ps) `MIT License`
-* [https://github.com/mssola/user_agent](https://github.com/mssola/user_agent) `MIT License`
+* [https://github.com/mssola/useragent](https://github.com/mssola/useragent) `MIT License`
 * [https://github.com/panjf2000/ants](https://github.com/panjf2000/ants) `MIT License`
 * [https://github.com/patrickmn/go-cache](https://github.com/patrickmn/go-cache) `MIT License`
 * [https://github.com/radovskyb/watcher](https://github.com/radovskyb/watcher) `BSD-3-Clause License`

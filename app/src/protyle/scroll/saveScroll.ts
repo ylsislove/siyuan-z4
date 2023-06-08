@@ -68,7 +68,12 @@ export const getDocByScroll = (options: {
         }, response => {
             actions.push(Constants.CB_GET_ALL);
             options.protyle.breadcrumb?.toggleExit(false);
-            onGet(response, options.protyle, actions, options.scrollAttr);
+            onGet({
+                data: response,
+                protyle: options.protyle,
+                action: actions,
+                scrollAttr: options.scrollAttr,
+            });
             if (options.cb) {
                 options.cb();
             }
@@ -81,7 +86,12 @@ export const getDocByScroll = (options: {
         endID: options.scrollAttr.endId,
     }, response => {
         options.protyle.breadcrumb?.toggleExit(true);
-        onGet(response, options.protyle, actions, options.scrollAttr);
+        onGet({
+            data: response,
+            protyle: options.protyle,
+            action: actions,
+            scrollAttr: options.scrollAttr,
+        });
         if (options.cb) {
             options.cb();
         }

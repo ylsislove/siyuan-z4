@@ -241,7 +241,7 @@ export const removeBlock = (protyle: IProtyle, blockElement: Element, range: Ran
         if (sideElement) {
             if (protyle.block.showAll && sideElement.classList.contains("protyle-wysiwyg") && protyle.wysiwyg.element.childElementCount === 0) {
                 setTimeout(() => {
-                    zoomOut(protyle, protyle.block.parent2ID, protyle.block.parent2ID);
+                    zoomOut({protyle, id:protyle.block.parent2ID, focusId:protyle.block.parent2ID});
                 }, Constants.TIMEOUT_INPUT * 2 + 100);
             } else {
                 if ((sideElement.classList.contains("protyle-wysiwyg") && protyle.wysiwyg.element.childElementCount === 0)) {

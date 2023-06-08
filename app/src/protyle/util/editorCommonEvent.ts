@@ -852,7 +852,7 @@ export const dropEvent = (protyle: IProtyle, editorElement: HTMLElement) => {
                 id: protyle.block.id,
                 size: window.siyuan.config.editor.dynamicLoadBlocks,
             }, getResponse => {
-                onGet(getResponse, protyle);
+                onGet({data: getResponse, protyle});
                 /// #if !MOBILE
                 // 文档标题互转后，需更新大纲
                 updatePanelByEditor({

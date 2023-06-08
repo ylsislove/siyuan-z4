@@ -23,7 +23,7 @@ type TOperation =
 type TBazaarType = "templates" | "icons" | "widgets" | "themes" | "plugins"
 type TCardType = "doc" | "notebook" | "all"
 type TEventBus = "ws-main" | "click-blockicon" | "click-editorcontent" | "click-pdf" |
-    "click-editortitleicon" | "open-noneditableblock"
+    "click-editortitleicon" | "open-noneditableblock" | "loaded-protyle"
 
 declare module "blueimp-md5"
 
@@ -50,6 +50,8 @@ interface Window {
     Protyle: import("../protyle/method").default
 
     goBack(): void
+
+    reconnectWebSocket(): void
 
     showKeyboardToolbar(height: number): void
 
@@ -80,6 +82,14 @@ interface ICard {
     cardID: string
     blockID: string
     nextDues: IObject
+}
+
+interface IPluginSettingOption {
+    title: string
+    description?: string
+    actionElement?: HTMLElement
+
+    createActionElement?(): HTMLElement
 }
 
 interface ISearchOption {
@@ -149,10 +159,17 @@ interface IPdfAnno {
 
 interface IBackStack {
     id: string,
-    endId?: string,
+    // 仅移动端
+    data?: {
+        startId: string,
+        endId: string
+        path: string
+        notebookId: string
+    },
     scrollTop?: number,
     callback?: string[],
     position?: { start: number, end: number }
+    // 仅桌面端
     protyle?: IProtyle,
     zoomId?: string
 }
@@ -270,7 +287,7 @@ interface IObject {
     [key: string]: string;
 }
 
-declare interface ILayoutJSON extends ILayoutOptions {
+interface ILayoutJSON extends ILayoutOptions {
     scrollAttr?: IScrollAttr,
     instance?: string,
     width?: string,
@@ -291,7 +308,7 @@ declare interface ILayoutJSON extends ILayoutOptions {
     children?: ILayoutJSON[] | ILayoutJSON
 }
 
-declare interface IDockTab {
+interface IDockTab {
     type: string;
     size: { width: number, height: number }
     show: boolean
@@ -301,7 +318,7 @@ declare interface IDockTab {
     hotkeyLangId?: string   // 常量中无法存变量
 }
 
-declare interface ICommand {
+interface ICommand {
     langKey: string, // 多语言 key
     hotkey: string,
     customHotkey?: string,
@@ -311,14 +328,14 @@ declare interface ICommand {
     dockCallback?: (element: HTMLElement) => void
 }
 
-declare interface IPluginData {
+interface IPluginData {
     name: string,
     js: string,
     css: string,
     i18n: IObject
 }
 
-declare interface IPluginDockTab {
+interface IPluginDockTab {
     position: TPluginDockPosition,
     size: { width: number, height: number },
     icon: string,
@@ -328,7 +345,7 @@ declare interface IPluginDockTab {
     show?: boolean
 }
 
-declare interface IOpenFileOptions {
+interface IOpenFileOptions {
     app: import("../index").App,
     searchData?: ISearchOption, // 搜索必填
     // card 和自定义页签 必填
@@ -357,7 +374,7 @@ declare interface IOpenFileOptions {
     afterOpen?: () => void // 打开后回调
 }
 
-declare interface ILayoutOptions {
+interface ILayoutOptions {
     direction?: TDirection;
     size?: string
     resize?: TDirection
@@ -365,7 +382,7 @@ declare interface ILayoutOptions {
     element?: HTMLElement
 }
 
-declare interface ITab {
+interface ITab {
     icon?: string
     docIcon?: string
     title?: string
@@ -373,7 +390,7 @@ declare interface ITab {
     callback?: (tab: import("../layout/Tab").Tab) => void
 }
 
-declare interface IExport {
+interface IExport {
     fileAnnotationRefMode: number
     blockRefMode: number
     blockEmbedMode: number
@@ -388,7 +405,7 @@ declare interface IExport {
     pdfFooter: string;
 }
 
-declare interface IEditor {
+interface IEditor {
     justify: boolean;
     fontSizeScrollZoom: boolean;
     rtl: boolean;
@@ -422,7 +439,7 @@ declare interface IEditor {
     emoji: string[];
 }
 
-declare interface IWebSocketData {
+interface IWebSocketData {
     cmd?: string
     callback?: string
     data?: any
@@ -431,10 +448,9 @@ declare interface IWebSocketData {
     sid?: string
 }
 
-declare interface IAppearance {
+interface IAppearance {
     modeOS: boolean,
     hideStatusBar: boolean,
-    nativeEmoji: boolean,
     themeJS: boolean,
     mode: number, // 1 暗黑；0 明亮
     icon: string,
@@ -451,7 +467,7 @@ declare interface IAppearance {
     darkThemes: string[]
 }
 
-declare interface IFileTree {
+interface IFileTree {
     closeTabsOnStart: boolean
     alwaysSelectOpenedFile: boolean
     openFilesUseCurrentTab: boolean
@@ -464,12 +480,12 @@ declare interface IFileTree {
     maxListCount: number
 }
 
-declare interface IAccount {
+interface IAccount {
     displayTitle: boolean
     displayVIP: boolean
 }
 
-declare interface IConfig {
+interface IConfig {
     bazaar: {
         trust: boolean
     }
@@ -609,7 +625,7 @@ declare interface IConfig {
     }
 }
 
-declare interface IGraphCommon {
+interface IGraphCommon {
     d3: {
         centerStrength: number
         collideRadius: number
@@ -634,7 +650,7 @@ declare interface IGraphCommon {
     }
 }
 
-declare interface IGraph {
+interface IGraph {
     global: {
         minRefs: number
         dailyNote: boolean
@@ -644,7 +660,7 @@ declare interface IGraph {
     } & IGraphCommon
 }
 
-declare interface IKeymap {
+interface IKeymap {
     plugin: {
         [key: string]: {
             [key: string]: IKeymapItem
@@ -660,12 +676,12 @@ declare interface IKeymap {
     }
 }
 
-declare interface IKeymapItem {
+interface IKeymapItem {
     default: string,
     custom: string
 }
 
-declare interface IFile {
+interface IFile {
     icon: string;
     name1: string;
     alias: string;
@@ -684,7 +700,7 @@ declare interface IFile {
     subFileCount: number;
 }
 
-declare interface IBlockTree {
+interface IBlockTree {
     box: string,
     nodeType: string,
     hPath: string,
@@ -700,7 +716,7 @@ declare interface IBlockTree {
     children?: IBlockTree[]
 }
 
-declare interface IBlock {
+interface IBlock {
     riffCardReps?: number   // 闪卡复习次数
     depth?: number,
     box?: string;
@@ -723,7 +739,7 @@ declare interface IBlock {
     ial: IObject
 }
 
-declare interface IModels {
+interface IModels {
     editor: import("../editor").Editor [],
     graph: import("../layout/dock/Graph").Graph[],
     outline: import("../layout/dock/Outline").Outline[]
@@ -737,7 +753,7 @@ declare interface IModels {
     custom: import("../layout/dock/Custom").Custom[]
 }
 
-declare interface IMenu {
+interface IMenu {
     label?: string,
     click?: (element: HTMLElement) => void,
     type?: "separator" | "submenu" | "readonly",
@@ -754,7 +770,7 @@ declare interface IMenu {
     element?: HTMLElement
 }
 
-declare interface IBazaarItem {
+interface IBazaarItem {
     incompatible?: boolean  // 仅 plugin
     enabled: boolean
     preferredName: string

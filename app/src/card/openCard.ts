@@ -143,7 +143,11 @@ export const bindCardEvent = (options: {
             mode: 0,
             size: Constants.SIZE_GET_MAX
         }, (response) => {
-            onGet(response, editor.protyle, [Constants.CB_GET_ALL, Constants.CB_GET_HTML]);
+            onGet({
+                data: response,
+                protyle: editor.protyle,
+                action: [Constants.CB_GET_ALL, Constants.CB_GET_HTML],
+            });
         });
     }
     (options.element.firstElementChild as HTMLElement).style.zIndex = "200";
@@ -449,7 +453,11 @@ export const openCardByData = (app: App, cardsData: {
 };
 
 const nextCard = (options: {
-    countElement: Element, editor: Protyle, actionElements: NodeListOf<Element>, index: number, blocks: ICard[]
+    countElement: Element,
+    editor: Protyle,
+    actionElements: NodeListOf<Element>,
+    index: number,
+    blocks: ICard[]
 }) => {
     options.editor.protyle.element.classList.add("card__block--hide");
     if (window.siyuan.config.flashcard.superBlock) {
@@ -477,7 +485,11 @@ const nextCard = (options: {
         mode: 0,
         size: Constants.SIZE_GET_MAX
     }, (response) => {
-        onGet(response, options.editor.protyle, [Constants.CB_GET_ALL, Constants.CB_GET_HTML]);
+        onGet({
+            data: response,
+            protyle: options.editor.protyle,
+            action: [Constants.CB_GET_ALL, Constants.CB_GET_HTML],
+        });
     });
 };
 

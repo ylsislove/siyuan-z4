@@ -156,7 +156,11 @@ export class Outline extends Model {
                                     mode: 0,
                                     size: window.siyuan.config.editor.dynamicLoadBlocks,
                                 }, getResponse => {
-                                    onGet(getResponse, item.editor.protyle, [Constants.CB_GET_FOCUS]);
+                                    onGet({
+                                        data: getResponse,
+                                        protyle: item.editor.protyle,
+                                        action: [Constants.CB_GET_FOCUS],
+                                    });
                                 });
                             }
                             return true;
@@ -179,7 +183,7 @@ export class Outline extends Model {
         const docTitleElement = this.headerElement.nextElementSibling as HTMLElement;
         if (this.type === "pin") {
             if (ial) {
-                let iconHTML = `${unicode2Emoji(ial.icon || Constants.SIYUAN_IMAGE_FILE, false, "b3-list-item__graphic", true)}`;
+                let iconHTML = `${unicode2Emoji(ial.icon || Constants.SIYUAN_IMAGE_FILE, "b3-list-item__graphic", true)}`;
                 if (ial.icon === Constants.ZWSP && docTitleElement.firstElementChild) {
                     iconHTML = docTitleElement.firstElementChild.outerHTML;
                 }

@@ -70,7 +70,11 @@ export const scrollEvent = (protyle: IProtyle, element: HTMLElement) => {
                 }, getResponse => {
                     protyle.contentElement.style.overflow = "";
                     protyle.contentElement.style.width = "";
-                    onGet(getResponse, protyle, [Constants.CB_GET_BEFORE, Constants.CB_GET_UNCHANGEID]);
+                    onGet({
+                        data: getResponse,
+                        protyle,
+                        action: [Constants.CB_GET_BEFORE, Constants.CB_GET_UNCHANGEID],
+                    });
                 });
             }
         } else if ((element.scrollTop > element.scrollHeight - element.clientHeight * 1.8) &&
@@ -82,7 +86,11 @@ export const scrollEvent = (protyle: IProtyle, element: HTMLElement) => {
                 mode: 2,
                 size: window.siyuan.config.editor.dynamicLoadBlocks,
             }, getResponse => {
-                onGet(getResponse, protyle, [Constants.CB_GET_APPEND, Constants.CB_GET_UNCHANGEID]);
+                onGet({
+                    data: getResponse,
+                    protyle,
+                    action: [Constants.CB_GET_APPEND, Constants.CB_GET_UNCHANGEID],
+                });
             });
         }
         protyle.scroll.lastScrollTop = Math.max(element.scrollTop, 0);

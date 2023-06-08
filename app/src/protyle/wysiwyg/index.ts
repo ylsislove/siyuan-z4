@@ -66,17 +66,14 @@ import {getBacklinkHeadingMore, loadBreadcrumb} from "./renderBacklink";
 import {removeSearchMark} from "../toolbar/util";
 import {activeBlur, hideKeyboardToolbar} from "../../mobile/util/keyboardToolbar";
 import {commonClick} from "./commonClick";
-import {App} from "../../index";
 
 export class WYSIWYG {
     public lastHTMLs: { [key: string]: string } = {};
 
     public element: HTMLDivElement;
     public preventKeyup: boolean;
-    private app: App;
 
-    constructor(app: App, protyle: IProtyle) {
-        this.app = app;
+    constructor(protyle: IProtyle) {
         this.element = document.createElement("div");
         this.element.className = "protyle-wysiwyg";
         this.element.setAttribute("spellcheck", "false");
@@ -94,7 +91,7 @@ export class WYSIWYG {
             return;
         }
         this.bindEvent(protyle);
-        keydown(app, protyle, this.element);
+        keydown(protyle, this.element);
         dropEvent(protyle, this.element);
     }
 
@@ -1212,7 +1209,7 @@ export class WYSIWYG {
                     removeSearchMark(target);
                 }
                 if (types.includes("block-ref") && !protyle.disabled) {
-                    refMenu(this.app, protyle, target);
+                    refMenu(protyle, target);
                     // 阻止 popover
                     target.setAttribute("prevent-popover", "true");
                     setTimeout(() => {
@@ -1223,13 +1220,13 @@ export class WYSIWYG {
                     protyle.toolbar.showFileAnnotationRef(protyle, target);
                     return false;
                 } else if (types.includes("tag") && !protyle.disabled) {
-                    tagMenu(this.app, protyle, target);
+                    tagMenu(protyle, target);
                     return false;
                 } else if (types.includes("inline-memo")) {
                     protyle.toolbar.showRender(protyle, target);
                     return false;
                 } else if (types.includes("a") && !protyle.disabled) {
-                    linkMenu(this.app, protyle, target);
+                    linkMenu(protyle, target);
                     if (window.siyuan.config.editor.floatWindowMode === 0 &&
                         target.getAttribute("data-href")?.startsWith("siyuan://blocks")) {
                         // 阻止 popover
@@ -1242,7 +1239,7 @@ export class WYSIWYG {
                 }
             }
             if (!protyle.disabled && target.tagName === "IMG" && hasClosestByClassName(target, "img")) {
-                imgMenu(this.app, protyle, protyle.toolbar.range, target.parentElement.parentElement, {
+                imgMenu(protyle, protyle.toolbar.range, target.parentElement.parentElement, {
                     clientX: x + 4,
                     clientY: y
                 });
@@ -1299,7 +1296,11 @@ export class WYSIWYG {
                     size: window.siyuan.config.editor.dynamicLoadBlocks,
                 }, getResponse => {
                     preventGetTopHTML = false;
-                    onGet(getResponse, protyle, [Constants.CB_GET_BEFORE, Constants.CB_GET_UNCHANGEID]);
+                    onGet({
+                        data: getResponse,
+                        protyle,
+                        action: [Constants.CB_GET_BEFORE, Constants.CB_GET_UNCHANGEID],
+                    });
                 });
                 preventGetTopHTML = true;
             }
@@ -1493,7 +1494,7 @@ export class WYSIWYG {
 
         let shiftStartElement: HTMLElement;
         this.element.addEventListener("click", (event: MouseEvent & { target: HTMLElement }) => {
-            this.app.plugins.forEach(item => {
+            protyle.app.plugins.forEach(item => {
                 item.eventBus.emit("click-editorcontent", {
                     protyle,
                     event
@@ -1509,7 +1510,7 @@ export class WYSIWYG {
                     if (ctrlIsPressed) {
                         fetchPost("/api/block/checkBlockFold", {id: breadcrumbId}, (foldResponse) => {
                             openFileById({
-                                app: this.app,
+                                app: protyle.app,
                                 id: breadcrumbId,
                                 action: foldResponse.data ? [Constants.CB_GET_FOCUS, Constants.CB_GET_ALL] : [Constants.CB_GET_FOCUS, Constants.CB_GET_CONTEXT],
                                 zoomIn: foldResponse.data
@@ -1567,7 +1568,7 @@ export class WYSIWYG {
 
                 fetchPost("/api/block/checkBlockFold", {id: refBlockId}, (foldResponse) => {
                     /// #if MOBILE
-                    openMobileFileById(this.app, refBlockId, foldResponse.data ? [Constants.CB_GET_ALL, Constants.CB_GET_HL] : [Constants.CB_GET_HL, Constants.CB_GET_CONTEXT]);
+                    openMobileFileById(protyle.app, refBlockId, foldResponse.data ? [Constants.CB_GET_ALL, Constants.CB_GET_HL] : [Constants.CB_GET_HL, Constants.CB_GET_CONTEXT]);
                     activeBlur();
                     hideKeyboardToolbar();
                     /// #else
@@ -1577,7 +1578,7 @@ export class WYSIWYG {
                     }
                     if (event.shiftKey) {
                         openFileById({
-                            app: this.app,
+                            app: protyle.app,
                             id: refBlockId,
                             position: "bottom",
                             action: foldResponse.data ? [Constants.CB_GET_FOCUS, Constants.CB_GET_ALL] : [Constants.CB_GET_FOCUS, Constants.CB_GET_CONTEXT],
@@ -1585,7 +1586,7 @@ export class WYSIWYG {
                         });
                     } else if (event.altKey) {
                         openFileById({
-                            app: this.app,
+                            app: protyle.app,
                             id: refBlockId,
                             position: "right",
                             action: foldResponse.data ? [Constants.CB_GET_FOCUS, Constants.CB_GET_ALL] : [Constants.CB_GET_FOCUS, Constants.CB_GET_CONTEXT],
@@ -1593,7 +1594,7 @@ export class WYSIWYG {
                         });
                     } else if (ctrlIsPressed) {
                         openFileById({
-                            app: this.app,
+                            app: protyle.app,
                             id: refBlockId,
                             action: foldResponse.data ? [Constants.CB_GET_FOCUS, Constants.CB_GET_ALL] : [Constants.CB_GET_HL, Constants.CB_GET_CONTEXT],
                             keepCursor: true,
@@ -1601,7 +1602,7 @@ export class WYSIWYG {
                         });
                     } else {
                         openFileById({
-                            app: this.app,
+                            app: protyle.app,
                             id: refBlockId,
                             action: foldResponse.data ? [Constants.CB_GET_FOCUS, Constants.CB_GET_ALL] : [Constants.CB_GET_FOCUS, Constants.CB_GET_CONTEXT],
                             zoomIn: foldResponse.data
@@ -1640,7 +1641,7 @@ export class WYSIWYG {
                 } else if (event.shiftKey) {
                     openBy(linkAddress, "app");
                 } else {
-                    openAsset(this.app, linkAddress, fileIds[2], "right");
+                    openAsset(protyle.app, linkAddress, fileIds[2], "right");
                 }
                 /// #endif
                 return;
@@ -1664,7 +1665,7 @@ export class WYSIWYG {
                         } else if (event.shiftKey) {
                             openBy(linkAddress, "app");
                         } else {
-                            openAsset(this.app, linkPathname, parseInt(getSearch("page", linkAddress)), "right");
+                            openAsset(protyle.app, linkPathname, parseInt(getSearch("page", linkAddress)), "right");
                         }
                     } else {
                         /// #if !BROWSER
@@ -1693,11 +1694,11 @@ export class WYSIWYG {
             const tagElement = hasClosestByAttribute(event.target, "data-type", "tag");
             if (tagElement && !event.altKey) {
                 /// #if !MOBILE
-                openGlobalSearch(this.app, `#${tagElement.textContent}#`, !ctrlIsPressed);
+                openGlobalSearch(protyle.app, `#${tagElement.textContent}#`, !ctrlIsPressed);
                 hideElements(["dialog"]);
                 /// #else
                 const searchOption = window.siyuan.storage[Constants.LOCAL_SEARCHDATA];
-                popSearch(this.app, {
+                popSearch(protyle.app, {
                     removed: searchOption.removed,
                     sort: searchOption.sort,
                     group: searchOption.group,
@@ -1718,13 +1719,13 @@ export class WYSIWYG {
             if (embedItemElement) {
                 const embedId = embedItemElement.getAttribute("data-id");
                 /// #if MOBILE
-                openMobileFileById(this.app, embedId, [Constants.CB_GET_ALL]);
+                openMobileFileById(protyle.app, embedId, [Constants.CB_GET_ALL]);
                 activeBlur();
                 hideKeyboardToolbar();
                 /// #else
                 if (event.shiftKey) {
                     openFileById({
-                        app: this.app,
+                        app: protyle.app,
                         id: embedId,
                         position: "bottom",
                         action: [Constants.CB_GET_FOCUS, Constants.CB_GET_ALL],
@@ -1732,7 +1733,7 @@ export class WYSIWYG {
                     });
                 } else if (event.altKey) {
                     openFileById({
-                        app: this.app,
+                        app: protyle.app,
                         id: embedId,
                         position: "right",
                         action: [Constants.CB_GET_FOCUS, Constants.CB_GET_ALL],
@@ -1740,7 +1741,7 @@ export class WYSIWYG {
                     });
                 } else if (ctrlIsPressed) {
                     openFileById({
-                        app: this.app,
+                        app: protyle.app,
                         id: embedId,
                         action: [Constants.CB_GET_FOCUS, Constants.CB_GET_ALL],
                         keepCursor: true,
@@ -1748,7 +1749,7 @@ export class WYSIWYG {
                     });
                 } else if (!protyle.disabled) {
                     window.siyuan.blockPanels.push(new BlockPanel({
-                        app: this.app,
+                        app: protyle.app,
                         targetElement: embedItemElement,
                         isBacklink: false,
                         nodeIds: [embedId],
@@ -1759,7 +1760,7 @@ export class WYSIWYG {
                 return;
             }
 
-            if (commonClick(this.app, event, protyle)) {
+            if (commonClick(event, protyle)) {
                 return;
             }
 
@@ -1824,7 +1825,7 @@ export class WYSIWYG {
             if (actionElement) {
                 const type = actionElement.parentElement.parentElement.getAttribute("data-type");
                 if (type === "img" && !protyle.disabled) {
-                    imgMenu(this.app, protyle, range, actionElement.parentElement.parentElement, {
+                    imgMenu(protyle, range, actionElement.parentElement.parentElement, {
                         clientX: event.clientX + 4,
                         clientY: event.clientY
                     });
@@ -1860,7 +1861,7 @@ export class WYSIWYG {
                     } else if (event.shiftKey) {
                         openAttr(actionElement.parentElement, protyle);
                     } else if (ctrlIsPressed) {
-                        zoomOut(protyle, actionElement.parentElement.getAttribute("data-node-id"));
+                        zoomOut({protyle, id: actionElement.parentElement.getAttribute("data-node-id")});
                     } else {
                         if (actionElement.classList.contains("protyle-action--task")) {
                             const html = actionElement.parentElement.outerHTML;

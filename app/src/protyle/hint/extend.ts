@@ -322,7 +322,7 @@ export const hintRef = (key: string, protyle: IProtyle, isQuick = false): IHintD
         response.data.blocks.forEach((item: IBlock) => {
             let iconHTML;
             if (item.type === "NodeDocument" && item.ial.icon){
-                iconHTML  = unicode2Emoji(item.ial.icon, false, "b3-list-item__graphic popover__block", true);
+                iconHTML  = unicode2Emoji(item.ial.icon, "b3-list-item__graphic popover__block", true);
                 iconHTML = iconHTML.replace('popover__block"', `popover__block" data-id="${item.id}"`);
             } else {
                 iconHTML = `<svg class="b3-list-item__graphic popover__block" data-id="${item.id}"><use xlink:href="#${getIconByType(item.type)}"></use></svg>`;
@@ -386,7 +386,7 @@ export const hintEmbed = (key: string, protyle: IProtyle): IHintData[] => {
         response.data.blocks.forEach((item: IBlock) => {
             let iconHTML;
             if (item.type === "NodeDocument" && item.ial.icon){
-                iconHTML  = unicode2Emoji(item.ial.icon, false, "b3-list-item__graphic popover__block", true);
+                iconHTML  = unicode2Emoji(item.ial.icon, "b3-list-item__graphic popover__block", true);
                 iconHTML = iconHTML.replace('popover__block"', `popover__block" data-id="${item.id}"`);
             } else {
                 iconHTML = `<svg class="b3-list-item__graphic popover__block" data-id="${item.id}"><use xlink:href="#${getIconByType(item.type)}"></use></svg>`;
@@ -512,7 +512,7 @@ export const hintMoveBlock = (pathString: string, sourceElements: Element[], pro
         });
     } else if (protyle.block.showAll && parentElement.classList.contains("protyle-wysiwyg") && parentElement.childElementCount === 0) {
         setTimeout(() => {
-            zoomOut(protyle, protyle.block.parent2ID, protyle.block.parent2ID);
+            zoomOut({protyle, id: protyle.block.parent2ID, focusId:protyle.block.parent2ID});
         }, Constants.TIMEOUT_INPUT * 2 + 100);
     } else if (parentElement.classList.contains("protyle-wysiwyg") && parentElement.innerHTML === "" &&
         !hasClosestByClassName(parentElement, "block__edit", true) &&

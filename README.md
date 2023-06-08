@@ -3,10 +3,23 @@
 <br>
 Build Your Eternal Digital Garden
 <br><br>
-<a title="Releases" target="_blank" href="https://github.com/siyuan-note/siyuan/releases"><img src="https://img.shields.io/github/release/siyuan-note/siyuan.svg?style=flat-square&color=FF9900"></a>
+<a title="Build Status" target="_blank" href="https://github.com/siyuan-note/siyuan/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/siyuan-note/siyuan/cd.yml?style=flat-square"></a>
+<a title="Releases" target="_blank" href="https://github.com/siyuan-note/siyuan/releases"><img src="https://img.shields.io/github/release/siyuan-note/siyuan.svg?style=flat-square&color=9CF"></a>
 <a title="Downloads" target="_blank" href="https://github.com/siyuan-note/siyuan/releases"><img src="https://img.shields.io/github/downloads/siyuan-note/siyuan/total.svg?style=flat-square&color=blueviolet"></a>
-<a title="Docker Pulls" target="_blank" href="https://hub.docker.com/r/b3log/siyuan"><img src="https://img.shields.io/docker/pulls/b3log/siyuan.svg?style=flat-square&color=99CCFF"></a>
+<br>
+<a title="Docker Pulls" target="_blank" href="https://hub.docker.com/r/b3log/siyuan"><img src="https://img.shields.io/docker/pulls/b3log/siyuan.svg?style=flat-square&color=green"></a>
+<a title="Docker Image Size" target="_blank" href="https://hub.docker.com/r/b3log/siyuan"><img src="https://img.shields.io/docker/image-size/b3log/siyuan.svg?style=flat-square&color=ff96b4"></a>
 <a title="Hits" target="_blank" href="https://github.com/siyuan-note/siyuan"><img src="https://hits.b3log.org/siyuan-note/siyuan.svg"></a>
+<br>
+<a title="AGPLv3" target="_blank" href="https://www.gnu.org/licenses/agpl-3.0.txt"><img src="http://img.shields.io/badge/license-AGPLv3-orange.svg?style=flat-square"></a>
+<a title="Code Size" target="_blank" href="https://github.com/siyuan-note/siyuan"><img src="https://img.shields.io/github/languages/code-size/siyuan-note/siyuan.svg?style=flat-square&color=yellow"></a>
+<a title="GitHub Pull Requests" target="_blank" href="https://github.com/siyuan-note/siyuan/pulls"><img src="https://img.shields.io/github/issues-pr-closed/siyuan-note/siyuan.svg?style=flat-square&color=FF9966"></a>
+<br>
+<a title="GitHub Commits" target="_blank" href="https://github.com/siyuan-note/siyuan/commits/master"><img src="https://img.shields.io/github/commit-activity/m/siyuan-note/siyuan.svg?style=flat-square"></a>
+<a title="Last Commit" target="_blank" href="https://github.com/siyuan-note/siyuan/commits/master"><img src="https://img.shields.io/github/last-commit/siyuan-note/siyuan.svg?style=flat-square&color=FF9900"></a>
+<br><br>
+<a title="Twitter" target="_blank" href="https://twitter.com/b3logos"><img alt="Twitter Follow" src="https://img.shields.io/twitter/follow/b3logos?label=Follow&style=social"></a>
+<a title="Discord" target="_blank" href="https://discord.com/channels/808152298789666826"><img alt="Discord" src="https://img.shields.io/discord/808152298789666826?logo=discord&label=Chat&style=social"></a>
 </p>
 
 <p align="center">
@@ -180,18 +193,6 @@ See [Development Guide](https://github.com/siyuan-note/siyuan/blob/master/.githu
 
 ## ❓ FAQ
 
-### Is SiYuan right for me? Or how should I choose note-taking software?
-
-This question varies from person to person and is difficult to answer uniformly. If you're not sure if SiYuan is right for you, here are some suggestions:
-
-* If you need to frequently share notes or edit collaboratively with others, and need the data table function, it is recommended to use:
-
-  * [Notion - One workspace. Every team.](https://www.notion.so/)
-* If you like to use plain text Markdown files to store your notes, it is recommended to use:
-
-  * [Obsidian - A second brain, for you, forever.](https://obsidian.md/)
-  * [Logseq - A privacy-first, open-source knowledge base](https://logseq.com/)
-
 ### How does SiYuan store data?
 
 The data is saved in the workspace folder, in the workspace data folder:
@@ -323,7 +324,7 @@ SiYuan is made possible by the following open source projects.
 * [https://github.com/jinzhu/copier](https://github.com/jinzhu/copier) `MIT License`
 * [https://github.com/mattn/go-sqlite3](https://github.com/mattn/go-sqlite3) `MIT License`
 * [https://github.com/mitchellh/go-ps](https://github.com/mitchellh/go-ps) `MIT License`
-* [https://github.com/mssola/user_agent](https://github.com/mssola/user_agent) `MIT License`
+* [https://github.com/mssola/useragent](https://github.com/mssola/useragent) `MIT License`
 * [https://github.com/panjf2000/ants](https://github.com/panjf2000/ants) `MIT License`
 * [https://github.com/patrickmn/go-cache](https://github.com/patrickmn/go-cache) `MIT License`
 * [https://github.com/radovskyb/watcher](https://github.com/radovskyb/watcher) `BSD-3-Clause License`

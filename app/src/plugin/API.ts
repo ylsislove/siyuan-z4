@@ -13,6 +13,7 @@ import {newCardModel} from "../card/newCardTab";
 import {App} from "../index";
 import {Constants} from "../constants";
 import {Model} from "../layout/Model";
+import {Setting} from "./Setting";
 
 export class Menu {
     private menu: SiyuanMenu;
@@ -52,7 +53,7 @@ export class Menu {
         this.menu.addSeparator(index);
     }
 
-    open(options: { x: number, y: number, h?: number, w?: number, isLeft: false }) {
+    open(options: { x: number, y: number, h?: number, w?: number, isLeft?: boolean }) {
         if (this.isOpen) {
             return;
         }
@@ -119,7 +120,7 @@ openTab = (options: {
             }
         }
         if (!options.doc.action) {
-            options.doc.action = []
+            options.doc.action = [];
         }
         return openFileById({
             app: options.app,
@@ -208,4 +209,5 @@ export const API = {
     Plugin,
     Dialog,
     Menu,
+    Setting
 };

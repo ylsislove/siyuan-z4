@@ -476,12 +476,12 @@ export const globalShortcut = (app: App) => {
                     const initData = item.headElement.getAttribute("data-initdata");
                     if (item.model instanceof Editor) {
                         rootId = ` data-node-id="${item.model.editor.protyle.block.rootID}"`;
-                        icon = unicode2Emoji(item.docIcon || Constants.SIYUAN_IMAGE_FILE, false, "b3-list-item__graphic", true);
+                        icon = unicode2Emoji(item.docIcon || Constants.SIYUAN_IMAGE_FILE, "b3-list-item__graphic", true);
                     } else if (initData) {
                         const initDataObj = JSON.parse(initData);
                         if (initDataObj.instance === "Editor") {
                             rootId = ` data-node-id="${initDataObj.rootId}"`;
-                            icon = unicode2Emoji(item.docIcon || Constants.SIYUAN_IMAGE_FILE, false, "b3-list-item__graphic", true);
+                            icon = unicode2Emoji(item.docIcon || Constants.SIYUAN_IMAGE_FILE, "b3-list-item__graphic", true);
                         }
                     }
                     tabHtml += `<li data-index="${index}" data-id="${item.id}"${rootId} class="b3-list-item${currentId === item.id ? " b3-list-item--focus" : ""}"${currentId === item.id ? ' data-original="true"' : ""}>${icon}<span class="b3-list-item__text">${escapeHtml(item.title)}</span></li>`;
@@ -810,7 +810,7 @@ export const globalShortcut = (app: App) => {
         app.plugins.find(item => {
             item.commands.find(command => {
                 if (command.callback &&
-                    !command.fileTreeCallback && !command.editorCallback&& !command.dockCallback
+                    !command.fileTreeCallback && !command.editorCallback && !command.dockCallback
                     && matchHotKey(command.customHotkey, event)) {
                     matchCommand = true;
                     command.callback();
@@ -1106,7 +1106,7 @@ const editKeydown = (app: App, event: KeyboardEvent) => {
             id: protyle.block.parentID,
             size: window.siyuan.config.editor.dynamicLoadBlocks,
         }, getResponse => {
-            onGet(getResponse, protyle);
+            onGet({data: getResponse, protyle});
         });
         event.preventDefault();
         return true;

@@ -302,7 +302,7 @@ export const bazaar = {
                     app.plugins.find((item: Plugin) => {
                         if (item.name === dataObj.name) {
                             // @ts-ignore
-                            hasSetting = item.__proto__.hasOwnProperty("openSetting");
+                            hasSetting = item.setting || item.__proto__.hasOwnProperty("openSetting");
                             return true;
                         }
                     });
@@ -903,6 +903,9 @@ export const bazaar = {
             }).forEach((item) => {
                 html += item.outerHTML;
             });
+        }
+        if (response.data.packages.length > 1 && response.data.packages.length % 2 ===1) {
+            html += '<div class="fn__flex-1" style="margin-left: 15px;min-width: 342px;"></div>';
         }
         element.innerHTML = `<div class="b3-cards">${html}</div>`;
         if (reload) {

@@ -93,7 +93,7 @@ class App {
             document.addEventListener("touchstart", handleTouchStart, false);
             document.addEventListener("touchmove", handleTouchMove, false);
             document.addEventListener("touchend", (event) => {
-                handleTouchEnd(this, event);
+                handleTouchEnd(event);
             }, false);
         });
         promiseTransactions();
@@ -102,6 +102,13 @@ class App {
 
 const siyuanApp = new App();
 
+// https://github.com/siyuan-note/siyuan/issues/8441
+window.reconnectWebSocket = () => {
+    window.siyuan.ws.send("ping", {});
+    window.siyuan.mobile.files.send("ping", {});
+    window.siyuan.mobile.editor.protyle.ws.send("ping", {});
+    window.siyuan.mobile.popEditor.protyle.ws.send("ping", {});
+};
 window.goBack = goBack;
 window.showKeyboardToolbar = (height) => {
     document.getElementById("keyboardToolbar").setAttribute("data-keyboardheight", (height ? height : window.innerHeight / 2 - 42).toString());
