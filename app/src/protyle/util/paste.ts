@@ -7,13 +7,14 @@ import {clipboard} from "electron";
 /// #endif
 import {hasClosestBlock} from "./hasClosest";
 import {getEditorRange} from "./selection";
-import {blockRender} from "../markdown/blockRender";
-import {highlightRender} from "../markdown/highlightRender";
+import {blockRender} from "../render/blockRender";
+import {highlightRender} from "../render/highlightRender";
 import {fetchPost, fetchSyncPost} from "../../util/fetch";
 import {isDynamicRef, isFileAnnotation} from "../../util/functions";
 import {insertHTML} from "./insertHTML";
 import {scrollCenter} from "../../util/highlightById";
 import {hideElements} from "../ui/hideElements";
+import {avRender} from "../render/av/render";
 
 const filterClipboardHint = (protyle: IProtyle, textPlain: string) => {
     let needRender = true;
@@ -53,6 +54,7 @@ export const pasteAsPlainText = async (protyle: IProtyle) => {
         // Inline-level elements support pasted as plain text https://github.com/siyuan-note/siyuan/issues/8010
         navigator.clipboard.readText().then(textPlain => {
             insertHTML(protyle.lute.BlockDOM2EscapeMarkerContent(protyle.lute.Md2BlockDOM(textPlain)), protyle);
+            filterClipboardHint(protyle, textPlain);
         });
     }
 };
@@ -78,6 +80,7 @@ export const pasteText = (protyle: IProtyle, textPlain: string, nodeElement: Ele
     blockRender(protyle, protyle.wysiwyg.element);
     processRender(protyle.wysiwyg.element);
     highlightRender(protyle.wysiwyg.element);
+    avRender(protyle.wysiwyg.element);
     filterClipboardHint(protyle, textPlain);
     scrollCenter(protyle, undefined, false, "smooth");
 };
@@ -198,6 +201,7 @@ export const paste = async (protyle: IProtyle, event: (ClipboardEvent | DragEven
         blockRender(protyle, protyle.wysiwyg.element);
         processRender(protyle.wysiwyg.element);
         highlightRender(protyle.wysiwyg.element);
+        avRender(protyle.wysiwyg.element);
     } else if (code) {
         if (!code.startsWith('<div data-type="NodeCodeBlock" class="code-block" data-node-id="')) {
             // 原有代码在行内元素中粘贴会嵌套
@@ -247,6 +251,7 @@ export const paste = async (protyle: IProtyle, event: (ClipboardEvent | DragEven
                 blockRender(protyle, protyle.wysiwyg.element);
                 processRender(protyle.wysiwyg.element);
                 highlightRender(protyle.wysiwyg.element);
+                avRender(protyle.wysiwyg.element);
                 filterClipboardHint(protyle, response.data);
                 scrollCenter(protyle, undefined, false, "smooth");
             });
@@ -265,13 +270,14 @@ export const paste = async (protyle: IProtyle, event: (ClipboardEvent | DragEven
                 } else if (isFileAnnotation(textPlain)) {
                     protyle.toolbar.setInlineMark(protyle, "file-annotation-ref", "range", {
                         type: "file-annotation-ref",
-                        color: textPlain.substring(2).replace(/ ".+">>$/, "") + Constants.ZWSP + range.toString()
+                        color: textPlain.substring(2).replace(/ ".+">>$/, "")
                     });
                     return;
                 } else if (protyle.lute.IsValidLinkDest(textPlain)) {
+                    // https://github.com/siyuan-note/siyuan/issues/8475
                     protyle.toolbar.setInlineMark(protyle, "a", "range", {
                         type: "a",
-                        color: textPlain + Constants.ZWSP + range.toString()
+                        color: textPlain
                     });
                     return;
                 }
@@ -283,6 +289,7 @@ export const paste = async (protyle: IProtyle, event: (ClipboardEvent | DragEven
         blockRender(protyle, protyle.wysiwyg.element);
         processRender(protyle.wysiwyg.element);
         highlightRender(protyle.wysiwyg.element);
+        avRender(protyle.wysiwyg.element);
     }
     scrollCenter(protyle, undefined, false, "smooth");
 };

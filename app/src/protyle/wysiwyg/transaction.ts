@@ -2,15 +2,16 @@ import {fetchPost} from "../../util/fetch";
 import {focusBlock, focusByWbr, focusSideBlock, getEditorRange} from "../util/selection";
 import {getTopAloneElement} from "./getBlock";
 import {Constants} from "../../constants";
-import {blockRender} from "../markdown/blockRender";
+import {blockRender} from "../render/blockRender";
 import {processRender} from "../util/processCode";
-import {highlightRender} from "../markdown/highlightRender";
+import {highlightRender} from "../render/highlightRender";
 import {hasClosestBlock, hasClosestByAttribute} from "../util/hasClosest";
 import {setFold} from "../../menus/protyle";
 import {onGet} from "../util/onGet";
 /// #if !MOBILE
 import {getAllModels} from "../../layout/getAll";
 /// #endif
+import {avRender, refreshAV} from "../render/av/render";
 import {removeFoldHeading} from "../util/heading";
 import {genEmptyElement, genSBElement} from "../../block/util";
 import {hideElements} from "../ui/hideElements";
@@ -49,11 +50,14 @@ const removeTopElement = (updateElement: Element, protyle: IProtyle) => {
 
 // 用于执行操作，外加处理当前编辑器中引用块、嵌入块的更新
 const promiseTransaction = () => {
+    if (window.siyuan.transactions.length === 0) {
+        return;
+    }
     const protyle = window.siyuan.transactions[0].protyle;
     const doOperations = window.siyuan.transactions[0].doOperations;
     const undoOperations = window.siyuan.transactions[0].undoOperations;
     // 1. * ;2. * ;3. a
-    // 第一步请求没有返回前在 transaction 中会合并1、2步，此时第一步请求返回将被以下代码删除，在输入a时，就会出现 block not found，因此以下代码不能放入请求回掉中
+    // 第一步请求没有返回前在 transaction 中会合并1、2步，此时第一步请求返回将被以下代码删除，在输入a时，就会出现 block not found，因此以下代码不能放入请求回调中
     window.siyuan.transactions.splice(0, 1);
     fetchPost("/api/transactions", {
         session: protyle.id,
@@ -64,12 +68,10 @@ const promiseTransaction = () => {
         }]
     }, (response) => {
         if (window.siyuan.transactions.length === 0) {
-            promiseTransactions();
+            countBlockWord([], protyle.block.rootID, true);
         } else {
             promiseTransaction();
         }
-
-        countBlockWord([], protyle.block.rootID, true);
         /// #if MOBILE
         if ((0 !== window.siyuan.config.sync.provider || (0 === window.siyuan.config.sync.provider && !needSubscribe(""))) &&
             window.siyuan.config.repo.key && window.siyuan.config.sync.enabled) {
@@ -120,6 +122,7 @@ const promiseTransaction = () => {
                     });
                     processRender(protyle.wysiwyg.element);
                     highlightRender(protyle.wysiwyg.element);
+                    avRender(protyle.wysiwyg.element);
                     blockRender(protyle, protyle.wysiwyg.element);
                     protyle.contentElement.scrollTop = scrollTop;
                     protyle.scroll.lastScrollTop = scrollTop;
@@ -159,6 +162,7 @@ const promiseTransaction = () => {
                     });
                     processRender(protyle.wysiwyg.element);
                     highlightRender(protyle.wysiwyg.element);
+                    avRender(protyle.wysiwyg.element);
                     blockRender(protyle, protyle.wysiwyg.element);
                 }
                 // 当前编辑器中更新嵌入块
@@ -268,6 +272,7 @@ const promiseTransaction = () => {
                     cursorElements.forEach(item => {
                         processRender(item);
                         highlightRender(item);
+                        avRender(item);
                         blockRender(protyle, item);
                         const wbrElement = item.querySelector("wbr");
                         if (wbrElement) {
@@ -284,6 +289,8 @@ const promiseTransaction = () => {
                 // });
                 // 更新引用块
                 updateRef(protyle, operation.id);
+            } else if (["addAttrViewCol", "insertAttrViewBlock"].includes(operation.action)) {
+                refreshAV(protyle, operation);
             }
         });
     });
@@ -307,17 +314,8 @@ const updateEmbed = (protyle: IProtyle, operation: IOperation) => {
     if (updatedEmbed) {
         processRender(protyle.wysiwyg.element);
         highlightRender(protyle.wysiwyg.element);
+        avRender(protyle.wysiwyg.element);
     }
-};
-
-export const promiseTransactions = () => {
-    window.siyuan.transactionsTimeout = window.setInterval(() => {
-        if (window.siyuan.transactions.length === 0) {
-            return;
-        }
-        window.clearInterval(window.siyuan.transactionsTimeout);
-        promiseTransaction();
-    }, Constants.TIMEOUT_INPUT * 2);
 };
 
 // 用于推送和撤销
@@ -353,6 +351,7 @@ export const onTransaction = (protyle: IProtyle, operation: IOperation, focus: b
         if (operation.retData) {
             processRender(protyle.wysiwyg.element);
             highlightRender(protyle.wysiwyg.element);
+            avRender(protyle.wysiwyg.element);
             blockRender(protyle, protyle.wysiwyg.element);
             protyle.contentElement.scrollTop = scrollTop;
             protyle.scroll.lastScrollTop = scrollTop;
@@ -418,6 +417,7 @@ export const onTransaction = (protyle: IProtyle, operation: IOperation, focus: b
             }
             processRender(updateElements.length === 1 ? updateElements[0] : protyle.wysiwyg.element);
             highlightRender(updateElements.length === 1 ? updateElements[0] : protyle.wysiwyg.element);
+            avRender(updateElements.length === 1 ? updateElements[0] : protyle.wysiwyg.element);
             blockRender(protyle, updateElements.length === 1 ? updateElements[0] : protyle.wysiwyg.element);
         }
         // 更新 ws 嵌入块
@@ -635,6 +635,7 @@ export const onTransaction = (protyle: IProtyle, operation: IOperation, focus: b
         cursorElements.forEach(item => {
             processRender(item);
             highlightRender(item);
+            avRender(item);
             blockRender(protyle, item);
             const wbrElement = item.querySelector("wbr");
             if (focus) {
@@ -650,10 +651,10 @@ export const onTransaction = (protyle: IProtyle, operation: IOperation, focus: b
         });
         // 更新 ws 引用块
         updateRef(protyle, operation.id);
-        return;
-    }
-    if (operation.action === "append") {
+    } else if (operation.action === "append") {
         reloadProtyle(protyle, false);
+    } else if (["addAttrViewCol", "insertAttrViewBlock"].includes(operation.action)) {
+        refreshAV(protyle, operation);
     }
 };
 
@@ -860,6 +861,7 @@ export const turnsIntoTransaction = (options: {
     transaction(options.protyle, doOperations, undoOperations);
     processRender(options.protyle.wysiwyg.element);
     highlightRender(options.protyle.wysiwyg.element);
+    avRender(options.protyle.wysiwyg.element);
     blockRender(options.protyle, options.protyle.wysiwyg.element);
     if (range) {
         focusByWbr(options.protyle.wysiwyg.element, range);
@@ -886,6 +888,7 @@ const updateRef = (protyle: IProtyle, id: string, index = 0) => {
     });
 };
 
+let transactionsTimeout: number;
 export const transaction = (protyle: IProtyle, doOperations: IOperation[], undoOperations?: IOperation[]) => {
     const lastTransaction = window.siyuan.transactions[window.siyuan.transactions.length - 1];
     let needDebounce = false;
@@ -921,6 +924,10 @@ export const transaction = (protyle: IProtyle, doOperations: IOperation[], undoO
         });
     }
     protyle.transactionTime = time;
+    window.clearTimeout(transactionsTimeout);
+    transactionsTimeout = window.setTimeout(() => {
+        promiseTransaction();
+    }, Constants.TIMEOUT_INPUT * 2);
 };
 
 export const updateTransaction = (protyle: IProtyle, id: string, newHTML: string, html: string) => {

@@ -27,6 +27,7 @@ import (
 	"github.com/88250/gulu"
 	"github.com/88250/lute/ast"
 	"github.com/88250/lute/editor"
+	"github.com/88250/lute/html"
 	"github.com/88250/lute/parse"
 	"github.com/siyuan-note/logging"
 	"github.com/siyuan-note/siyuan/kernel/sql"
@@ -121,11 +122,6 @@ func GetBlockRefText(id string) string {
 func getBlockRefText(id string, tree *parse.Tree) (ret string) {
 	node := treenode.GetNodeInTree(tree, id)
 	if nil == node {
-		return
-	}
-
-	sqlBlock := sql.BuildBlockFromNode(node, tree)
-	if nil == sqlBlock {
 		return
 	}
 
@@ -314,7 +310,7 @@ func buildBlockBreadcrumb(node *ast.Node, excludeTypes []string) (ret []*BlockPa
 		if add {
 			ret = append([]*BlockPath{{
 				ID:      id,
-				Name:    name,
+				Name:    html.EscapeString(name),
 				Type:    parent.Type.String(),
 				SubType: treenode.SubTypeAbbr(parent),
 			}}, ret...)
@@ -335,7 +331,7 @@ func buildBlockBreadcrumb(node *ast.Node, excludeTypes []string) (ret []*BlockPa
 				name = gulu.Str.SubStr(renderBlockText(b, excludeTypes), maxNameLen)
 				ret = append([]*BlockPath{{
 					ID:      b.ID,
-					Name:    name,
+					Name:    html.EscapeString(name),
 					Type:    b.Type.String(),
 					SubType: treenode.SubTypeAbbr(b),
 				}}, ret...)

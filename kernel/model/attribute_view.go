@@ -28,16 +28,70 @@ import (
 	"github.com/siyuan-note/siyuan/kernel/treenode"
 )
 
-func RenderAttributeView(avID string) (dom string, err error) {
+func RenderAttributeView(avID string) (ret *av.AttributeView, err error) {
 	waitForSyncingStorages()
 
-	attrView, err := av.ParseAttributeView(avID)
+	ret, err = av.ParseAttributeView(avID)
 	if nil != err {
 		logging.LogErrorf("parse attribute view [%s] failed: %s", avID, err)
 		return
 	}
 
-	_ = attrView
+	// TODO render value
+	return
+}
+
+func (tx *Transaction) doUpdateAttrViewCell(operation *Operation) (ret *TxErr) {
+	avID := operation.ParentID
+	view, err := av.ParseAttributeView(avID)
+	if nil != err {
+		logging.LogErrorf("parse attribute view [%s] failed: %s", avID, err)
+		return &TxErr{code: TxErrCodeBlockNotFound, id: avID, msg: err.Error()}
+	}
+
+	var c *av.Cell
+	var blockID string
+	for _, row := range view.Rows {
+		if row.ID != operation.RowID {
+			continue
+		}
+
+		blockID = row.Cells[0].Value
+		for _, cell := range row.Cells[1:] {
+			if cell.ID == operation.ID {
+				c = cell
+				break
+			}
+		}
+		break
+	}
+
+	if nil == c {
+		return
+	}
+
+	tree, err := tx.loadTree(blockID)
+	if nil != err {
+		return
+	}
+
+	node := treenode.GetNodeInTree(tree, blockID)
+	if nil == node {
+		return
+	}
+
+	c.Value = parseCellData(operation.Data, av.ColumnType(operation.Typ))
+	attrs := parse.IAL2Map(node.KramdownIAL)
+	attrs[NodeAttrNamePrefixAvCol+c.ID] = c.Value
+	if err = setNodeAttrsWithTx(tx, node, tree, attrs); nil != err {
+		return
+	}
+
+	if err = av.SaveAttributeView(view); nil != err {
+		return
+	}
+
+	sql.RebuildAttributeViewQueue(view)
 	return
 }
 
@@ -102,7 +156,7 @@ func (tx *Transaction) doRemoveAttrViewBlock(operation *Operation) (ret *TxErr) 
 }
 
 func (tx *Transaction) doAddAttrViewColumn(operation *Operation) (ret *TxErr) {
-	err := addAttributeViewColumn(operation.Name, operation.Typ, 1024, operation.ParentID)
+	err := addAttributeViewColumn(operation.Name, operation.Typ, operation.ParentID)
 	if nil != err {
 		return &TxErr{code: TxErrWriteAttributeView, id: operation.ParentID, msg: err.Error()}
 	}
@@ -117,15 +171,20 @@ func (tx *Transaction) doRemoveAttrViewColumn(operation *Operation) (ret *TxErr)
 	return
 }
 
-func addAttributeViewColumn(name string, typ string, columnIndex int, avID string) (err error) {
+func addAttributeViewColumn(name string, typ string, avID string) (err error) {
 	attrView, err := av.ParseAttributeView(avID)
 	if nil != err {
 		return
 	}
 
-	switch av.ColumnType(typ) {
+	colType := av.ColumnType(typ)
+	switch colType {
 	case av.ColumnTypeText:
-		attrView.InsertColumn(columnIndex, &av.Column{ID: "av" + ast.NewNodeID(), Name: name, Type: av.ColumnTypeText})
+		col := &av.Column{ID: ast.NewNodeID(), Name: name, Type: colType}
+		attrView.Columns = append(attrView.Columns, col)
+		for _, row := range attrView.Rows {
+			row.Cells = append(row.Cells, av.NewCell(colType))
+		}
 	default:
 		msg := fmt.Sprintf("invalid column type [%s]", typ)
 		logging.LogErrorf(msg)
@@ -143,9 +202,16 @@ func removeAttributeViewColumn(columnID string, avID string) (err error) {
 		return
 	}
 
-	for i, column := range attrView.Columns[1:] {
+	for i, column := range attrView.Columns {
 		if column.ID == columnID {
 			attrView.Columns = append(attrView.Columns[:i], attrView.Columns[i+1:]...)
+			for _, row := range attrView.Rows {
+				if len(row.Cells) <= i {
+					continue
+				}
+
+				row.Cells = append(row.Cells[:i], row.Cells[i+1:]...)
+			}
 			break
 		}
 	}
@@ -209,12 +275,12 @@ func addAttributeViewBlock(blockID, avID string, tree *parse.Tree, tx *Transacti
 	}
 
 	row := av.NewRow()
-	row.Cells = append(row.Cells, &av.Cell{ID: ast.NewNodeID(), Value: blockID})
+	row.Cells = append(row.Cells, av.NewCellBlock(blockID, getNodeRefText(node)))
 	if 1 < len(ret.Columns) {
 		attrs := parse.IAL2Map(node.KramdownIAL)
 		for _, col := range ret.Columns[1:] {
-			attrs["av"+col.ID] = "" // 将列作为属性添加到块中
-			row.Cells = append(row.Cells, &av.Cell{ID: ast.NewNodeID(), Value: ""})
+			attrs[NodeAttrNamePrefixAvCol+col.ID] = "" // 将列作为属性添加到块中
+			row.Cells = append(row.Cells, av.NewCell(col.Type))
 		}
 
 		if err = setNodeAttrsWithTx(tx, node, tree, attrs); nil != err {
@@ -226,3 +292,13 @@ func addAttributeViewBlock(blockID, avID string, tree *parse.Tree, tx *Transacti
 	err = av.SaveAttributeView(ret)
 	return
 }
+
+func parseCellData(data interface{}, colType av.ColumnType) string {
+	switch colType {
+	case av.ColumnTypeText:
+		return data.(string)
+	}
+	return ""
+}
+
+const NodeAttrNamePrefixAvCol = "av-col-"

@@ -15,14 +15,14 @@ export const image = {
         return `<div class="fn__flex-column" style="height: 100%">
     <div class="layout-tab-bar fn__flex">
         <div class="item item--full item--focus" data-type="remove">
-            <div class="fn__flex-1"></div>
-            ${window.siyuan.languages.unreferencedAssets}
-            <div class="fn__flex-1"></div>
+            <span class="fn__flex-1"></span>
+            <span class="item__text">${window.siyuan.languages.unreferencedAssets}</span>
+            <span class="fn__flex-1"></span>
         </div>
         <div class="item item--full" data-type="missing">
-            <div class="fn__flex-1"></div>
-            ${window.siyuan.languages.missingAssets}
-            <div class="fn__flex-1"></div>
+            <span class="fn__flex-1"></span>
+            <span class="item__text">${window.siyuan.languages.missingAssets}</span>
+            <span class="fn__flex-1"></span>
         </div>
     </div>
     <div class="fn__flex-1">
@@ -142,7 +142,7 @@ export const image = {
     <svg><use xlink:href="#iconFolder"></use></svg>
 </span>`;
         }
-        let boxClearHTML = ""
+        let boxClearHTML = "";
         if (action) {
             boxClearHTML = `<span data-type="clear" class="b3-tooltips b3-tooltips__w b3-list-item__action" aria-label="${window.siyuan.languages.delete}">
     <svg><use xlink:href="#iconTrashcan"></use></svg>

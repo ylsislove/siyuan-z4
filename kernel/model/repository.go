@@ -50,7 +50,6 @@ import (
 	"github.com/siyuan-note/siyuan/kernel/cache"
 	"github.com/siyuan-note/siyuan/kernel/conf"
 	"github.com/siyuan-note/siyuan/kernel/filesys"
-	"github.com/siyuan-note/siyuan/kernel/sql"
 	"github.com/siyuan-note/siyuan/kernel/task"
 	"github.com/siyuan-note/siyuan/kernel/treenode"
 	"github.com/siyuan-note/siyuan/kernel/util"
@@ -928,6 +927,7 @@ func syncRepoDownload() (err error) {
 			}
 		}
 		Conf.Sync.Stat = msg
+		Conf.Save()
 		util.PushStatusBar(msg)
 		util.PushErrMsg(msg, 0)
 		return
@@ -937,6 +937,7 @@ func syncRepoDownload() (err error) {
 	Conf.Sync.Synced = util.CurrentTimeMillis()
 	msg := fmt.Sprintf(Conf.Language(150), trafficStat.UploadFileCount, trafficStat.DownloadFileCount, trafficStat.UploadChunkCount, trafficStat.DownloadChunkCount, humanize.Bytes(uint64(trafficStat.UploadBytes)), humanize.Bytes(uint64(trafficStat.DownloadBytes)))
 	Conf.Sync.Stat = msg
+	Conf.Save()
 	autoSyncErrCount = 0
 	logging.LogInfof("synced data repo download [provider=%d, ufc=%d, dfc=%d, ucc=%d, dcc=%d, ub=%s, db=%s] in [%.2fs]",
 		Conf.Sync.Provider, trafficStat.UploadFileCount, trafficStat.DownloadFileCount, trafficStat.UploadChunkCount, trafficStat.DownloadChunkCount, humanize.Bytes(uint64(trafficStat.UploadBytes)), humanize.Bytes(uint64(trafficStat.DownloadBytes)), elapsed.Seconds())
@@ -995,6 +996,7 @@ func syncRepoUpload() (err error) {
 			}
 		}
 		Conf.Sync.Stat = msg
+		Conf.Save()
 		util.PushStatusBar(msg)
 		util.PushErrMsg(msg, 0)
 		return
@@ -1004,6 +1006,7 @@ func syncRepoUpload() (err error) {
 	Conf.Sync.Synced = util.CurrentTimeMillis()
 	msg := fmt.Sprintf(Conf.Language(150), trafficStat.UploadFileCount, trafficStat.DownloadFileCount, trafficStat.UploadChunkCount, trafficStat.DownloadChunkCount, humanize.Bytes(uint64(trafficStat.UploadBytes)), humanize.Bytes(uint64(trafficStat.DownloadBytes)))
 	Conf.Sync.Stat = msg
+	Conf.Save()
 	autoSyncErrCount = 0
 	logging.LogInfof("synced data repo upload [provider=%d, ufc=%d, dfc=%d, ucc=%d, dcc=%d, ub=%s, db=%s] in [%.2fs]",
 		Conf.Sync.Provider, trafficStat.UploadFileCount, trafficStat.DownloadFileCount, trafficStat.UploadChunkCount, trafficStat.DownloadChunkCount, humanize.Bytes(uint64(trafficStat.UploadBytes)), humanize.Bytes(uint64(trafficStat.DownloadBytes)), elapsed.Seconds())
@@ -1080,6 +1083,7 @@ func bootSyncRepo() (err error) {
 			}
 		}
 		Conf.Sync.Stat = msg
+		Conf.Save()
 		util.PushStatusBar(msg)
 		util.PushErrMsg(msg, 0)
 		BootSyncSucc = 1
@@ -1088,7 +1092,7 @@ func bootSyncRepo() (err error) {
 
 	if 0 < len(fetchedFiles) {
 		go func() {
-			syncErr := syncRepo(false, false)
+			_, syncErr := syncRepo(false, false)
 			if nil != err {
 				logging.LogErrorf("boot background sync repo failed: %s", syncErr)
 				return
@@ -1098,7 +1102,7 @@ func bootSyncRepo() (err error) {
 	return
 }
 
-func syncRepo(exit, byHand bool) (err error) {
+func syncRepo(exit, byHand bool) (dataChanged bool, err error) {
 	if 1 > len(Conf.Repo.Key) {
 		autoSyncErrCount++
 		planSyncAfter(fixSyncInterval)
@@ -1122,6 +1126,7 @@ func syncRepo(exit, byHand bool) (err error) {
 		return
 	}
 
+	latest, _ := repo.Latest()
 	start := time.Now()
 	err = indexRepoBeforeCloudSync(repo)
 	if nil != err {
@@ -1152,6 +1157,7 @@ func syncRepo(exit, byHand bool) (err error) {
 			}
 		}
 		Conf.Sync.Stat = msg
+		Conf.Save()
 		util.PushStatusBar(msg)
 		if 1 > autoSyncErrCount || byHand {
 			util.PushErrMsg(msg, 0)
@@ -1162,13 +1168,17 @@ func syncRepo(exit, byHand bool) (err error) {
 		return
 	}
 
+	syncedLatest, _ := repo.Latest()
+	dataChanged = nil == latest || latest.ID != syncedLatest.ID
+
 	util.PushStatusBar(fmt.Sprintf(Conf.Language(149), elapsed.Seconds()))
 	Conf.Sync.Synced = util.CurrentTimeMillis()
 	msg := fmt.Sprintf(Conf.Language(150), trafficStat.UploadFileCount, trafficStat.DownloadFileCount, trafficStat.UploadChunkCount, trafficStat.DownloadChunkCount, humanize.Bytes(uint64(trafficStat.UploadBytes)), humanize.Bytes(uint64(trafficStat.DownloadBytes)))
 	Conf.Sync.Stat = msg
+	Conf.Save()
 	autoSyncErrCount = 0
-	logging.LogInfof("synced data repo [provider=%d, ufc=%d, dfc=%d, ucc=%d, dcc=%d, ub=%s, db=%s] in [%.2fs]",
-		Conf.Sync.Provider, trafficStat.UploadFileCount, trafficStat.DownloadFileCount, trafficStat.UploadChunkCount, trafficStat.DownloadChunkCount, humanize.Bytes(uint64(trafficStat.UploadBytes)), humanize.Bytes(uint64(trafficStat.DownloadBytes)), elapsed.Seconds())
+	logging.LogInfof("synced data repo [kernel=%s, provider=%d, ufc=%d, dfc=%d, ucc=%d, dcc=%d, ub=%s, db=%s] in [%.2fs]",
+		KernelID, Conf.Sync.Provider, trafficStat.UploadFileCount, trafficStat.DownloadFileCount, trafficStat.UploadChunkCount, trafficStat.DownloadChunkCount, humanize.Bytes(uint64(trafficStat.UploadBytes)), humanize.Bytes(uint64(trafficStat.DownloadBytes)), elapsed.Seconds())
 
 	processSyncMergeResult(exit, byHand, start, mergeResult)
 	return
@@ -1292,14 +1302,12 @@ func processSyncMergeResult(exit, byHand bool, start time.Time, mergeResult *dej
 	upsertRootIDs, removeRootIDs := incReindex(upserts, removes)
 	elapsed := time.Since(start)
 	go func() {
-		sql.WaitForWritingDatabase()
-		util.WaitForUILoaded()
-
 		if util.ContainerAndroid == util.Container || util.ContainerIOS == util.Container {
 			// 移动端不推送差异详情
 			upsertRootIDs = []string{}
 		}
 
+		util.WaitForUILoaded()
 		util.BroadcastByType("main", "syncMergeResult", 0, "",
 			map[string]interface{}{"upsertRootIDs": upsertRootIDs, "removeRootIDs": removeRootIDs})
 

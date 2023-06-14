@@ -284,6 +284,9 @@ func InitConf() {
 	}
 	Conf.Sync.WebDAV.Endpoint = util.NormalizeEndpoint(Conf.Sync.WebDAV.Endpoint)
 	Conf.Sync.WebDAV.Timeout = util.NormalizeTimeout(Conf.Sync.WebDAV.Timeout)
+	if util.ContainerDocker == util.Container {
+		Conf.Sync.Perception = false
+	}
 
 	if nil == Conf.Api {
 		Conf.Api = conf.NewAPI()
@@ -469,7 +472,7 @@ func Close(force bool, execInstallPkg int) (exitCode int) {
 	if !force {
 		if Conf.Sync.Enabled && 3 != Conf.Sync.Mode &&
 			((IsSubscriber() && conf.ProviderSiYuan == Conf.Sync.Provider) || conf.ProviderSiYuan != Conf.Sync.Provider) {
-			syncData(true, false)
+			syncData(true, false, false)
 			if 0 != ExitSyncSucc {
 				exitCode = 1
 				return
@@ -501,16 +504,18 @@ func Close(force bool, execInstallPkg int) (exitCode int) {
 	clearPortJSON()
 	util.UnlockWorkspace()
 
+	time.Sleep(500 * time.Millisecond)
+	if waitSecondForExecInstallPkg {
+		util.PushMsg(Conf.Language(130), 1000*5)
+		// 桌面端退出拉起更新安装时有时需要重启两次 https://github.com/siyuan-note/siyuan/issues/6544
+		// 这里多等待一段时间，等待安装程序启动
+		time.Sleep(4 * time.Second)
+	}
+	logging.LogInfof("exited kernel")
+	closeSyncWebSocket()
+	util.WebSocketServer.Close()
 	go func() {
 		time.Sleep(500 * time.Millisecond)
-		if waitSecondForExecInstallPkg {
-			util.PushMsg(Conf.Language(130), 1000*5)
-			// 桌面端退出拉起更新安装时有时需要重启两次 https://github.com/siyuan-note/siyuan/issues/6544
-			// 这里多等待一段时间，等待安装程序启动
-			time.Sleep(4 * time.Second)
-		}
-		logging.LogInfof("exited kernel")
-		util.WebSocketServer.Close()
 		os.Exit(logging.ExitCodeOk)
 	}()
 	return

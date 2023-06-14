@@ -3,8 +3,8 @@ import {Constants} from "../../constants";
 import {hideElements} from "../ui/hideElements";
 import {fetchPost} from "../../util/fetch";
 import {processRender} from "./processCode";
-import {highlightRender} from "../markdown/highlightRender";
-import {blockRender} from "../markdown/blockRender";
+import {highlightRender} from "../render/highlightRender";
+import {blockRender} from "../render/blockRender";
 import {highlightById} from "../../util/highlightById";
 /// #if !MOBILE
 import {pushBack} from "../../util/backForward";
@@ -16,6 +16,7 @@ import {removeLoading} from "../ui/initUI";
 import {isMobile} from "../../util/functions";
 import {foldPassiveType} from "../wysiwyg/renderBacklink";
 import {showMessage} from "../../dialog/message";
+import {avRender} from "../render/av/render";
 
 export const onGet = (options: {
     data: IWebSocketData,
@@ -161,6 +162,7 @@ const setHTML = (options: {
     }
     processRender(protyle.wysiwyg.element);
     highlightRender(protyle.wysiwyg.element);
+    avRender(protyle.wysiwyg.element);
     blockRender(protyle, protyle.wysiwyg.element);
     if (options.action.includes(Constants.CB_GET_HISTORY)) {
         return;
@@ -245,8 +247,7 @@ const setHTML = (options: {
             protyle.element.style.minHeight = Math.min(30 + protyle.wysiwyg.element.clientHeight, window.innerHeight / 3) + "px";
         }
         // 49 = 16（上图标）+16（下图标）+8（padding）+9（底部距离）
-        // @ts-ignore
-        protyle.scroll.element.parentElement.setAttribute("style", `--b3-dynamicscroll-width:${protyle.contentElement.clientHeight - 49}px;${isMobile() ? "" : "right:10px"}`);
+        protyle.scroll.element.parentElement.setAttribute("style", `--b3-dynamicscroll-width:${Math.min(protyle.contentElement.clientHeight - 49, 200)}px;${isMobile() ? "" : "right:10px"}`);
     }
     // 屏幕太高的页签 https://github.com/siyuan-note/siyuan/issues/5018
     if (!protyle.scroll.element.classList.contains("fn__none") &&

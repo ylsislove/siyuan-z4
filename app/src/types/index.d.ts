@@ -18,12 +18,16 @@ type TOperation =
     | "append"
     | "insertAttrViewBlock"
     | "removeAttrViewBlock"
+    | "addAttrViewCol"
+    | "removeAttrViewCol"
     | "addFlashcards"
     | "removeFlashcards"
+    | "updateAttrViewCell"
 type TBazaarType = "templates" | "icons" | "widgets" | "themes" | "plugins"
 type TCardType = "doc" | "notebook" | "all"
 type TEventBus = "ws-main" | "click-blockicon" | "click-editorcontent" | "click-pdf" |
     "click-editortitleicon" | "open-noneditableblock" | "loaded-protyle"
+type TAVCol = "text" | "date" | "number" | "relation" | "rollup" | "select" | "block"
 
 declare module "blueimp-md5"
 
@@ -201,7 +205,6 @@ interface INotebook {
 interface ISiyuan {
     storage?: { [key: string]: any },
     printWin?: import("electron").BrowserWindow
-    transactionsTimeout?: number,
     transactions?: {
         protyle: IProtyle,
         doOperations: IOperation[],
@@ -279,6 +282,9 @@ interface IOperation {
     retData?: any
     nextID?: string // insert 专享
     srcIDs?: string[] // insertAttrViewBlock 专享
+    name?: string // addAttrViewCol 专享
+    type?: TAVCol // addAttrViewCol 专享
+    rowID?: string // updateAttrViewCell 专享
     deckID?: string // add/removeFlashcards 专享
     blockIDs?: string[] // add/removeFlashcards 专享
 }
@@ -513,6 +519,7 @@ interface IConfig {
     sync: {
         generateConflictDoc: boolean
         enabled: boolean
+        perception: boolean
         mode: number
         synced: number
         stat: string
@@ -548,6 +555,7 @@ interface IConfig {
             port: string
             scheme: string
         }
+        name: string
         kernelVersion: string
         isInsider: boolean
         appDir: string
@@ -798,4 +806,28 @@ interface IBazaarItem {
     hInstallDate: string
     hUpdated: string
     preferredFunding: string
+}
+
+interface IAVColumn {
+    width: number,
+    icon: string,
+    id: string,
+    name: string,
+    wrap: boolean,
+    hidden: boolean,
+    type: TAVCol,
+}
+
+interface IAVRow {
+    id: string,
+    cells: IAVCell[]
+}
+
+interface IAVCell {
+    color: string,
+    bgColor: string,
+    value: string,
+    renderValue: {
+        content: string,
+    }
 }

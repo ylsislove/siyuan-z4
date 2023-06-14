@@ -15,13 +15,13 @@ import {setPosition} from "../../util/setPosition";
 import {getContenteditableElement, hasNextSibling, hasPreviousSibling} from "../wysiwyg/getBlock";
 import {transaction, updateTransaction} from "../wysiwyg/transaction";
 import {insertHTML} from "../util/insertHTML";
-import {highlightRender} from "../markdown/highlightRender";
+import {highlightRender} from "../render/highlightRender";
 import {imgMenu} from "../../menus/protyle";
 import {hideElements} from "../ui/hideElements";
 import {fetchPost} from "../../util/fetch";
 import {getDisplayName, pathPosix} from "../../util/pathName";
 import {addEmoji, filterEmoji, lazyLoadEmoji, lazyLoadEmojiImg, unicode2Emoji} from "../../emoji";
-import {blockRender} from "../markdown/blockRender";
+import {blockRender} from "../render/blockRender";
 import {uploadFiles} from "../upload";
 /// #if !MOBILE
 import {openFileById} from "../../editor/util";
@@ -32,6 +32,7 @@ import {processRender} from "../util/processCode";
 import {AIChat} from "../../ai/chat";
 import {isMobile} from "../../util/functions";
 import {isCtrl} from "../util/compatibility";
+import {avRender} from "../render/av/render";
 
 export class Hint {
     public timeId: number;
@@ -720,6 +721,8 @@ ${unicode2Emoji(emoji.unicode)}</button>`;
                     window.siyuan.menus.menu.element.querySelectorAll("input")[0].focus();
                 } else if (value === "---") {
                     focusBlock(nodeElement);
+                } else if (nodeElement.classList.contains("av")) {
+                    avRender(nodeElement);
                 } else {
                     focusByWbr(nodeElement, range);
                 }

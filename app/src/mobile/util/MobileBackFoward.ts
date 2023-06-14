@@ -4,13 +4,14 @@ import {setEditMode} from "../../protyle/util/setEditMode";
 import {fetchPost} from "../../util/fetch";
 import {zoomOut} from "../../menus/protyle";
 import {processRender} from "../../protyle/util/processCode";
-import {highlightRender} from "../../protyle/markdown/highlightRender";
-import {blockRender} from "../../protyle/markdown/blockRender";
+import {highlightRender} from "../../protyle/render/highlightRender";
+import {blockRender} from "../../protyle/render/blockRender";
 import {disabledForeverProtyle, disabledProtyle, enableProtyle} from "../../protyle/util/onGet";
 import {setStorageVal} from "../../protyle/util/compatibility";
 import {closePanel} from "./closePanel";
 import {showMessage} from "../../dialog/message";
 import {getCurrentEditor} from "../editor";
+import {avRender} from "../../protyle/render/av/render";
 
 const forwardStack: IBackStack[] = [];
 
@@ -85,6 +86,7 @@ const focusStack = (backStack: IBackStack) => {
         protyle.wysiwyg.element.innerHTML = getResponse.data.content;
         processRender(protyle.wysiwyg.element);
         highlightRender(protyle.wysiwyg.element);
+        avRender(protyle.wysiwyg.element);
         blockRender(protyle, protyle.wysiwyg.element, backStack.scrollTop);
         if (getResponse.data.isSyncing) {
             disabledForeverProtyle(protyle);

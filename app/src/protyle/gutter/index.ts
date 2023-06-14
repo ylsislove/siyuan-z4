@@ -15,8 +15,8 @@ import {removeBlock} from "../wysiwyg/remove";
 import {focusBlock, focusByRange, focusByWbr, getEditorRange} from "../util/selection";
 import {hideElements} from "../ui/hideElements";
 import {processRender} from "../util/processCode";
-import {highlightRender} from "../markdown/highlightRender";
-import {blockRender} from "../markdown/blockRender";
+import {highlightRender} from "../render/highlightRender";
+import {blockRender} from "../render/blockRender";
 import {removeEmbed} from "../wysiwyg/removeEmbed";
 import {getContenteditableElement, getTopAloneElement, isNotEditBlock} from "../wysiwyg/getBlock";
 import * as dayjs from "dayjs";
@@ -28,7 +28,7 @@ import {openFileById} from "../../editor/util";
 /// #endif
 import {Constants} from "../../constants";
 import {openMobileFileById} from "../../mobile/editor";
-import {mathRender} from "../markdown/mathRender";
+import {mathRender} from "../render/mathRender";
 import {duplicateBlock} from "../wysiwyg/commonHotkey";
 import {movePathTo} from "../../util/pathName";
 import {hintMoveBlock} from "../hint/extend";
@@ -40,6 +40,7 @@ import {activeBlur} from "../../mobile/util/keyboardToolbar";
 import {hideTooltip} from "../../dialog/tooltip";
 import {appearanceMenu} from "../toolbar/Font";
 import {setPosition} from "../../util/setPosition";
+import {avRender} from "../render/av/render";
 
 export class Gutter {
     public element: HTMLElement;
@@ -380,6 +381,7 @@ export class Gutter {
                 blockRender(options.protyle, options.protyle.wysiwyg.element);
                 processRender(options.protyle.wysiwyg.element);
                 highlightRender(options.protyle.wysiwyg.element);
+                avRender(options.protyle.wysiwyg.element);
             }
         };
     }
@@ -1401,7 +1403,7 @@ export class Gutter {
             window.siyuan.menus.menu.append(new MenuItem({
                 accelerator: `${updateHotkeyTip(window.siyuan.config.keymap.general.enter.custom)}/${updateHotkeyTip("⌘Click")}`,
                 label: window.siyuan.languages.enter,
-                click:()=> {
+                click: () => {
                     zoomOut({protyle, id});
                 }
             }).element);
@@ -1423,7 +1425,7 @@ export class Gutter {
                             /// #endif
                         }
                     } else {
-                        zoomOut({protyle, id:protyle.block.parent2ID, focusId:id});
+                        zoomOut({protyle, id: protyle.block.parent2ID, focusId: id});
                     }
                 }
             }).element);
@@ -1881,6 +1883,8 @@ export class Gutter {
         if (nodeElement.getAttribute("data-type") === "NodeBlockQueryEmbed" && this.element.childElementCount === 1) {
             // 嵌入块为列表时
             left = nodeElement.getBoundingClientRect().left - this.element.clientWidth - space;
+        } else if (nodeElement.getAttribute("data-type") === "NodeAttributeView") {
+            left = left + (parseInt((nodeElement.firstElementChild.firstElementChild as HTMLElement)?.style.paddingLeft) || 0);
         }
         this.element.style.left = `${left}px`;
         if (left < this.element.parentElement.getBoundingClientRect().left) {

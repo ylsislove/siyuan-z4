@@ -19,9 +19,11 @@ package model
 import (
 	"errors"
 	"fmt"
+	"net/http"
 	"os"
 	"path"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
 	"time"
@@ -29,6 +31,7 @@ import (
 	"github.com/88250/gulu"
 	"github.com/88250/lute/html"
 	"github.com/dustin/go-humanize"
+	"github.com/gorilla/websocket"
 	"github.com/siyuan-note/dejavu"
 	"github.com/siyuan-note/dejavu/cloud"
 	"github.com/siyuan-note/logging"
@@ -59,20 +62,11 @@ func SyncDataDownload() {
 	Conf.Sync.Synced = now
 
 	err := syncRepoDownload()
-	synced := util.Millisecond2Time(Conf.Sync.Synced).Format("2006-01-02 15:04:05") + "\n\n"
-	if nil == err {
-		synced += Conf.Sync.Stat
-	} else {
-		synced += fmt.Sprintf(Conf.Language(80), formatRepoErrorMsg(err))
-	}
-	msg := fmt.Sprintf(Conf.Language(82), synced)
-	Conf.Sync.Stat = msg
-	Conf.Save()
 	code := 1
 	if nil != err {
 		code = 2
 	}
-	util.BroadcastByType("main", "syncing", code, msg, nil)
+	util.BroadcastByType("main", "syncing", code, Conf.Sync.Stat, nil)
 }
 
 func SyncDataUpload() {
@@ -95,20 +89,11 @@ func SyncDataUpload() {
 	Conf.Sync.Synced = now
 
 	err := syncRepoUpload()
-	synced := util.Millisecond2Time(Conf.Sync.Synced).Format("2006-01-02 15:04:05") + "\n\n"
-	if nil == err {
-		synced += Conf.Sync.Stat
-	} else {
-		synced += fmt.Sprintf(Conf.Language(80), formatRepoErrorMsg(err))
-	}
-	msg := fmt.Sprintf(Conf.Language(82), synced)
-	Conf.Sync.Stat = msg
-	Conf.Save()
 	code := 1
 	if nil != err {
 		code = 2
 	}
-	util.BroadcastByType("main", "syncing", code, msg, nil)
+	util.BroadcastByType("main", "syncing", code, Conf.Sync.Stat, nil)
 	return
 }
 
@@ -133,6 +118,10 @@ func SyncDataJob() {
 func BootSyncData() {
 	defer logging.Recover()
 
+	if Conf.Sync.Perception {
+		connectSyncWebSocket()
+	}
+
 	if !checkSync(true, false, false) {
 		return
 	}
@@ -154,28 +143,19 @@ func BootSyncData() {
 	Conf.Sync.Synced = now
 	util.BroadcastByType("main", "syncing", 0, Conf.Language(81), nil)
 	err := bootSyncRepo()
-	synced := util.Millisecond2Time(Conf.Sync.Synced).Format("2006-01-02 15:04:05") + "\n\n"
-	if nil == err {
-		synced += Conf.Sync.Stat
-	} else {
-		synced += fmt.Sprintf(Conf.Language(80), formatRepoErrorMsg(err))
-	}
-	msg := fmt.Sprintf(Conf.Language(82), synced)
-	Conf.Sync.Stat = msg
-	Conf.Save()
 	code := 1
 	if nil != err {
 		code = 2
 	}
-	util.BroadcastByType("main", "syncing", code, msg, nil)
+	util.BroadcastByType("main", "syncing", code, Conf.Sync.Stat, nil)
 	return
 }
 
 func SyncData(byHand bool) {
-	syncData(false, byHand)
+	syncData(false, byHand, false)
 }
 
-func syncData(exit, byHand bool) {
+func syncData(exit, byHand, byWebSocket bool) {
 	defer logging.Recover()
 
 	if !checkSync(false, exit, byHand) {
@@ -200,21 +180,29 @@ func syncData(exit, byHand bool) {
 	now := util.CurrentTimeMillis()
 	Conf.Sync.Synced = now
 
-	err := syncRepo(exit, byHand)
-	synced := util.Millisecond2Time(Conf.Sync.Synced).Format("2006-01-02 15:04:05") + "\n\n"
-	if nil == err {
-		synced += Conf.Sync.Stat
-	} else {
-		synced += fmt.Sprintf(Conf.Language(80), formatRepoErrorMsg(err))
-	}
-	msg := fmt.Sprintf(Conf.Language(82), synced)
-	Conf.Sync.Stat = msg
-	Conf.Save()
+	dataChanged, err := syncRepo(exit, byHand)
 	code := 1
 	if nil != err {
 		code = 2
 	}
-	util.BroadcastByType("main", "syncing", code, msg, nil)
+	util.BroadcastByType("main", "syncing", code, Conf.Sync.Stat, nil)
+
+	if nil == webSocketConn && Conf.Sync.Perception {
+		// 如果 websocket 连接已经断开，则重新连接
+		connectSyncWebSocket()
+	}
+
+	if 1 == Conf.Sync.Mode && !byWebSocket && nil != webSocketConn && Conf.Sync.Perception && dataChanged {
+		// 如果处于自动同步模式且不是又 WS 触发的同步，则通知其他设备上的内核进行同步
+		request := map[string]interface{}{
+			"cmd":    "synced",
+			"synced": Conf.Sync.Synced,
+		}
+		if writeErr := webSocketConn.WriteJSON(request); nil != writeErr {
+			logging.LogErrorf("write websocket message failed: %v", writeErr)
+		}
+	}
+
 	return
 }
 
@@ -347,7 +335,23 @@ func SetSyncEnable(b bool) {
 	return
 }
 
-func SetSyncMode(mode int) (err error) {
+func SetSyncPerception(b bool) {
+	if util.ContainerDocker == util.Container {
+		b = false
+	}
+
+	Conf.Sync.Perception = b
+	Conf.Save()
+
+	if b {
+		connectSyncWebSocket()
+	} else {
+		closeSyncWebSocket()
+	}
+	return
+}
+
+func SetSyncMode(mode int) {
 	Conf.Sync.Mode = mode
 	Conf.Save()
 	return
@@ -592,6 +596,166 @@ func isProviderOnline(byHand bool) (ret bool) {
 			planSyncAfter(fixSyncInterval)
 			autoSyncErrCount++
 		}
+	}
+	return
+}
+
+var (
+	webSocketConn     *websocket.Conn
+	webSocketConnLock = sync.Mutex{}
+)
+
+type OnlineKernel struct {
+	ID       string `json:"id"`
+	Hostname string `json:"hostname"`
+	OS       string `json:"os"`
+	Ver      string `json:"ver"`
+}
+
+var (
+	onlineKernels     []*OnlineKernel
+	onlineKernelsLock = sync.Mutex{}
+)
+
+func GetOnlineKernels() (ret []*OnlineKernel) {
+	ret = []*OnlineKernel{}
+	onlineKernelsLock.Lock()
+	tmp := onlineKernels
+	onlineKernelsLock.Unlock()
+	for _, kernel := range tmp {
+		if kernel.ID == KernelID {
+			continue
+		}
+
+		ret = append(ret, kernel)
+	}
+	return
+}
+
+var closedSyncWebSocket = false
+
+func closeSyncWebSocket() {
+	defer logging.Recover()
+
+	webSocketConnLock.Lock()
+	defer webSocketConnLock.Unlock()
+
+	if nil != webSocketConn {
+		webSocketConn.Close()
+		webSocketConn = nil
+		closedSyncWebSocket = true
+	}
+
+	logging.LogInfof("sync websocket closed")
+}
+
+func connectSyncWebSocket() {
+	defer logging.Recover()
+
+	if !Conf.Sync.Enabled || !IsSubscriber() || conf.ProviderSiYuan != Conf.Sync.Provider {
+		return
+	}
+
+	if util.ContainerDocker == util.Container {
+		return
+	}
+
+	webSocketConnLock.Lock()
+	defer webSocketConnLock.Unlock()
+
+	if nil != webSocketConn {
+		return
+	}
+
+	//logging.LogInfof("connecting sync websocket...")
+	var dialErr error
+	webSocketConn, dialErr = dialSyncWebSocket()
+	if nil != dialErr {
+		logging.LogWarnf("connect sync websocket failed: %s", dialErr)
+		return
+	}
+	logging.LogInfof("sync websocket connected")
+
+	webSocketConn.SetCloseHandler(func(code int, text string) error {
+		logging.LogWarnf("sync websocket closed: %d, %s", code, text)
+		return nil
+	})
+
+	go func() {
+		defer logging.Recover()
+
+		for {
+			result := gulu.Ret.NewResult()
+			if readErr := webSocketConn.ReadJSON(&result); nil != readErr {
+				time.Sleep(1 * time.Second)
+				if closedSyncWebSocket {
+					return
+				}
+
+				reconnected := false
+				for retries := 0; retries < 7; retries++ {
+					time.Sleep(7 * time.Second)
+					//logging.LogInfof("reconnecting sync websocket...")
+					webSocketConn, dialErr = dialSyncWebSocket()
+					if nil != dialErr {
+						logging.LogWarnf("reconnect sync websocket failed: %s", dialErr)
+						continue
+					}
+
+					logging.LogInfof("sync websocket reconnected")
+					reconnected = true
+					break
+				}
+				if !reconnected {
+					logging.LogWarnf("reconnect sync websocket failed, do not retry")
+					webSocketConn = nil
+					return
+				}
+
+				continue
+			}
+
+			logging.LogInfof("sync websocket message: %v", result)
+			data := result.Data.(map[string]interface{})
+			switch data["cmd"].(string) {
+			case "synced":
+				syncData(false, false, true)
+			case "kernels":
+				onlineKernelsLock.Lock()
+
+				onlineKernels = []*OnlineKernel{}
+				for _, kernel := range data["kernels"].([]interface{}) {
+					kernelMap := kernel.(map[string]interface{})
+					onlineKernels = append(onlineKernels, &OnlineKernel{
+						ID:       kernelMap["id"].(string),
+						Hostname: kernelMap["hostname"].(string),
+						OS:       kernelMap["os"].(string),
+						Ver:      kernelMap["ver"].(string),
+					})
+				}
+
+				onlineKernelsLock.Unlock()
+			}
+		}
+	}()
+}
+
+var KernelID = gulu.Rand.String(7)
+
+func dialSyncWebSocket() (c *websocket.Conn, err error) {
+	//endpoint := "ws://127.0.0.1:64388" + "/apis/siyuan/dejavu/ws"
+	endpoint := util.AliyunWebSocketServer + "/apis/siyuan/dejavu/ws"
+	header := http.Header{
+		"x-siyuan-uid":      []string{Conf.User.UserId},
+		"x-siyuan-kernel":   []string{KernelID},
+		"x-siyuan-ver":      []string{util.Ver},
+		"x-siyuan-os":       []string{runtime.GOOS},
+		"x-siyuan-hostname": []string{util.GetDeviceName()},
+		"x-siyuan-repo":     []string{Conf.Sync.CloudName},
+	}
+	c, _, err = websocket.DefaultDialer.Dial(endpoint, header)
+	if nil == err {
+		closedSyncWebSocket = false
 	}
 	return
 }

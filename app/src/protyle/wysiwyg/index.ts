@@ -43,9 +43,9 @@ import {getEnableHTML, removeEmbed} from "./removeEmbed";
 import {keydown} from "./keydown";
 import {openMobileFileById} from "../../mobile/editor";
 import {removeBlock} from "./remove";
-import {highlightRender} from "../markdown/highlightRender";
+import {highlightRender} from "../render/highlightRender";
 import {openAttr} from "../../menus/commonMenuItem";
-import {blockRender} from "../markdown/blockRender";
+import {blockRender} from "../render/blockRender";
 /// #if !MOBILE
 import {getAllModels} from "../../layout/getAll";
 import {pushBack} from "../../util/backForward";
@@ -66,6 +66,7 @@ import {getBacklinkHeadingMore, loadBreadcrumb} from "./renderBacklink";
 import {removeSearchMark} from "../toolbar/util";
 import {activeBlur, hideKeyboardToolbar} from "../../mobile/util/keyboardToolbar";
 import {commonClick} from "./commonClick";
+import {avClick, avContextmenu} from "../render/av/action";
 
 export class WYSIWYG {
     public lastHTMLs: { [key: string]: string } = {};
@@ -948,7 +949,7 @@ export class WYSIWYG {
                         // 三击选中段落块时，rangeEnd 会在下一个块
                         if ((range.endContainer as HTMLElement).classList.contains("protyle-attr")) {
                             // 三击在悬浮层中会选择到 attr https://github.com/siyuan-note/siyuan/issues/4636
-                            range.setEndAfter(range.endContainer.previousSibling.lastChild);
+                            setLastNodeRange((range.endContainer as HTMLElement).previousElementSibling, range, false);
                         }
                     } else {
                         endBlockElement = hasClosestBlock(range.endContainer);
@@ -1246,6 +1247,10 @@ export class WYSIWYG {
                 return false;
             }
             const nodeElement = hasClosestBlock(target);
+
+            if (avContextmenu(protyle, event, target)) {
+                return;
+            }
             if (!nodeElement) {
                 return false;
             }
@@ -1912,6 +1917,10 @@ export class WYSIWYG {
                 return;
             }
 
+            if (avClick(protyle, event)) {
+                return;
+            }
+
             // 点击空白
             if (event.target.contains(this.element) && this.element.lastElementChild && !protyle.disabled) {
                 const lastRect = this.element.lastElementChild.getBoundingClientRect();
@@ -1949,7 +1958,6 @@ export class WYSIWYG {
                 /// #if !MOBILE
                 if (newRange.toString().replace(Constants.ZWSP, "") !== "") {
                     protyle.toolbar.render(protyle, newRange);
-
                 } else {
                     hideElements(["toolbar"], protyle);
                 }

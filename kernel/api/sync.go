@@ -26,6 +26,23 @@ import (
 	"github.com/siyuan-note/siyuan/kernel/util"
 )
 
+func getSyncInfo(c *gin.Context) {
+	ret := gulu.Ret.NewResult()
+	defer c.JSON(http.StatusOK, ret)
+
+	stat := model.Conf.Sync.Stat
+	if !model.Conf.Sync.Enabled {
+		stat = model.Conf.Language(53)
+	}
+
+	ret.Data = map[string]interface{}{
+		"synced":  model.Conf.Sync.Synced,
+		"stat":    stat,
+		"kernels": model.GetOnlineKernels(),
+		"kernel":  model.KernelID,
+	}
+}
+
 func getBootSync(c *gin.Context) {
 	ret := gulu.Ret.NewResult()
 	defer c.JSON(http.StatusOK, ret)
@@ -169,6 +186,19 @@ func setSyncEnable(c *gin.Context) {
 	model.SetSyncEnable(enabled)
 }
 
+func setSyncPerception(c *gin.Context) {
+	ret := gulu.Ret.NewResult()
+	defer c.JSON(http.StatusOK, ret)
+
+	arg, ok := util.JsonArg(c, ret)
+	if !ok {
+		return
+	}
+
+	enabled := arg["enabled"].(bool)
+	model.SetSyncPerception(enabled)
+}
+
 func setSyncMode(c *gin.Context) {
 	ret := gulu.Ret.NewResult()
 	defer c.JSON(http.StatusOK, ret)
@@ -179,13 +209,7 @@ func setSyncMode(c *gin.Context) {
 	}
 
 	mode := int(arg["mode"].(float64))
-	err := model.SetSyncMode(mode)
-	if nil != err {
-		ret.Code = -1
-		ret.Msg = err.Error()
-		ret.Data = map[string]interface{}{"closeTimeout": 5000}
-		return
-	}
+	model.SetSyncMode(mode)
 }
 
 func setSyncProvider(c *gin.Context) {

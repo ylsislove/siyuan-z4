@@ -119,8 +119,10 @@ const exitApp = (port, errorWindowId) => {
     }
 };
 
+const localServer = "http://127.0.0.1";
+
 const getServer = (port = kernelPort) => {
-    return "http://127.0.0.1:" + port;
+    return localServer + ":" + port;
 };
 
 const sleep = (ms) => {
@@ -243,7 +245,6 @@ const boot = () => {
     // 创建主窗体
     const currentWindow = new BrowserWindow({
         show: false,
-        backgroundColor: "#FFF", // 桌面端主窗体背景色设置为 `#FFF` Fix https://github.com/siyuan-note/siyuan/issues/4544
         width: windowState.width,
         height: windowState.height,
         minWidth: 493,
@@ -305,10 +306,7 @@ const boot = () => {
             if (currentWindow.isMinimized()) {
                 currentWindow.restore();
             }
-            if (!currentWindow.isVisible()) {
-                currentWindow.show();
-            }
-            currentWindow.focus();
+            currentWindow.show();
             setTimeout(() => { // 等待界面js执行完毕
                 writeLog(siyuanOpenURL);
                 currentWindow.webContents.send("siyuan-openurl", siyuanOpenURL);
@@ -359,16 +357,13 @@ const boot = () => {
     const menu = Menu.buildFromTemplate(template);
     Menu.setApplicationMenu(menu);
     // 当前页面链接使用浏览器打开
-    currentWindow.webContents.on("will-navigate", (event, url) => {
-        if (event.sender) {
-            const currentURL = new URL(event.sender.getURL());
-            if (url.startsWith(getServer(currentURL.port))) {
-                return;
-            }
-
-            event.preventDefault();
-            shell.openExternal(url);
+    currentWindow.webContents.on("will-navigate", (event) => {
+        const url = event.url;
+        if (url.startsWith(localServer)) {
+            return;
         }
+        event.preventDefault();
+        shell.openExternal(url);
     });
 
     currentWindow.on("close", (event) => {
@@ -390,10 +385,7 @@ const showWindow = (wnd) => {
     if (wnd.isMinimized()) {
         wnd.restore();
     }
-    if (!wnd.isVisible()) {
-        wnd.show();
-    }
-    wnd.focus();
+    wnd.show();
 };
 
 const initKernel = (workspace, port, lang) => {
@@ -402,8 +394,8 @@ const initKernel = (workspace, port, lang) => {
             width: Math.floor(screen.getPrimaryDisplay().size.width / 2),
             height: Math.floor(screen.getPrimaryDisplay().workAreaSize.height / 2),
             frame: false,
+            backgroundColor: "#1e1f22",
             icon: path.join(appDir, "stage", "icon-large.png"),
-            transparent: "linux" !== process.platform,
         });
 
         const kernelName = "win32" === process.platform ? "SiYuan-Kernel.exe" : "SiYuan-Kernel";
@@ -664,10 +656,10 @@ app.whenReady().then(() => {
         BrowserWindow.fromId(id).webContents.send("siyuan-export-close", id);
     });
     ipcMain.on("siyuan-export-prevent", (event, id) => {
-        BrowserWindow.fromId(id).webContents.on("will-navigate", (event, url) => {
-            const currentURL = new URL(event.sender.getURL());
+        BrowserWindow.fromId(id).webContents.on("will-navigate", (event) => {
+            const url = event.url;
             event.preventDefault();
-            if (url.startsWith(getServer(currentURL.port))) {
+            if (url.startsWith(localServer)) {
                 return;
             }
             shell.openExternal(url);
@@ -682,7 +674,6 @@ app.whenReady().then(() => {
         const mainScreen = screen.getDisplayNearestPoint({x: mainBounds.x, y: mainBounds.y});
         const win = new BrowserWindow({
             show: true,
-            backgroundColor: "#FFF",
             trafficLightPosition: {x: 8, y: 13},
             width: mainScreen.size.width * 0.7,
             height: mainScreen.size.height * 0.9,
@@ -804,7 +795,6 @@ app.whenReady().then(() => {
             height: Math.floor(screen.getPrimaryDisplay().workAreaSize.height * 0.8),
             frame: false,
             icon: path.join(appDir, "stage", "icon-large.png"),
-            transparent: "linux" !== process.platform,
             webPreferences: {
                 nodeIntegration: true, webviewTag: true, webSecurity: false, contextIsolation: false,
             },

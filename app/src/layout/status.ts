@@ -91,10 +91,10 @@ export const initStatus = (isWindow = false) => {
                     label: window.siyuan.languages.feedback,
                     icon: "iconFeedback",
                     click: () => {
-                        if ("zh_CN" === window.siyuan.config.lang) {
+                        if ("zh_CN" === window.siyuan.config.lang || "zh_CHT" === window.siyuan.config.lang) {
                             window.open("https://ld246.com/article/1649901726096");
                         } else {
-                            window.open("https://github.com/siyuan-note/siyuan/issues");
+                            window.open("https://liuyun.io/article/1686530886208");
                         }
                     }
                 }).element);
@@ -149,23 +149,27 @@ export const initStatus = (isWindow = false) => {
 };
 
 let countRootId: string;
+let countTimeout: number;
 export const countSelectWord = (range: Range, rootID?: string) => {
     /// #if !MOBILE
     if (document.getElementById("status").classList.contains("fn__none")) {
         return;
     }
-    const selectText = range.toString();
-    if (selectText) {
-        fetchPost("/api/block/getContentWordCount", {"content": range.toString()}, (response) => {
-            renderStatusbarCounter(response.data);
-        });
-        countRootId = "";
-    } else if (rootID && rootID !== countRootId) {
-        countRootId = rootID;
-        fetchPost("/api/block/getTreeStat", {id: rootID}, (response) => {
-            renderStatusbarCounter(response.data);
-        });
-    }
+    clearTimeout(countTimeout);
+    countTimeout = window.setTimeout(() => {
+        const selectText = range.toString();
+        if (selectText) {
+            fetchPost("/api/block/getContentWordCount", {"content": range.toString()}, (response) => {
+                renderStatusbarCounter(response.data);
+            });
+            countRootId = "";
+        } else if (rootID && rootID !== countRootId) {
+            countRootId = rootID;
+            fetchPost("/api/block/getTreeStat", {id: rootID}, (response) => {
+                renderStatusbarCounter(response.data);
+            });
+        }
+    }, Constants.TIMEOUT_COUNT);
     /// #endif
 };
 
@@ -174,26 +178,30 @@ export const countBlockWord = (ids: string[], rootID?: string, clearCache = fals
     if (document.getElementById("status").classList.contains("fn__none")) {
         return;
     }
-    if (clearCache) {
-        countRootId = "";
-    }
-    if (ids.length > 0) {
-        fetchPost("/api/block/getBlocksWordCount", {ids}, (response) => {
-            renderStatusbarCounter(response.data);
-        });
-        countRootId = "";
-    } else if (rootID && rootID !== countRootId) {
-        countRootId = rootID;
-        fetchPost("/api/block/getTreeStat", {id: rootID}, (response) => {
-            renderStatusbarCounter(response.data);
-        });
-    }
+    clearTimeout(countTimeout);
+    countTimeout = window.setTimeout(() => {
+        if (clearCache) {
+            countRootId = "";
+        }
+        if (ids.length > 0) {
+            fetchPost("/api/block/getBlocksWordCount", {ids}, (response) => {
+                renderStatusbarCounter(response.data);
+            });
+            countRootId = "";
+        } else if (rootID && rootID !== countRootId) {
+            countRootId = rootID;
+            fetchPost("/api/block/getTreeStat", {id: rootID}, (response) => {
+                renderStatusbarCounter(response.data);
+            });
+        }
+    }, Constants.TIMEOUT_COUNT);
     /// #endif
 };
 
 export const clearCounter = () => {
     countRootId = "";
     document.querySelector("#status .status__counter").innerHTML = "";
+    clearTimeout(countTimeout);
 };
 
 export const renderStatusbarCounter = (stat: {
