@@ -11,6 +11,7 @@ import {Constants} from "../constants";
 import {openNewWindowById} from "../window/openNewWindow";
 import {MenuItem} from "./Menu";
 import {App} from "../index";
+import {updateHotkeyTip} from "../protyle/util/compatibility";
 
 export const exportAsset = (src: string) => {
     /// #if !BROWSER
@@ -37,7 +38,7 @@ export const openEditorTab = (app: App, id: string, notebookId?: string, pathStr
     const openSubmenus: IMenu[] = [{
         icon: "iconLayoutRight",
         label: window.siyuan.languages.insertRight,
-        accelerator: "⌥Click",
+        accelerator: `${updateHotkeyTip(window.siyuan.config.keymap.editor.general.insertRight.custom)}/${updateHotkeyTip("⌥Click")}`,
         click: () => {
             openFileById({app, id, position: "right", action: [Constants.CB_GET_FOCUS]});
         }
@@ -102,3 +103,27 @@ export const openEditorTab = (app: App, id: string, notebookId?: string, pathStr
     }).element);
     /// #endif
 };
+
+export const copyPNG = (imgElement: HTMLImageElement) => {
+    if ("android" === window.siyuan.config.system.container && window.JSAndroid) {
+        window.JSAndroid.writeImageClipboard(imgElement.getAttribute("src"));
+        return;
+    } else {
+        const canvas = document.createElement("canvas");
+        const tempElement = document.createElement("img");
+        tempElement.onload = (e: Event & { target: HTMLImageElement }) => {
+            canvas.width = e.target.width;
+            canvas.height = e.target.height;
+            canvas.getContext("2d").drawImage(e.target, 0, 0, e.target.width, e.target.height);
+            canvas.toBlob((blob) => {
+                navigator.clipboard.write([
+                    new ClipboardItem({
+                        // @ts-ignore
+                        ["image/png"]: blob
+                    })
+                ]);
+            }, "image/png", 1);
+        };
+        tempElement.src = imgElement.getAttribute("src");
+    }
+}

@@ -19,7 +19,6 @@ package model
 import (
 	"bytes"
 	"fmt"
-	"github.com/sashabaranov/go-openai"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -35,6 +34,8 @@ import (
 	"github.com/Xuanwo/go-locale"
 	"github.com/dustin/go-humanize"
 	"github.com/getsentry/sentry-go"
+	"github.com/sashabaranov/go-openai"
+	"github.com/siyuan-note/eventbus"
 	"github.com/siyuan-note/filelock"
 	"github.com/siyuan-note/logging"
 	"github.com/siyuan-note/siyuan/kernel/conf"
@@ -388,6 +389,9 @@ func InitConf() {
 	}
 
 	util.SetNetworkProxy(Conf.System.NetworkProxy.String())
+
+	go util.InitPandoc()
+	go util.InitTesseract()
 }
 
 func initLang() {
@@ -785,6 +789,7 @@ func clearCorruptedNotebooks() {
 func clearWorkspaceTemp() {
 	os.RemoveAll(filepath.Join(util.TempDir, "bazaar"))
 	os.RemoveAll(filepath.Join(util.TempDir, "export"))
+	os.RemoveAll(filepath.Join(util.TempDir, "convert"))
 	os.RemoveAll(filepath.Join(util.TempDir, "import"))
 	os.RemoveAll(filepath.Join(util.TempDir, "repo"))
 	os.RemoveAll(filepath.Join(util.TempDir, "os"))
@@ -891,4 +896,16 @@ func upgradeUserGuide() {
 
 		index(boxID)
 	}
+}
+
+func init() {
+	subscribeConfEvents()
+}
+
+func subscribeConfEvents() {
+	eventbus.Subscribe(util.EvtConfPandocInitialized, func() {
+		logging.LogInfof("pandoc initialized, set pandoc bin to [%s]", util.PandocBinPath)
+		Conf.Export.PandocBin = util.PandocBinPath
+		Conf.Save()
+	})
 }

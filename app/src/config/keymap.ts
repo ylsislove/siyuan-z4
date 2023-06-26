@@ -424,36 +424,24 @@ export const keymap = {
         if (isCtrl(event)) {
             keymapStr += "⌘";
         }
-        if (event.key !== "Shift" && event.key !== "Alt" && event.key !== "Meta" && event.key !== "Control") {
-            if (event.key === "ArrowUp") {
-                keymapStr += "↑";
-            } else if (event.key === "ArrowDown") {
-                keymapStr += "↓";
-            } else if (event.key === "ArrowLeft") {
-                keymapStr += "←";
-            } else if (event.key === "ArrowRight") {
-                keymapStr += "→";
-            } else if (event.key === "Tab") {
-                keymapStr += "⇥";
-            } else if (event.key === "Backspace") {
-                keymapStr += "⌫";
-            } else if (event.key === "Delete") {
-                keymapStr += "⌦";
-            } else if (event.key === "Enter") {
-                keymapStr += "↩";
-            } else if (Constants.KEYCODE[event.keyCode]) {
-                if (event.shiftKey) {
-                    keymapStr += Constants.KEYCODE[event.keyCode][1];
-                } else {
-                    keymapStr += Constants.KEYCODE[event.keyCode][0];
+        if (event.key !== "Shift" && event.key !== "Alt" && event.key !== "Meta" && event.key !== "Control" && event.key !== "Unidentified") {
+            if (event.keyCode === 229) {
+                // windows 中文输入法下 shift + - 等
+                if (event.code === "Minus") {
+                    keymapStr += "-";
+                } else if (event.code === "Semicolon") {
+                    keymapStr += ";";
+                } else if (event.code === "Quote") {
+                    keymapStr += "'";
+                } else if (event.code === "Comma") {
+                    keymapStr += ",";
+                } else if (event.code === "Period") {
+                    keymapStr += ".";
+                } else if (event.code === "Slash") {
+                    keymapStr += "/";
                 }
-            } else if (["/", ".", "+", "-", "*"].includes(event.key)) {
-                keymapStr += event.key;
-            } else if (event.code.startsWith("Digit") || event.code.startsWith("Key") || event.code.startsWith("Numpad")) {
-                // 新版 Electron 可以支持 Alt["I", "E", "N", "U"]，故移除原有判断
-                keymapStr += event.code.substring(event.code.length - 1).toUpperCase();
             } else {
-                keymapStr += event.key === "Unidentified" ? "" : (event.key.length > 1 ? event.key : event.key.toUpperCase());
+                keymapStr += Constants.KEYCODELIST[event.keyCode] || (event.key.length > 1 ? event.key : event.key.toUpperCase());
             }
         }
         it.setAttribute("data-value", keymapStr);

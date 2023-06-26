@@ -7,6 +7,9 @@ import {confirmDialog} from "../dialog/confirmDialog";
 import {hasClosestByClassName} from "../protyle/util/hasClosest";
 import {getEventName} from "../protyle/util/compatibility";
 import {processSync} from "../dialog/processSystem";
+import {needSubscribe} from "../util/needSubscribe";
+import {syncGuide} from "../sync/syncGuide";
+import {hideElements} from "../protyle/ui/hideElements";
 
 export const account = {
     element: undefined as Element,
@@ -367,10 +370,15 @@ ${window.siyuan.languages.account9}
         account.bindEvent(element);
         account.onSetaccount();
         if (element.getAttribute("data-action") === "go-repos") {
-            const dialogElement = hasClosestByClassName(element, "b3-dialog--open");
-            if (dialogElement) {
-                dialogElement.querySelector('.b3-tab-bar [data-name="repos"]').dispatchEvent(new CustomEvent("click"));
-                element.removeAttribute("data-action");
+            if (needSubscribe()) {
+                const dialogElement = hasClosestByClassName(element, "b3-dialog--open");
+                if (dialogElement) {
+                    dialogElement.querySelector('.b3-tab-bar [data-name="repos"]').dispatchEvent(new CustomEvent("click"));
+                    element.removeAttribute("data-action");
+                }
+            } else {
+                hideElements(["dialog"]);
+                syncGuide();
             }
         }
     },
@@ -398,7 +406,7 @@ ${window.siyuan.languages.account9}
         }
         if (window.siyuan.config.account.displayTitle && window.siyuan.user) {
             window.siyuan.user.userTitles.forEach(item => {
-                html += `<div class="toolbar__item fn__a b3-tooltips b3-tooltips__sw" aria-label="${item.name}：${item.desc}">${item.icon}</div>`;
+                html += `<div class="toolbar__item b3-tooltips b3-tooltips__sw" aria-label="${item.name}：${item.desc}">${item.icon}</div>`;
             });
         }
         document.getElementById("toolbarVIP").innerHTML = html;

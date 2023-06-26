@@ -17,11 +17,8 @@
 package treenode
 
 import (
-	"io"
 	"os"
 	"path/filepath"
-	"runtime"
-	"runtime/debug"
 	"strings"
 	"sync"
 	"time"
@@ -391,34 +388,31 @@ func InitBlockTree(force bool) {
 		return
 	}
 
-	size := uint64(0)
-
-	poolSize := runtime.NumCPU()
+	size := int64(0)
 	waitGroup := &sync.WaitGroup{}
-	p, _ := ants.NewPoolWithFunc(poolSize, func(arg interface{}) {
+	p, _ := ants.NewPoolWithFunc(4, func(arg interface{}) {
 		defer waitGroup.Done()
 
 		entry := arg.(os.DirEntry)
 		p := filepath.Join(util.BlockTreePath, entry.Name())
-		var fh *os.File
-		fh, err = os.OpenFile(p, os.O_RDWR, 0644)
+
+		f, err := os.OpenFile(p, os.O_RDONLY, 0644)
 		if nil != err {
-			logging.LogErrorf("open block tree file failed: %s", err)
+			logging.LogErrorf("open block tree failed: %s", err)
 			os.Exit(logging.ExitCodeFileSysErr)
 			return
 		}
 
-		var data []byte
-		data, err = io.ReadAll(fh)
-		fh.Close()
+		info, err := f.Stat()
 		if nil != err {
-			logging.LogErrorf("read block tree failed: %s", err)
+			logging.LogErrorf("stat block tree failed: %s", err)
 			os.Exit(logging.ExitCodeFileSysErr)
 			return
 		}
+		size += info.Size()
 
 		sliceData := map[string]*BlockTree{}
-		if err = msgpack.Unmarshal(data, &sliceData); nil != err {
+		if err = msgpack.NewDecoder(f).Decode(&sliceData); nil != err {
 			logging.LogErrorf("unmarshal block tree failed: %s", err)
 			if err = os.RemoveAll(util.BlockTreePath); nil != err {
 				logging.LogErrorf("removed corrupted block tree failed: %s", err)
@@ -427,9 +421,14 @@ func InitBlockTree(force bool) {
 			return
 		}
 
+		if err = f.Close(); nil != err {
+			logging.LogErrorf("close block tree failed: %s", err)
+			os.Exit(logging.ExitCodeFileSysErr)
+			return
+		}
+
 		name := entry.Name()[0:strings.Index(entry.Name(), ".")]
 		blockTrees.Store(name, &btSlice{data: sliceData, changed: time.Time{}, m: &sync.Mutex{}})
-		size += uint64(len(data))
 	})
 	for _, entry := range entries {
 		if !strings.HasSuffix(entry.Name(), ".msgpack") {
@@ -443,9 +442,8 @@ func InitBlockTree(force bool) {
 	waitGroup.Wait()
 	p.Release()
 
-	debug.FreeOSMemory()
 	elapsed := time.Since(start).Seconds()
-	logging.LogInfof("read block tree [%s] to [%s], elapsed [%.2fs]", humanize.Bytes((size)), util.BlockTreePath, elapsed)
+	logging.LogInfof("read block tree [%s] to [%s], elapsed [%.2fs]", humanize.Bytes(uint64(size)), util.BlockTreePath, elapsed)
 	return
 }
 

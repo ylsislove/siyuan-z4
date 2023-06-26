@@ -25,6 +25,7 @@ import (
 	"strings"
 
 	"github.com/88250/gulu"
+	"github.com/siyuan-note/eventbus"
 	"github.com/siyuan-note/logging"
 )
 
@@ -35,7 +36,7 @@ func ConvertPandoc(args ...string) (err error) {
 
 	pandoc := exec.Command(PandocBinPath, args...)
 	gulu.CmdAttr(pandoc)
-	dir := filepath.Join(WorkspaceDir, "temp", "convert", "pandoc")
+	dir := filepath.Join(WorkspaceDir, "temp", "convert", "pandoc", gulu.Rand.String(7))
 	if err = os.MkdirAll(dir, 0755); nil != err {
 		logging.LogErrorf("mkdir [%s] failed: [%s]", dir, err)
 		return
@@ -49,31 +50,38 @@ func ConvertPandoc(args ...string) (err error) {
 	return
 }
 
-func Pandoc(from, to, o, content string) (ret string, err error) {
+func Pandoc(from, to, o, content string) (err error) {
 	if "" == from || "" == to || "md" == to {
-		ret = content
+		return
+	}
+
+	dir := filepath.Join(WorkspaceDir, "temp", "convert", "pandoc", gulu.Rand.String(7))
+	if err = os.MkdirAll(dir, 0755); nil != err {
+		logging.LogErrorf("mkdir [%s] failed: [%s]", dir, err)
+		return
+	}
+	tmpPath := filepath.Join(dir, gulu.Rand.String(7))
+	if err = os.WriteFile(tmpPath, []byte(content), 0644); nil != err {
+		logging.LogErrorf("write file failed: [%s]", err)
 		return
 	}
 
 	args := []string{
+		tmpPath,
 		"--from", from,
 		"--to", to,
 		"--resource-path", filepath.Dir(o),
 		"-s",
-	}
-
-	if "" != o {
-		args = append(args, "-o", o)
+		"-o", o,
 	}
 
 	pandoc := exec.Command(PandocBinPath, args...)
 	gulu.CmdAttr(pandoc)
-	pandoc.Stdin = bytes.NewBufferString(content)
 	output, err := pandoc.CombinedOutput()
 	if nil != err {
+		logging.LogErrorf("pandoc convert output [%s], error [%s]", string(output), err)
 		return
 	}
-	ret = string(output)
 	return
 }
 
@@ -81,7 +89,7 @@ var (
 	PandocBinPath string // Pandoc 可执行文件路径
 )
 
-func initPandoc() {
+func InitPandoc() {
 	if ContainerStd != Container {
 		return
 	}
@@ -104,6 +112,8 @@ func initPandoc() {
 			}
 		}
 	}
+
+	defer eventbus.Publish(EvtConfPandocInitialized)
 
 	if gulu.OS.IsWindows() {
 		PandocBinPath = filepath.Join(pandocDir, "bin", "pandoc.exe")

@@ -257,7 +257,7 @@ func ExportDataInFolder(exportFolder string) (name string, err error) {
 	name = filepath.Base(zipPath)
 	targetZipPath := filepath.Join(exportFolder, name)
 	zipAbsPath := filepath.Join(util.TempDir, "export", name)
-	err = filelock.RoboCopy(zipAbsPath, targetZipPath)
+	err = filelock.Copy(zipAbsPath, targetZipPath)
 	if nil != err {
 		logging.LogErrorf("copy export zip from [%s] to [%s] failed: %s", zipAbsPath, targetZipPath, err)
 		return
@@ -272,7 +272,8 @@ func ExportData() (zipPath string, err error) {
 	util.PushEndlessProgress(Conf.Language(65))
 	defer util.ClearPushProgress(100)
 
-	exportFolder := filepath.Join(util.TempDir, "export", util.CurrentTimeSecondsStr())
+	name := util.FilterFileName(filepath.Base(util.WorkspaceDir)) + "-" + util.CurrentTimeSecondsStr()
+	exportFolder := filepath.Join(util.TempDir, "export", name)
 	zipPath, err = exportData(exportFolder)
 	if nil != err {
 		return
@@ -291,7 +292,7 @@ func exportData(exportFolder string) (zipPath string, err error) {
 	}
 
 	data := filepath.Join(util.WorkspaceDir, "data")
-	if err = filelock.RoboCopy(data, exportFolder); nil != err {
+	if err = filelock.Copy(data, exportFolder); nil != err {
 		logging.LogErrorf("copy data dir from [%s] to [%s] failed: %s", data, baseFolderName, err)
 		err = errors.New(fmt.Sprintf(Conf.Language(14), err.Error()))
 		return
@@ -317,7 +318,7 @@ func exportData(exportFolder string) (zipPath string, err error) {
 	return
 }
 
-func Preview(id string) string {
+func Preview(id string) (retStdHTML string, retOutline []*Path) {
 	tree, _ := loadTreeByBlockID(id)
 	tree = exportTree(tree, false, false, false,
 		Conf.Export.BlockRefMode, Conf.Export.BlockEmbedMode, Conf.Export.FileAnnotationRefMode,
@@ -328,12 +329,22 @@ func Preview(id string) string {
 	luteEngine.SetFootnotes(true)
 	md := treenode.FormatNode(tree.Root, luteEngine)
 	tree = parse.Parse("", []byte(md), luteEngine.ParseOptions)
-	return luteEngine.ProtylePreview(tree, luteEngine.RenderOptions)
+	retStdHTML = luteEngine.ProtylePreview(tree, luteEngine.RenderOptions)
+
+	if footnotesDefBlock := tree.Root.ChildByType(ast.NodeFootnotesDefBlock); nil != footnotesDefBlock {
+		footnotesDefBlock.Unlink()
+	}
+	retOutline = outline(tree)
+	return
 }
 
 func ExportDocx(id, savePath string, removeAssets, merge bool) (err error) {
 	if !util.IsValidPandocBin(Conf.Export.PandocBin) {
-		return errors.New(Conf.Language(115))
+		Conf.Export.PandocBin = util.PandocBinPath
+		Conf.Save()
+		if !util.IsValidPandocBin(Conf.Export.PandocBin) {
+			return errors.New(Conf.Language(115))
+		}
 	}
 
 	tmpDir := filepath.Join(util.TempDir, "export", gulu.Rand.String(7))
@@ -2060,17 +2071,10 @@ func exportPandocConvertZip(boxID, baseFolderName string, docPaths []string,
 		}
 
 		// 调用 Pandoc 进行格式转换
-		output, err := util.Pandoc(pandocFrom, pandocTo, writePath, md)
+		err := util.Pandoc(pandocFrom, pandocTo, writePath, md)
 		if nil != err {
 			logging.LogErrorf("pandoc failed: %s", err)
 			continue
-		}
-
-		if "odt" != pandocTo && "epub" != pandocTo && "rtf" != pandocTo {
-			if err := gulu.File.WriteFileSafer(writePath, gulu.Str.ToBytes(output), 0644); nil != err {
-				logging.LogErrorf("write export markdown file [%s] failed: %s", writePath, err)
-				continue
-			}
 		}
 	}
 
