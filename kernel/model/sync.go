@@ -1,4 +1,4 @@
-// SiYuan - Build Your Eternal Digital Garden
+// SiYuan - Refactor your thinking
 // Copyright (c) 2020-present, b3log.org
 //
 // This program is free software: you can redistribute it and/or modify
@@ -573,7 +573,7 @@ func planSyncAfter(d time.Duration) {
 }
 
 func isProviderOnline(byHand bool) (ret bool) {
-	checkURL := util.SiYuanSyncServer
+	checkURL := util.GetCloudSyncServer()
 	skipTlsVerify := false
 	switch Conf.Sync.Provider {
 	case conf.ProviderSiYuan:
@@ -695,6 +695,10 @@ func connectSyncWebSocket() {
 				reconnected := false
 				for retries := 0; retries < 7; retries++ {
 					time.Sleep(7 * time.Second)
+					if nil == Conf.User {
+						return
+					}
+
 					//logging.LogInfof("reconnecting sync websocket...")
 					webSocketConn, dialErr = dialSyncWebSocket()
 					if nil != dialErr {
@@ -743,8 +747,7 @@ func connectSyncWebSocket() {
 var KernelID = gulu.Rand.String(7)
 
 func dialSyncWebSocket() (c *websocket.Conn, err error) {
-	//endpoint := "ws://127.0.0.1:64388" + "/apis/siyuan/dejavu/ws"
-	endpoint := util.AliyunWebSocketServer + "/apis/siyuan/dejavu/ws"
+	endpoint := util.GetCloudWebSocketServer() + "/apis/siyuan/dejavu/ws"
 	header := http.Header{
 		"x-siyuan-uid":      []string{Conf.User.UserId},
 		"x-siyuan-kernel":   []string{KernelID},

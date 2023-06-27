@@ -1,4 +1,4 @@
-// SiYuan - Build Your Eternal Digital Garden
+// SiYuan - Refactor your thinking
 // Copyright (c) 2020-present, b3log.org
 //
 // This program is free software: you can redistribute it and/or modify
@@ -71,6 +71,11 @@ func SetPetalEnabled(name string, enabled bool, frontend string) (ret *Petal, er
 
 func LoadPetals(frontend string) (ret []*Petal) {
 	ret = []*Petal{}
+
+	if Conf.Bazaar.PetalDisabled {
+		return
+	}
+
 	petals := getPetals()
 	for _, petal := range petals {
 		_, petal.Incompatible = bazaar.IsIncompatibleInstalledPlugin(petal.Name, frontend)

@@ -1,7 +1,7 @@
 <p align="center">
 <img alt="SiYuan" src="https://b3log.org/images/brand/siyuan-128.png">
 <br>
-Build Your Eternal Digital Garden
+Refactor your thinking
 <br><br>
 <a title="Build Status" target="_blank" href="https://github.com/siyuan-note/siyuan/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/siyuan-note/siyuan/cd.yml?style=flat-square"></a>
 <a title="Releases" target="_blank" href="https://github.com/siyuan-note/siyuan/releases"><img src="https://img.shields.io/github/release/siyuan-note/siyuan.svg?style=flat-square&color=9CF"></a>
@@ -33,7 +33,7 @@ WYSIWYG.
 
 Welcome to [SiYuan English Discussion Forum](https://liuyun.io) to learn more.
 
-![feature0.png](https://b3logfile.com/file/2022/10/feature0-EHMFc7T.png)
+![feature0.png](screenshots/feature0.png)
 
 ## 🔮 Features
 
@@ -184,7 +184,7 @@ We release insider preview before major updates, please visit [https://github.co
 ## 🏘️ Community
 
 * [English Discussion Forum](https://liuyun.io)
-* [Discord](https://discord.com/invite/bzfCBwMzdP)
+* [User community summary](https://liuyun.io/article/1687779743723)
 * [Awesome SiYuan](https://github.com/siyuan-note/awesome)
 
 ## 🛠️ Development Guide
@@ -204,6 +204,7 @@ The data is saved in the workspace folder, in the workspace data folder:
 * `templates` is used to save template snippets
 * `widgets` is used to save widgets
 * `plugins` is used to save plugins
+* `public` is used to save public data
 * The rest of the folders are the notebook folders created by the user, files with the suffix of `.sy` in the notebook folder are used to save the document data, and the data format is JSON
 
 ### Does it support data synchronization through a third-party sync disk?

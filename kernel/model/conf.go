@@ -1,4 +1,4 @@
-// SiYuan - Build Your Eternal Digital Garden
+// SiYuan - Refactor your thinking
 // Copyright (c) 2020-present, b3log.org
 //
 // This program is free software: you can redistribute it and/or modify
@@ -79,6 +79,7 @@ type AppConf struct {
 	Repo           *conf.Repo       `json:"repo"`           // 数据仓库
 	OpenHelp       bool             `json:"openHelp"`       // 启动后是否需要打开用户指南
 	ShowChangelog  bool             `json:"showChangelog"`  // 是否显示版本更新日志
+	CloudRegion    int              `json:"cloudRegion"`    // 云端区域，0：中国大陆，1：北美
 }
 
 func InitConf() {
@@ -184,6 +185,8 @@ func InitConf() {
 		Conf.FileTree.DocCreateSavePath = strings.TrimSuffix(Conf.FileTree.DocCreateSavePath, "/")
 		Conf.FileTree.DocCreateSavePath = strings.TrimSpace(Conf.FileTree.DocCreateSavePath)
 	}
+
+	util.CurrentCloudRegion = Conf.CloudRegion
 
 	if nil == Conf.Tag {
 		Conf.Tag = conf.NewTag()
@@ -551,7 +554,7 @@ func (conf *AppConf) Save() {
 	}
 
 	confSaveLock.Lock()
-	confSaveLock.Unlock()
+	defer confSaveLock.Unlock()
 
 	newData, _ := gulu.JSON.MarshalIndentJSON(Conf, "", "  ")
 	confPath := filepath.Join(util.ConfDir, "conf.json")
@@ -653,6 +656,13 @@ func (conf *AppConf) GetClosedBoxes() (ret []*Box) {
 }
 
 func (conf *AppConf) Language(num int) (ret string) {
+	ret = conf.language(num)
+	subscribeURL := util.GetCloudAccountServer() + "/subscribe/siyuan"
+	ret = strings.ReplaceAll(ret, "${url}", subscribeURL)
+	return
+}
+
+func (conf *AppConf) language(num int) (ret string) {
 	ret = util.Langs[conf.Lang][num]
 	if "" != ret {
 		return

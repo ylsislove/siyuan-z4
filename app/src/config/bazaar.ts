@@ -16,7 +16,7 @@ import {Plugin} from "../plugin";
 import {App} from "../index";
 import {escapeAttr} from "../util/escape";
 import {uninstall} from "../plugin/uninstall";
-import {loadPlugin} from "../plugin/loader";
+import {afterLoadPlugin, loadPlugin, loadPlugins} from "../plugin/loader";
 
 export const bazaar = {
     element: undefined as Element,
@@ -307,7 +307,7 @@ export const bazaar = {
                         }
                     });
                 }
-                html += `<div data-obj='${JSON.stringify(dataObj)}' class="b3-card${item.current ? " b3-card--current" : ""}">
+                html += `<div data-obj='${JSON.stringify(dataObj)}' class="b3-card${item.current ? " b3-card--current" : ""}${window.siyuan.config.bazaar.petalDisabled ? " b3-card--disabled" : ""}">
     <div class="b3-card__img"><img src="${item.iconURL}" onerror="this.src='${item.previewURLThumb}'"/></div>
     <div class="fn__flex-1 fn__flex-column">
         <div class="b3-card__info b3-card__info--left fn__flex-1">
@@ -340,6 +340,12 @@ export const bazaar = {
 </div>`;
             });
             bazaar._data.downloaded = response.data.packages;
+            if (bazaarType === "plugins") {
+                html = `<div class="fn__flex">
+    <div class="fn__flex-1"></div>
+    <input ${window.siyuan.config.bazaar.petalDisabled ? "" : " checked"} data-type="plugins-enable" type="checkbox" class="b3-switch" style="margin: 8px 32px">
+</div>${html}`;
+            }
             contentElement.innerHTML = html ? html : `<div class="fn__hr"></div><ul class="b3-list b3-list--background"><li class="b3-list--empty">${window.siyuan.languages.emptyContent}</li></ul>`;
         });
     },
@@ -478,7 +484,10 @@ export const bazaar = {
     bindEvent(app: App) {
         if (!window.siyuan.config.bazaar.trust) {
             bazaar.element.querySelector("button").addEventListener("click", () => {
-                fetchPost("/api/setting/setBazaar", {trust: true}, () => {
+                fetchPost("/api/setting/setBazaar", {
+                    trust: true,
+                    petalDisabled: window.siyuan.config.bazaar.petalDisabled
+                }, () => {
                     window.siyuan.config.bazaar.trust = true;
                     bazaar.element.innerHTML = bazaar.genHTML();
                     bazaar.bindEvent(app);
@@ -511,9 +520,8 @@ export const bazaar = {
                     event.stopPropagation();
                     break;
                 } else if (["myTheme", "myTemplate", "myIcon", "myWidget", "myPlugin"].includes(type)) {
-                    const contentElement = bazaar.element.querySelector("#configBazaarDownloaded");
                     if (target.classList.contains("b3-button--outline") &&
-                        !contentElement.getAttribute("data-loading")) {
+                        !bazaar.element.querySelector("#configBazaarDownloaded").getAttribute("data-loading")) {
                         target.parentElement.childNodes.forEach((item: HTMLElement) => {
                             if (item.nodeType !== 3 && item.classList.contains("b3-button")) {
                                 item.classList.add("b3-button--outline");
@@ -716,6 +724,31 @@ export const bazaar = {
                     event.preventDefault();
                     event.stopPropagation();
                     break;
+                } else if (type === "plugins-enable") {
+                    if (!target.getAttribute("disabled")) {
+                        target.setAttribute("disabled", "disabled");
+                        window.siyuan.config.bazaar.petalDisabled = !(target as HTMLInputElement).checked;
+                        fetchPost("/api/setting/setBazaar", window.siyuan.config.bazaar, (response) => {
+                            target.removeAttribute("disabled");
+                            if (window.siyuan.config.bazaar.petalDisabled) {
+                                bazaar.element.querySelectorAll("#configBazaarDownloaded .b3-card").forEach(item => {
+                                    item.classList.add("b3-card--disabled");
+                                    uninstall(app, JSON.parse(item.getAttribute("data-obj")).name);
+                                })
+                            } else {
+                                bazaar.element.querySelectorAll("#configBazaarDownloaded .b3-card").forEach(item => {
+                                    item.classList.remove("b3-card--disabled");
+                                })
+                                loadPlugins(app).then(() => {
+                                    app.plugins.forEach(item => {
+                                        afterLoadPlugin(item);
+                                    });
+                                });
+                            }
+                        });
+                    }
+                    event.stopPropagation();
+                    break;
                 } else if (type === "plugin-enable") {
                     if (!target.getAttribute("disabled")) {
                         target.setAttribute("disabled", "disabled");
@@ -727,9 +760,17 @@ export const bazaar = {
                         }, (response) => {
                             target.removeAttribute("disabled");
                             if (enabled) {
-                                loadPlugin(app, response.data);
+                                loadPlugin(app, response.data).then((plugin: Plugin) => {
+                                    // @ts-ignore
+                                    if (plugin.setting || plugin.__proto__.hasOwnProperty("openSetting")) {
+                                        target.parentElement.querySelector('[data-type="setting"]').classList.remove("fn__none");
+                                    } else {
+                                        target.parentElement.querySelector('[data-type="setting"]').classList.add("fn__none");
+                                    }
+                                });
                             } else {
                                 uninstall(app, dataObj.name);
+                                target.parentElement.querySelector('[data-type="setting"]').classList.add("fn__none");
                             }
                         });
                     }
@@ -852,7 +893,7 @@ export const bazaar = {
                     }
                     localSort[selectElement.parentElement.parentElement.getAttribute("data-type")] = selectElement.value;
                     setStorageVal(Constants.LOCAL_BAZAAR, window.siyuan.storage[Constants.LOCAL_BAZAAR]);
-                    if (cardElements.length > 1 && cardElements.length % 2 ===1) {
+                    if (cardElements.length > 1 && cardElements.length % 2 === 1) {
                         html += '<div class="fn__flex-1" style="margin-left: 15px;min-width: 342px;"></div>';
                     }
                     panelElement.querySelector(".b3-cards").innerHTML = html;
@@ -908,7 +949,7 @@ export const bazaar = {
                 html += item.outerHTML;
             });
         }
-        if (response.data.packages.length > 1 && response.data.packages.length % 2 ===1) {
+        if (response.data.packages.length > 1 && response.data.packages.length % 2 === 1) {
             html += '<div class="fn__flex-1" style="margin-left: 15px;min-width: 342px;"></div>';
         }
         element.innerHTML = `<div class="b3-cards">${html}</div>`;

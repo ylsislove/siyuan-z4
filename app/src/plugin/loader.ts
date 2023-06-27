@@ -80,6 +80,7 @@ export const loadPlugin = async (app: App, item: IPluginData) => {
         errorExit: false
     });
     /// #endif
+    return plugin;
 };
 
 
@@ -139,7 +140,7 @@ export const afterLoadPlugin = (plugin: Plugin) => {
     }
 
     if (!isWindow() || isMobile()) {
-        const pluginMenu: IMenu[] = []
+        const pluginMenu: IMenu[] = [];
         plugin.topBarIcons.forEach(element => {
             if (isMobile()) {
                 if (window.siyuan.storage[Constants.LOCAL_PLUGINTOPUNPIN].includes(element.id)) {
@@ -149,7 +150,7 @@ export const afterLoadPlugin = (plugin: Plugin) => {
                         click() {
                             element.dispatchEvent(new CustomEvent("click"));
                         }
-                    })
+                    });
                 } else {
                     document.querySelector("#menuAbout").after(element);
                 }
@@ -161,17 +162,17 @@ export const afterLoadPlugin = (plugin: Plugin) => {
             }
         });
         if (isMobile() && pluginMenu.length > 0) {
-            const pluginElement = document.createElement("div")
-            pluginElement.classList.add("b3-menu__item")
-            pluginElement.setAttribute("data-menu", "true")
-            pluginElement.innerHTML = `<svg class="b3-menu__icon"><use xlink:href="#iconPlugin"></use></svg><span class="b3-menu__label">${window.siyuan.languages.plugin}</span>`
+            const pluginElement = document.createElement("div");
+            pluginElement.classList.add("b3-menu__item");
+            pluginElement.setAttribute("data-menu", "true");
+            pluginElement.innerHTML = `<svg class="b3-menu__icon"><use xlink:href="#iconPlugin"></use></svg><span class="b3-menu__label">${window.siyuan.languages.plugin}</span>`;
             pluginElement.addEventListener("click", () => {
-                const menu = new Menu()
+                const menu = new Menu();
                 pluginMenu.forEach(item => {
-                    menu.addItem(item)
-                })
+                    menu.addItem(item);
+                });
                 menu.fullscreen();
-            })
+            });
             document.querySelector("#menuAbout").after(pluginElement);
         }
     }

@@ -1,4 +1,4 @@
-// SiYuan - Build Your Eternal Digital Garden
+// SiYuan - Refactor your thinking
 // Copyright (c) 2020-present, b3log.org
 //
 // This program is free software: you can redistribute it and/or modify
@@ -553,7 +553,7 @@ func incPackageDownloads(repoURLHash, systemID string) {
 	}
 
 	repo := strings.Split(repoURLHash, "@")[0]
-	u := util.AliyunServer + "/apis/siyuan/bazaar/addBazaarPackageDownloadCount"
+	u := util.GetCloudServer() + "/apis/siyuan/bazaar/addBazaarPackageDownloadCount"
 	httpclient.NewCloudRequest30s().SetBody(
 		map[string]interface{}{
 			"systemID": systemID,

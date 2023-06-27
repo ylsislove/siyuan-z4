@@ -70,6 +70,7 @@
         line-height: 42px;
         background-color: var(--b3-theme-background);
         text-decoration: none;
+        border-radius: 0;
 
         &:first-child {
           border-top: .5px solid var(--b3-theme-background-light);
@@ -361,6 +362,9 @@
     line-height: 28px;
     transition: var(--b3-list-hover);
     font-size: 16px;
+    background-color: transparent;
+    border: 0;
+    padding: 0;
 
     &:hover {
       background-color: var(--b3-theme-surface-lighter);

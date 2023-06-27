@@ -1,4 +1,4 @@
-// SiYuan - Build Your Eternal Digital Garden
+// SiYuan - Refactor your thinking
 // Copyright (c) 2020-present, b3log.org
 //
 // This program is free software: you can redistribute it and/or modify
@@ -519,20 +519,6 @@ func nodeContentByBlock(block *Block) (ret string) {
 	if maxLen := 48; maxLen < utf8.RuneCountInString(ret) {
 		ret = gulu.Str.SubStr(ret, maxLen) + "..."
 	}
-	return
-}
-
-func nodeContentByNode(node *ast.Node, text string) (ret string) {
-	if ret = node.IALAttr("name"); "" != ret {
-		return
-	}
-	if ret = node.IALAttr("memo"); "" != ret {
-		return
-	}
-	if maxLen := 48; maxLen < utf8.RuneCountInString(text) {
-		text = gulu.Str.SubStr(text, maxLen) + "..."
-	}
-	ret = html.EscapeString(text)
 	return
 }
 

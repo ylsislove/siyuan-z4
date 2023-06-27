@@ -4,11 +4,12 @@ import {showMessage} from "../dialog/message";
 import {bindSyncCloudListEvent, getSyncCloudList} from "../sync/syncGuide";
 import {hasClosestByClassName} from "../protyle/util/hasClosest";
 import {processSync} from "../dialog/processSystem";
+import {getCloudURL} from "./util/about";
 
 const renderProvider = (provider: number) => {
     if (provider === 0) {
         if (needSubscribe("")) {
-            return `<div class="b3-label b3-label--inner">${window.siyuan.config.system.container === "ios" ? window.siyuan.languages._kernel[122] : window.siyuan.languages._kernel[29]}</div>
+            return `<div class="b3-label b3-label--inner">${window.siyuan.config.system.container === "ios" ? window.siyuan.languages._kernel[122] : window.siyuan.languages._kernel[29].replace("${url}", getCloudURL("subscribe/siyuan"))}</div>
 <div class="b3-label b3-label--noborder">
     ${window.siyuan.languages.cloudIntro1}
     <div class="b3-label__text">
@@ -164,10 +165,10 @@ const bindProviderEvent = () => {
         <ul class="b3-list">
             <li class="b3-list-item" style="cursor: auto;">${window.siyuan.languages.sync}<span class="b3-list-item__meta">${response.data.sync ? response.data.sync.hSize : "0B"}</span></li>
             <li class="b3-list-item" style="cursor: auto;">${window.siyuan.languages.backup}<span class="b3-list-item__meta">${response.data.backup ? response.data.backup.hSize : "0B"}</span></li>
-            <li class="b3-list-item" style="cursor: auto;"><a href="https://ld246.com/settings/file?type=3" target="_blank">${window.siyuan.languages.cdn}</a><span class="b3-list-item__meta">${response.data.hAssetSize}</span></li>
+            <li class="b3-list-item" style="cursor: auto;"><a href="${getCloudURL("settings/file?type=3")}" target="_blank">${window.siyuan.languages.cdn}</a><span class="b3-list-item__meta">${response.data.hAssetSize}</span></li>
             <li class="b3-list-item" style="cursor: auto;">${window.siyuan.languages.total}<span class="b3-list-item__meta">${response.data.hSize}</span></li>
             <li class="b3-list-item" style="cursor: auto;">${window.siyuan.languages.sizeLimit}<span class="b3-list-item__meta">${response.data.hTotalSize}</span></li>
-            <li class="b3-list-item" style="cursor: auto;"><a href="https://ld246.com/settings/point" target="_blank">${window.siyuan.languages.pointExchangeSize}</a><span class="b3-list-item__meta">${response.data.hExchangeSize}</span></li>
+            <li class="b3-list-item" style="cursor: auto;"><a href="${getCloudURL("settings/point")}" target="_blank">${window.siyuan.languages.pointExchangeSize}</a><span class="b3-list-item__meta">${response.data.hExchangeSize}</span></li>
         </ul>
     </div>
     <div class="fn__flex-1">
@@ -360,11 +361,11 @@ export const repos = {
         });
         const syncModeElement = repos.element.querySelector("#syncMode") as HTMLSelectElement;
         syncModeElement.addEventListener("change", () => {
-            fetchPost("/api/sync/setSyncMode", {mode: parseInt(syncModeElement.value, 10)}, (response) => {
+            fetchPost("/api/sync/setSyncMode", {mode: parseInt(syncModeElement.value, 10)}, () => {
                 if (syncModeElement.value === "1") {
-                    syncPerceptionElement.parentElement.classList.remove("fn__none")
+                    syncPerceptionElement.parentElement.classList.remove("fn__none");
                 } else {
-                    syncPerceptionElement.parentElement.classList.add("fn__none")
+                    syncPerceptionElement.parentElement.classList.add("fn__none");
                 }
                 window.siyuan.config.sync.mode = parseInt(syncModeElement.value, 10);
             });

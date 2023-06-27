@@ -1,4 +1,4 @@
-// SiYuan - Build Your Eternal Digital Garden
+// SiYuan - Refactor your thinking
 // Copyright (c) 2020-present, b3log.org
 //
 // This program is free software: you can redistribute it and/or modify
@@ -367,7 +367,7 @@ func uploadAssets2Cloud(sqlAssets []*sql.Asset, bizType string) (err error) {
 			SetCookies(&http.Cookie{Name: "symphony", Value: uploadToken}).
 			SetHeader("meta-type", metaType).
 			SetHeader("biz-type", bizType).
-			Post(util.AliyunServer + "/apis/siyuan/upload?ver=" + util.Ver)
+			Post(util.GetCloudServer() + "/apis/siyuan/upload?ver=" + util.Ver)
 		if nil != reqErr {
 			logging.LogErrorf("upload assets failed: %s", reqErr)
 			return ErrFailedToConnectCloudServer

@@ -1,4 +1,4 @@
-// SiYuan - Build Your Eternal Digital Garden
+// SiYuan - Refactor your thinking
 // Copyright (c) 2020-present, b3log.org
 //
 // This program is free software: you can redistribute it and/or modify
@@ -29,6 +29,7 @@ import (
 	"github.com/88250/lute/parse"
 	"github.com/araddon/dateparse"
 	"github.com/siyuan-note/siyuan/kernel/cache"
+	"github.com/siyuan-note/siyuan/kernel/sql"
 	"github.com/siyuan-note/siyuan/kernel/treenode"
 	"github.com/siyuan-note/siyuan/kernel/util"
 )
@@ -135,6 +136,13 @@ func setNodeAttrs(node *ast.Node, tree *parse.Tree, nameValues map[string]string
 	cache.PutBlockIAL(node.ID, parse.IAL2Map(node.KramdownIAL))
 
 	pushBroadcastAttrTransactions(oldAttrs, node)
+
+	go func() {
+		if !sql.IsEmptyQueue() {
+			sql.WaitForWritingDatabase()
+		}
+		refreshDynamicRefText(node, tree)
+	}()
 	return
 }
 

@@ -667,7 +667,10 @@ export class Dock {
         }
 
         if (typeof tabIndex === "number") {
-            this.element.classList.remove("fn__none");
+            // https://github.com/siyuan-note/siyuan/issues/8614
+            if (!window.siyuan.config.uiLayout.hideDock) {
+                this.element.classList.remove("fn__none");
+            }
             if (data[0].show) {
                 this.toggleModel(data[0].type, true);
             }

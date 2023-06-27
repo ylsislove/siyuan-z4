@@ -29,6 +29,7 @@ import {setEmpty} from "../mobile/util/setEmpty";
 import {resize} from "./util/resize";
 import {getDocByScroll} from "./scroll/saveScroll";
 import {App} from "../index";
+import {insertHTML} from "./util/insertHTML";
 
 export class Protyle {
 
@@ -45,6 +46,7 @@ export class Protyle {
         const mergedOptions = getOptions.merge();
 
         this.protyle = {
+            getInstance: () => this,
             app,
             transactionTime: new Date().getTime(),
             id: genUUID(),
@@ -354,5 +356,13 @@ export class Protyle {
 
     public resize() {
         resize(this.protyle);
+    }
+
+    public reload(focus: boolean) {
+        reloadProtyle(this.protyle, focus);
+    }
+
+    public insert(html: string, isBlock = false, useProtyleRange = false) {
+        insertHTML(html, this.protyle, isBlock, useProtyleRange);
     }
 }

@@ -1,6 +1,26 @@
+/// #if !BROWSER
+import {getCurrentWindow} from "@electron/remote";
+/// #endif
 import {Dialog} from "../../dialog";
 import {isMobile} from "../../util/functions";
 import {fetchPost} from "../../util/fetch";
+
+export const setProxy = () => {
+    /// #if !BROWSER
+    if ("" === window.siyuan.config.system.networkProxy.scheme) {
+        console.log("network proxy [system]");
+        return;
+    }
+
+    const session = getCurrentWindow().webContents.session;
+    session.closeAllConnections().then(() => {
+        const proxyURL = `${window.siyuan.config.system.networkProxy.scheme}://${window.siyuan.config.system.networkProxy.host}:${window.siyuan.config.system.networkProxy.port}`;
+        session.setProxy({proxyRules: proxyURL}).then(
+            () => console.log("network proxy [" + proxyURL + "]"),
+        );
+    });
+    /// #endif
+};
 
 export const setAccessAuthCode = () => {
     const dialog = new Dialog({
@@ -27,4 +47,9 @@ export const setAccessAuthCode = () => {
     btnsElement[1].addEventListener("click", () => {
         fetchPost("/api/system/setAccessAuthCode", {accessAuthCode: inputElement.value});
     });
+};
+
+export const getCloudURL = (key: string) => {
+    const origin = window.siyuan.config.cloudRegion === 0 ? "https://ld246.com" : "https://liuyun.io";
+    return `${origin}/${key}`;
 };
