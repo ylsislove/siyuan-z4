@@ -23,11 +23,22 @@ type TOperation =
     | "addFlashcards"
     | "removeFlashcards"
     | "updateAttrViewCell"
+    | "updateAttrViewCol"
+    | "sortAttrViewRow"
+    | "sortAttrViewCol"
+    | "setAttrViewColHidden"
+    | "setAttrViewColWrap"
+    | "setAttrViewColWidth"
+    | "setAttrView"
 type TBazaarType = "templates" | "icons" | "widgets" | "themes" | "plugins"
 type TCardType = "doc" | "notebook" | "all"
-type TEventBus = "ws-main" | "click-blockicon" | "click-editorcontent" | "click-pdf" |
-    "click-editortitleicon" | "open-noneditableblock" | "loaded-protyle"
-type TAVCol = "text" | "date" | "number" | "relation" | "rollup" | "select" | "block"
+type TEventBus = "ws-main" |
+    "click-blockicon" | "click-editorcontent" | "click-pdf" | "click-editortitleicon" |
+    "open-noneditableblock" |
+    "open-menu-blockref" | "open-menu-fileannotationref" | "open-menu-tag" | "open-menu-link" | "open-menu-image" |
+    "open-menu-av" | "open-menu-content" |
+    "loaded-protyle"
+type TAVCol = "text" | "date" | "number" | "relation" | "rollup" | "select" | "block" | "mSelect"
 
 declare module "blueimp-md5"
 
@@ -276,7 +287,7 @@ interface IScrollAttr {
 interface IOperation {
     action: TOperation, // move， delete 不需要传 data
     id?: string,
-    data?: string, // updateAttr 时为  { old: IObject, new: IObject }
+    data?: any, // updateAttr 时为  { old: IObject, new: IObject }, updateAttrViewCell 时为 {TAVCol: {content: string}}
     parentID?: string   // 为 insertAttrViewBlock 传 avid
     previousID?: string
     retData?: any
@@ -337,6 +348,7 @@ interface ICommand {
 }
 
 interface IPluginData {
+    displayName: string,
     name: string,
     js: string,
     css: string,
@@ -812,6 +824,21 @@ interface IBazaarItem {
     preferredFunding: string
 }
 
+interface IAV {
+    columns: IAVColumn[],
+    filters: [],
+    sorts: IAVSort[],
+    name: string,
+    type: "table"
+    rows: IAVRow[],
+    id: string
+}
+
+interface IAVSort {
+    column: string,
+    order: "ASC" | "DESC"
+}
+
 interface IAVColumn {
     width: number,
     icon: string,
@@ -828,10 +855,9 @@ interface IAVRow {
 }
 
 interface IAVCell {
+    id: string,
     color: string,
     bgColor: string,
-    value: string,
-    renderValue: {
-        content: string,
-    }
+    value: any,
+    valueType: TAVCol,
 }

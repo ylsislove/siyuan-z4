@@ -39,10 +39,9 @@ type AttributeView struct {
 	Columns []*Column `json:"columns"` // 表格列名
 	Rows    []*Row    `json:"rows"`    // 表格行记录
 
-	Type        AttributeViewType      `json:"type"`        // 属性视图类型
-	Projections []string               `json:"projections"` // 显示的列名，SELECT *
-	Filters     []*AttributeViewFilter `json:"filters"`     // 过滤规则，WHERE ...
-	Sorts       []*AttributeViewSort   `json:"sorts"`       // 排序规则，ORDER BY ...
+	Type    AttributeViewType      `json:"type"`    // 属性视图类型
+	Filters []*AttributeViewFilter `json:"filters"` // 过滤规则
+	Sorts   []*AttributeViewSort   `json:"sorts"`   // 排序规则
 }
 
 // AttributeViewType 描述了属性视图的类型。
@@ -54,15 +53,14 @@ const (
 
 func NewAttributeView(id string) *AttributeView {
 	return &AttributeView{
-		Spec:        0,
-		ID:          id,
-		Name:        "Table",
-		Columns:     []*Column{{ID: ast.NewNodeID(), Name: "Block", Type: ColumnTypeBlock}},
-		Rows:        []*Row{},
-		Type:        AttributeViewTypeTable,
-		Projections: []string{},
-		Filters:     []*AttributeViewFilter{},
-		Sorts:       []*AttributeViewSort{},
+		Spec:    0,
+		ID:      id,
+		Name:    "Table",
+		Columns: []*Column{{ID: ast.NewNodeID(), Name: "Block", Type: ColumnTypeBlock}},
+		Rows:    []*Row{},
+		Type:    AttributeViewTypeTable,
+		Filters: []*AttributeViewFilter{},
+		Sorts:   []*AttributeViewSort{},
 	}
 }
 
@@ -77,27 +75,31 @@ func (av *AttributeView) GetColumnNames() (ret []string) {
 type AttributeViewFilter struct {
 	Column   string         `json:"column"`
 	Operator FilterOperator `json:"operator"`
-	Value    string         `json:"value"`
+	Value    *Value         `json:"value"`
 }
 
 type FilterOperator string
 
 const (
-	FilterOperatorEq      FilterOperator = "="
-	FilterOperatorNe      FilterOperator = "!="
-	FilterOperatorGt      FilterOperator = ">"
-	FilterOperatorGe      FilterOperator = ">="
-	FilterOperatorLt      FilterOperator = "<"
-	FilterOperatorLe      FilterOperator = "<="
-	FilterOperatorIn      FilterOperator = "IN"
-	FilterOperatorNotIn   FilterOperator = "NOT IN"
-	FilterOperatorLike    FilterOperator = "LIKE"
-	FilterOperatorNotLike FilterOperator = "NOT LIKE"
+	FilterOperatorIsEqual           FilterOperator = "="
+	FilterOperatorIsNotEqual        FilterOperator = "!="
+	FilterOperatorIsGreater         FilterOperator = ">"
+	FilterOperatorIsGreaterOrEqual  FilterOperator = ">="
+	FilterOperatorIsLess            FilterOperator = "<"
+	FilterOperatorIsLessOrEqual     FilterOperator = "<="
+	FilterOperatorContains          FilterOperator = "Contains"
+	FilterOperatorDoesNotContain    FilterOperator = "Does not contains"
+	FilterOperatorIsEmpty           FilterOperator = "Is empty"
+	FilterOperatorIsNotEmpty        FilterOperator = "Is not empty"
+	FilterOperatorStartsWith        FilterOperator = "Starts with"
+	FilterOperatorEndsWith          FilterOperator = "Ends with"
+	FilterOperatorIsBetween         FilterOperator = "Is between"
+	FilterOperatorIsRelativeToToday FilterOperator = "Is relative to today"
 )
 
 type AttributeViewSort struct {
-	Column string    `json:"column"`
-	Order  SortOrder `json:"order"`
+	Column string    `json:"column"` // 列 ID
+	Order  SortOrder `json:"order"`  // 排序顺序
 }
 
 type SortOrder string
@@ -122,6 +124,34 @@ func ParseAttributeView(avID string) (ret *AttributeView, err error) {
 
 	ret = &AttributeView{}
 	if err = gulu.JSON.UnmarshalJSON(data, ret); nil != err {
+		logging.LogErrorf("unmarshal attribute view [%s] failed: %s", avID, err)
+		return
+	}
+	return
+}
+
+func ParseAttributeViewMap(avID string) (ret map[string]interface{}, err error) {
+	ret = map[string]interface{}{}
+	avJSONPath := getAttributeViewDataPath(avID)
+	if !gulu.File.IsExist(avJSONPath) {
+		av := NewAttributeView(avID)
+		var data []byte
+		data, err = gulu.JSON.MarshalJSON(av)
+		if nil == err {
+			return
+		}
+
+		err = gulu.JSON.UnmarshalJSON(data, &ret)
+		return
+	}
+
+	data, err := filelock.ReadFile(avJSONPath)
+	if nil != err {
+		logging.LogErrorf("read attribute view [%s] failed: %s", avID, err)
+		return
+	}
+
+	if err = gulu.JSON.UnmarshalJSON(data, &ret); nil != err {
 		logging.LogErrorf("unmarshal attribute view [%s] failed: %s", avID, err)
 		return
 	}

@@ -222,10 +222,24 @@ func performTx(tx *Transaction) (ret *TxErr) {
 			ret = tx.doRemoveAttrViewBlock(op)
 		case "addAttrViewCol":
 			ret = tx.doAddAttrViewColumn(op)
+		case "updateAttrViewCol":
+			ret = tx.doUpdateAttrViewColumn(op)
 		case "removeAttrViewCol":
 			ret = tx.doRemoveAttrViewColumn(op)
+		case "sortAttrViewCol":
+			ret = tx.doSortAttrViewColumn(op)
 		case "updateAttrViewCell":
 			ret = tx.doUpdateAttrViewCell(op)
+		case "sortAttrViewRow":
+			ret = tx.doSortAttrViewRow(op)
+		case "setAttrViewColHidden":
+			ret = tx.doSetAttrViewColumnHidden(op)
+		case "setAttrViewColWrap":
+			ret = tx.doSetAttrViewColumnWrap(op)
+		case "setAttrViewColWidth":
+			ret = tx.doSetAttrViewColumnWidth(op)
+		case "setAttrView":
+			ret = tx.doSetAttrView(op)
 		}
 
 		if nil != ret {
@@ -1110,6 +1124,7 @@ func refreshDynamicRefText(updatedDefNode *ast.Node, updatedTree *parse.Tree) {
 // refreshDynamicRefTexts 用于批量刷新引用块的动态锚文本。
 // 该实现依赖了数据库缓存，导致外部调用时可能需要阻塞等待数据库写入后才能获取到 refs
 func refreshDynamicRefTexts(updatedDefNodes map[string]*ast.Node, updatedTrees map[string]*parse.Tree) {
+	// 1. 更新引用的动态锚文本
 	treeRefNodeIDs := map[string]*hashset.Set{}
 	for _, updateNode := range updatedDefNodes {
 		refs := sql.GetRefsCacheByDefID(updateNode.ID)
@@ -1140,6 +1155,8 @@ func refreshDynamicRefTexts(updatedDefNodes map[string]*ast.Node, updatedTrees m
 		}
 	}
 
+	changedRefTree := map[string]*parse.Tree{}
+
 	for refTreeID, refNodeIDs := range treeRefNodeIDs {
 		refTree, ok := updatedTrees[refTreeID]
 		if !ok {
@@ -1167,8 +1184,15 @@ func refreshDynamicRefTexts(updatedDefNodes map[string]*ast.Node, updatedTrees m
 		})
 
 		if refTreeChanged {
-			indexWriteJSONQueue(refTree)
+			changedRefTree[refTreeID] = refTree
 		}
+	}
+
+	// TODO 2. 更新属性视图主键内容
+
+	// 3. 保存变更
+	for _, tree := range changedRefTree {
+		indexWriteJSONQueue(tree)
 	}
 }
 

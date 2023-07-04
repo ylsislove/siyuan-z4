@@ -1,14 +1,32 @@
 .config {
+  &__tab-wrap {
+    overflow: hidden;
+    box-sizing: border-box;
+    background-color: var(--b3-theme-background);
+    border-radius: 0 var(--b3-border-radius-b) var(--b3-border-radius-b) 0;
+    width: 100%;
+    height: 100%;
+    padding: 16px 0;
+  }
+
   &__tab-container {
     overflow: auto;
     box-sizing: border-box;
-    flex: 1;
-    background-color: var(--b3-theme-background);
-    border-radius: 0 12px 12px 0;
+    height: 100%;
 
     .b3-label {
       padding: 16px 0;
       margin: 0 24px;
+    }
+
+    &--full {
+      margin-top: -16px;
+      height: calc(100% + 32px);
+    }
+
+    &--top {
+      margin-top: -16px;
+      height: calc(100% + 16px);
     }
   }
 
@@ -47,15 +65,6 @@
       color: var(--b3-theme-on-surface);
       align-items: center;
     }
-  }
-
-  &-repos__sync {
-    margin: 0 0 -16px 16px;
-    overflow: hidden;
-    max-height: 180px;
-    display: flex;
-    flex-direction: column;
-    padding-bottom: 16px;
   }
 
   &-account {
@@ -176,7 +185,7 @@
       vertical-align: middle;
       background-color: var(--b3-theme-surface);
       border: solid 1px var(--b3-theme-surface-lighter);
-      border-radius: 3px;
+      border-radius: var(--b3-border-radius);
       box-shadow: inset 0 -1px 0 var(--b3-theme-surface-lighter);
       margin-left: 4px;
       cursor: pointer;
@@ -206,6 +215,7 @@
     box-sizing: border-box;
     opacity: 0;
     z-index: 1;
+    border-radius: var(--b3-border-radius-b);
 
     &--show {
       opacity: 1;
@@ -244,7 +254,7 @@
         height: 96px;
         width: 96px;
         margin: 32px auto 32px;
-        border-radius: 4px;
+        border-radius: var(--b3-border-radius);
         flex-shrink: 0;
       }
 
@@ -254,7 +264,7 @@
         background-position: center center;
         background-repeat: no-repeat;
         background-size: cover;
-        border-radius: 4px;
+        border-radius: var(--b3-border-radius);
         margin-bottom: 32px;
         cursor: pointer;
         left: 0;
