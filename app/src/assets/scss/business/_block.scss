@@ -86,6 +86,7 @@
     align-items: center;
     border-radius: var(--b3-border-radius);
     transition: var(--b3-transition), opacity .3s cubic-bezier(0, 0, .2, 1) 0ms;
+    line-height: 14px;
 
     &:hover:not([disabled]):not(.ft__primary),
     &--active {
@@ -116,6 +117,7 @@
       flex-shrink: 0;
     }
 
+    white-space: nowrap;
     margin-right: 8px;
     display: flex;
     align-items: center;

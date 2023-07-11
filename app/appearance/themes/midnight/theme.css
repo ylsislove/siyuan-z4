@@ -50,7 +50,8 @@
     --b3-menu-background: var(--b3-theme-surface);
 
     /* 提示 */
-    --b3-tooltips-color: #030303;
+    --b3-tooltips-background: #030303;
+    --b3-tooltips-color: var(--b3-theme-on-surface-light);
     --b3-tooltips-shadow: 0 2px 8px rgba(0, 0, 0, .3);
 
     /* 遮罩 */
@@ -146,7 +147,7 @@
     --b3-protyle-inline-mark-background: rgba(255, 208, 0, .4);
     --b3-protyle-inline-mark-color: var(--b3-theme-on-background);
     --b3-protyle-inline-tag-color: #9aa0a6;
-    --b3-protyle-inline-blockref-color: hsl(254, 80%, 74.8%);
+    --b3-protyle-inline-blockref-color: #8957e5;
     --b3-protyle-inline-fileref-color: var(--b3-theme-secondary);
 
     /* PDF */

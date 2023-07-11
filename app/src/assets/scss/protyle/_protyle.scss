@@ -107,7 +107,6 @@
   z-index: 1;
 
   &__space {
-    flex: 1;
     min-width: 8px;
     transition: var(--b3-transition);
     color: var(--b3-theme-on-surface);
@@ -122,6 +121,7 @@
     display: flex;
     transition: var(--b3-transition);
     overflow: auto;
+    flex: 1;
     min-height: 30px;
 
     &::-webkit-scrollbar {
@@ -140,6 +140,25 @@
     .b3-tooltips {
       height: 22px;
       flex-shrink: 0;
+    }
+  }
+
+  &__icon {
+    margin-right: 8px;
+    opacity: 1;
+    border: 0;
+    background-color: transparent;
+    color: var(--b3-theme-on-surface);
+    line-height: 24px;
+    border-radius: var(--b3-border-radius);
+    align-self: center;
+    padding: 0 4px;
+    font-size: 12px;
+    white-space: nowrap;
+
+    &:hover {
+      color: var(--b3-theme-on-background);
+      background-color: var(--b3-list-hover);
     }
   }
 
@@ -176,6 +195,9 @@
     margin: 3px 0;
     color: var(--b3-theme-on-surface);
     max-width: 70%;
+    border: 0;
+    background-color: transparent;
+    box-sizing: inherit;
 
     &.b3-tooltips svg {
       margin-right: 0;

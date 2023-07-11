@@ -29,6 +29,9 @@ type TOperation =
     | "setAttrViewColHidden"
     | "setAttrViewColWrap"
     | "setAttrViewColWidth"
+    | "updateAttrViewColOptions"
+    | "removeAttrViewColOption"
+    | "updateAttrViewColOption"
     | "setAttrView"
 type TBazaarType = "templates" | "icons" | "widgets" | "themes" | "plugins"
 type TCardType = "doc" | "notebook" | "all"
@@ -36,10 +39,24 @@ type TEventBus = "ws-main" |
     "click-blockicon" | "click-editorcontent" | "click-pdf" | "click-editortitleicon" |
     "open-noneditableblock" |
     "open-menu-blockref" | "open-menu-fileannotationref" | "open-menu-tag" | "open-menu-link" | "open-menu-image" |
-    "open-menu-av" | "open-menu-content" |
+    "open-menu-av" | "open-menu-content" | "open-menu-breadcrumbmore" |
     "loaded-protyle"
 type TAVCol = "text" | "date" | "number" | "relation" | "rollup" | "select" | "block" | "mSelect"
-
+type TAVFilterOperator =
+    "="
+    | "!="
+    | ">"
+    | ">="
+    | "<"
+    | "<="
+    | "Contains"
+    | "Does not contains"
+    | "Is empty"
+    | "Is not empty"
+    | "Starts with"
+    | "Ends with"
+    | "Is between"
+    | "Is relative to today"
 declare module "blueimp-md5"
 
 interface Window {
@@ -492,6 +509,7 @@ interface IFileTree {
     alwaysSelectOpenedFile: boolean
     openFilesUseCurrentTab: boolean
     removeDocWithoutConfirm: boolean
+    useSingleLineSave: boolean
     allowCreateDeeper: boolean
     refCreateSavePath: string
     docCreateSavePath: string
@@ -779,7 +797,7 @@ interface IModels {
 
 interface IMenu {
     label?: string,
-    click?: (element: HTMLElement) => void,
+    click?: (element: HTMLElement) => boolean | void | Promise<boolean | void>
     type?: "separator" | "submenu" | "readonly",
     accelerator?: string,
     action?: string,
@@ -826,12 +844,18 @@ interface IBazaarItem {
 
 interface IAV {
     columns: IAVColumn[],
-    filters: [],
+    filters: IAVFilter[],
     sorts: IAVSort[],
     name: string,
     type: "table"
     rows: IAVRow[],
     id: string
+}
+
+interface IAVFilter {
+    column: string,
+    operator: TAVFilterOperator,
+    value: IAVCellValue
 }
 
 interface IAVSort {
@@ -847,6 +871,11 @@ interface IAVColumn {
     wrap: boolean,
     hidden: boolean,
     type: TAVCol,
+    // 选项列表
+    options?: {
+        name: string,
+        color: string,
+    }[]
 }
 
 interface IAVRow {
@@ -858,6 +887,14 @@ interface IAVCell {
     id: string,
     color: string,
     bgColor: string,
-    value: any,
+    value: IAVCellValue,
     valueType: TAVCol,
+}
+
+interface IAVCellValue {
+    text?: { content: string },
+    number?: { content?: number, isNotEmpty: boolean },
+    mSelect?: { content: string, color: string }[]
+    block?: { content: string, id: string }
+    date?: { content: string, content2?: string }
 }

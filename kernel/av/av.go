@@ -72,43 +72,6 @@ func (av *AttributeView) GetColumnNames() (ret []string) {
 	return
 }
 
-type AttributeViewFilter struct {
-	Column   string         `json:"column"`
-	Operator FilterOperator `json:"operator"`
-	Value    *Value         `json:"value"`
-}
-
-type FilterOperator string
-
-const (
-	FilterOperatorIsEqual           FilterOperator = "="
-	FilterOperatorIsNotEqual        FilterOperator = "!="
-	FilterOperatorIsGreater         FilterOperator = ">"
-	FilterOperatorIsGreaterOrEqual  FilterOperator = ">="
-	FilterOperatorIsLess            FilterOperator = "<"
-	FilterOperatorIsLessOrEqual     FilterOperator = "<="
-	FilterOperatorContains          FilterOperator = "Contains"
-	FilterOperatorDoesNotContain    FilterOperator = "Does not contains"
-	FilterOperatorIsEmpty           FilterOperator = "Is empty"
-	FilterOperatorIsNotEmpty        FilterOperator = "Is not empty"
-	FilterOperatorStartsWith        FilterOperator = "Starts with"
-	FilterOperatorEndsWith          FilterOperator = "Ends with"
-	FilterOperatorIsBetween         FilterOperator = "Is between"
-	FilterOperatorIsRelativeToToday FilterOperator = "Is relative to today"
-)
-
-type AttributeViewSort struct {
-	Column string    `json:"column"` // 列 ID
-	Order  SortOrder `json:"order"`  // 排序顺序
-}
-
-type SortOrder string
-
-const (
-	SortOrderAsc  SortOrder = "ASC"
-	SortOrderDesc SortOrder = "DESC"
-)
-
 func ParseAttributeView(avID string) (ret *AttributeView, err error) {
 	avJSONPath := getAttributeViewDataPath(avID)
 	if !gulu.File.IsExist(avJSONPath) {

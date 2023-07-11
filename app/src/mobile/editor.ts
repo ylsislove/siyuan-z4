@@ -12,7 +12,6 @@ import {hideElements} from "../protyle/ui/hideElements";
 import {pushBack} from "./util/MobileBackFoward";
 import {setStorageVal} from "../protyle/util/compatibility";
 import {showMessage} from "../dialog/message";
-import {saveScroll} from "../protyle/scroll/saveScroll";
 import {App} from "../index";
 
 export const getCurrentEditor = () => {
@@ -20,7 +19,7 @@ export const getCurrentEditor = () => {
 };
 
 export const openMobileFileById = (app: App, id: string, action = [Constants.CB_GET_HL]) => {
-    window.siyuan.storage[Constants.LOCAL_DOCINFO] = {id, action};
+    window.siyuan.storage[Constants.LOCAL_DOCINFO] = {id};
     setStorageVal(Constants.LOCAL_DOCINFO, window.siyuan.storage[Constants.LOCAL_DOCINFO]);
     if (window.siyuan.mobile.editor) {
         hideElements(["toolbar", "hint", "util"], window.siyuan.mobile.editor.protyle);
@@ -48,9 +47,6 @@ export const openMobileFileById = (app: App, id: string, action = [Constants.CB_
             return;
         }
         if (window.siyuan.mobile.editor) {
-            if (document.getElementById("empty").classList.contains("fn__none")) {
-                saveScroll(window.siyuan.mobile.editor.protyle);
-            }
             pushBack();
             addLoading(window.siyuan.mobile.editor.protyle);
             fetchPost("/api/filetree/getDoc", {
@@ -59,7 +55,6 @@ export const openMobileFileById = (app: App, id: string, action = [Constants.CB_
                 mode: action.includes(Constants.CB_GET_CONTEXT) ? 3 : 0,
             }, getResponse => {
                 onGet({data: getResponse, protyle: window.siyuan.mobile.editor.protyle, action});
-                window.siyuan.mobile.editor.protyle.breadcrumb?.render(window.siyuan.mobile.editor.protyle);
             });
             window.siyuan.mobile.editor.protyle.undo.clear();
         } else {

@@ -19,13 +19,12 @@ package model
 import (
 	"errors"
 	"fmt"
-	"github.com/jinzhu/copier"
-	"sort"
 	"strings"
 
 	"github.com/88250/gulu"
 	"github.com/88250/lute/ast"
 	"github.com/88250/lute/parse"
+	"github.com/jinzhu/copier"
 	"github.com/siyuan-note/logging"
 	"github.com/siyuan-note/siyuan/kernel/av"
 	"github.com/siyuan-note/siyuan/kernel/sql"
@@ -42,82 +41,10 @@ func RenderAttributeView(avID string) (ret *av.AttributeView, err error) {
 		return
 	}
 
-	filterRows(ret)
-	sortRows(ret)
+	ret.FilterRows()
+	ret.SortRows()
+	ret.CalcCols()
 	return
-}
-
-func filterRows(ret *av.AttributeView) {
-	if 0 < len(ret.Filters) {
-		var colIndexes []int
-		for _, f := range ret.Filters {
-			for i, c := range ret.Columns {
-				if c.ID == f.Column {
-					colIndexes = append(colIndexes, i)
-					break
-				}
-			}
-		}
-
-		var rows []*av.Row
-		for _, row := range ret.Rows {
-			pass := true
-			for j, index := range colIndexes {
-				c := ret.Columns[index]
-				if c.Type == av.ColumnTypeBlock {
-					continue
-				}
-
-				if !row.Cells[index].Value.CompareOperator(ret.Filters[j].Value, ret.Filters[j].Operator) {
-					pass = false
-					break
-				}
-			}
-			if pass {
-				rows = append(rows, row)
-			}
-		}
-		ret.Rows = rows
-	}
-}
-
-func sortRows(ret *av.AttributeView) {
-	if 0 < len(ret.Sorts) {
-		type ColIndexSort struct {
-			Index int
-			Order av.SortOrder
-		}
-
-		var colIndexSorts []*ColIndexSort
-		for _, s := range ret.Sorts {
-			for i, c := range ret.Columns {
-				if c.ID == s.Column {
-					colIndexSorts = append(colIndexSorts, &ColIndexSort{Index: i, Order: s.Order})
-					break
-				}
-			}
-		}
-
-		sort.Slice(ret.Rows, func(i, j int) bool {
-			for _, colIndexSort := range colIndexSorts {
-				c := ret.Columns[colIndexSort.Index]
-				if c.Type == av.ColumnTypeBlock {
-					continue
-				}
-
-				result := ret.Rows[i].Cells[colIndexSort.Index].Value.Compare(ret.Rows[j].Cells[colIndexSort.Index].Value)
-				if 0 == result {
-					continue
-				}
-
-				if colIndexSort.Order == av.SortOrderAsc {
-					return 0 > result
-				}
-				return 0 < result
-			}
-			return false
-		})
-	}
 }
 
 func (tx *Transaction) doUpdateAttrViewCell(operation *Operation) (ret *TxErr) {
@@ -240,6 +167,30 @@ func (tx *Transaction) doRemoveAttrViewBlock(operation *Operation) (ret *TxErr) 
 	return
 }
 
+func (tx *Transaction) doUpdateAttrViewColOption(operation *Operation) (ret *TxErr) {
+	err := updateAttributeViewColumnOption(operation)
+	if nil != err {
+		return &TxErr{code: TxErrWriteAttributeView, id: operation.ParentID, msg: err.Error()}
+	}
+	return
+}
+
+func (tx *Transaction) doRemoveAttrViewColOption(operation *Operation) (ret *TxErr) {
+	err := removeAttributeViewColumnOption(operation)
+	if nil != err {
+		return &TxErr{code: TxErrWriteAttributeView, id: operation.ParentID, msg: err.Error()}
+	}
+	return
+}
+
+func (tx *Transaction) doUpdateAttrViewColOptions(operation *Operation) (ret *TxErr) {
+	err := updateAttributeViewColumnOptions(operation.Data, operation.ID, operation.ParentID)
+	if nil != err {
+		return &TxErr{code: TxErrWriteAttributeView, id: operation.ParentID, msg: err.Error()}
+	}
+	return
+}
+
 func (tx *Transaction) doAddAttrViewColumn(operation *Operation) (ret *TxErr) {
 	err := addAttributeViewColumn(operation.Name, operation.Typ, operation.ParentID)
 	if nil != err {
@@ -320,7 +271,7 @@ func addAttributeViewColumn(name string, typ string, avID string) (err error) {
 
 	colType := av.ColumnType(typ)
 	switch colType {
-	case av.ColumnTypeText:
+	case av.ColumnTypeText, av.ColumnTypeNumber, av.ColumnTypeDate, av.ColumnTypeSelect, av.ColumnTypeMSelect:
 		col := &av.Column{ID: ast.NewNodeID(), Name: name, Type: colType}
 		attrView.Columns = append(attrView.Columns, col)
 		for _, row := range attrView.Rows {
@@ -345,7 +296,7 @@ func updateAttributeViewColumn(id, name string, typ string, avID string) (err er
 
 	colType := av.ColumnType(typ)
 	switch colType {
-	case av.ColumnTypeText:
+	case av.ColumnTypeText, av.ColumnTypeNumber, av.ColumnTypeDate, av.ColumnTypeSelect, av.ColumnTypeMSelect:
 		for _, col := range attrView.Columns {
 			if col.ID == id {
 				col.Name = name
@@ -361,6 +312,172 @@ func updateAttributeViewColumn(id, name string, typ string, avID string) (err er
 	}
 
 	err = av.SaveAttributeView(attrView)
+	return
+}
+
+func updateAttributeViewColumnOption(operation *Operation) (err error) {
+	avID := operation.ParentID
+	attrView, err := av.ParseAttributeView(avID)
+	if nil != err {
+		return
+	}
+
+	colID := operation.ID
+	data := operation.Data.(map[string]interface{})
+
+	oldName := data["oldName"].(string)
+	newName := data["newName"].(string)
+	newColor := data["newColor"].(string)
+
+	var colIndex int
+	for i, col := range attrView.Columns {
+		if col.ID != colID {
+			continue
+		}
+
+		colIndex = i
+		existOpt := false
+		for j, opt := range col.Options {
+			if opt.Name == newName {
+				existOpt = true
+				col.Options = append(col.Options[:j], col.Options[j+1:]...)
+				break
+			}
+		}
+		if !existOpt {
+			for _, opt := range col.Options {
+				if opt.Name != oldName {
+					continue
+				}
+
+				opt.Name = newName
+				opt.Color = newColor
+				break
+			}
+		}
+		break
+	}
+
+	for _, row := range attrView.Rows {
+		for i, cell := range row.Cells {
+			if colIndex != i || nil == cell.Value {
+				continue
+			}
+
+			if nil != cell.Value.MSelect && 0 < len(cell.Value.MSelect) && nil != cell.Value.MSelect[0] {
+				if oldName == cell.Value.MSelect[0].Content {
+					cell.Value.MSelect[0].Content = newName
+					cell.Value.MSelect[0].Color = newColor
+					break
+				}
+			} else if nil != cell.Value.MSelect {
+				existInMSelect := false
+				for j, opt := range cell.Value.MSelect {
+					if opt.Content == newName {
+						existInMSelect = true
+						cell.Value.MSelect = append(cell.Value.MSelect[:j], cell.Value.MSelect[j+1:]...)
+						break
+					}
+				}
+				if !existInMSelect {
+					for j, opt := range cell.Value.MSelect {
+						if oldName == opt.Content {
+							cell.Value.MSelect[j].Content = newName
+							cell.Value.MSelect[j].Color = newColor
+							break
+						}
+					}
+				}
+			}
+			break
+		}
+	}
+
+	err = av.SaveAttributeView(attrView)
+	return
+}
+
+func removeAttributeViewColumnOption(operation *Operation) (err error) {
+	avID := operation.ParentID
+	attrView, err := av.ParseAttributeView(avID)
+	if nil != err {
+		return
+	}
+
+	colID := operation.ID
+	optName := operation.Data.(string)
+
+	var colIndex int
+	for i, col := range attrView.Columns {
+		if col.ID != colID {
+			continue
+		}
+
+		colIndex = i
+
+		for j, opt := range col.Options {
+			if opt.Name != optName {
+				continue
+			}
+
+			col.Options = append(col.Options[:j], col.Options[j+1:]...)
+			break
+		}
+		break
+	}
+
+	for _, row := range attrView.Rows {
+		for i, cell := range row.Cells {
+			if colIndex != i {
+				continue
+			}
+
+			if nil != cell.Value {
+				if nil != cell.Value.MSelect && 0 < len(cell.Value.MSelect) && nil != cell.Value.MSelect[0] {
+					if optName == cell.Value.MSelect[0].Content {
+						cell.Value = nil
+						break
+					}
+				} else if nil != cell.Value.MSelect {
+					for j, opt := range cell.Value.MSelect {
+						if optName == opt.Content {
+							cell.Value.MSelect = append(cell.Value.MSelect[:j], cell.Value.MSelect[j+1:]...)
+							break
+						}
+					}
+				}
+			}
+			break
+		}
+	}
+
+	err = av.SaveAttributeView(attrView)
+	return
+}
+
+func updateAttributeViewColumnOptions(data interface{}, id, avID string) (err error) {
+	attrView, err := av.ParseAttributeView(avID)
+	if nil != err {
+		return
+	}
+
+	jsonData, err := gulu.JSON.MarshalJSON(data)
+	if nil != err {
+		return
+	}
+
+	options := []*av.ColumnSelectOption{}
+	if err = gulu.JSON.UnmarshalJSON(jsonData, &options); nil != err {
+		return
+	}
+
+	for _, col := range attrView.Columns {
+		if col.ID == id {
+			col.Options = options
+			err = av.SaveAttributeView(attrView)
+			return
+		}
+	}
 	return
 }
 
@@ -594,26 +711,27 @@ func addAttributeViewBlock(blockID, previousRowID, avID string, tree *parse.Tree
 	}
 
 	row := av.NewRow()
-	row.Cells = append(row.Cells, av.NewCellBlock(blockID, getNodeRefText(node)))
-	if 1 < len(ret.Columns) {
-		attrs := parse.IAL2Map(node.KramdownIAL)
-		for _, col := range ret.Columns[1:] {
+	attrs := parse.IAL2Map(node.KramdownIAL)
+	for _, col := range ret.Columns {
+		if av.ColumnTypeBlock != col.Type {
 			attrs[NodeAttrNamePrefixAvCol+avID+"-"+col.ID] = "" // 将列作为属性添加到块中
 			row.Cells = append(row.Cells, av.NewCell(col.Type))
-		}
-
-		if "" == attrs[NodeAttrNameAVs] {
-			attrs[NodeAttrNameAVs] = avID
 		} else {
-			avIDs := strings.Split(attrs[NodeAttrNameAVs], ",")
-			avIDs = append(avIDs, avID)
-			avIDs = gulu.Str.RemoveDuplicatedElem(avIDs)
-			attrs[NodeAttrNameAVs] = strings.Join(avIDs, ",")
+			row.Cells = append(row.Cells, av.NewCellBlock(blockID, getNodeRefText(node)))
 		}
+	}
 
-		if err = setNodeAttrsWithTx(tx, node, tree, attrs); nil != err {
-			return
-		}
+	if "" == attrs[NodeAttrNameAVs] {
+		attrs[NodeAttrNameAVs] = avID
+	} else {
+		avIDs := strings.Split(attrs[NodeAttrNameAVs], ",")
+		avIDs = append(avIDs, avID)
+		avIDs = gulu.Str.RemoveDuplicatedElem(avIDs)
+		attrs[NodeAttrNameAVs] = strings.Join(avIDs, ",")
+	}
+
+	if err = setNodeAttrsWithTx(tx, node, tree, attrs); nil != err {
+		return
 	}
 
 	if "" == previousRowID {
@@ -632,6 +750,6 @@ func addAttributeViewBlock(blockID, previousRowID, avID string, tree *parse.Tree
 }
 
 const (
-	NodeAttrNameAVs         = "avs"
-	NodeAttrNamePrefixAvCol = "av-col-"
+	NodeAttrNameAVs         = "custom-avs"
+	NodeAttrNamePrefixAvCol = "custom-av-col-"
 )

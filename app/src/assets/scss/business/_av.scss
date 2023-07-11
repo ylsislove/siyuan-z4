@@ -1,6 +1,7 @@
 .av {
   user-select: none;
   box-sizing: border-box;
+  font-size: 14px;
 
   &__header {
     top: -43px;
@@ -10,8 +11,8 @@
   &__title {
     height: 30px;
     outline: none;
-    font-size: 18px;
-    font-weight: bold;
+    line-height: 30px;
+    font-size: 16px;
 
     &:empty::after {
       color: var(--b3-theme-on-surface);
@@ -71,6 +72,10 @@
 
       .av__cell {
         padding: 0;
+
+        &:hover {
+          background-color: var(--b3-list-hover);
+        }
       }
     }
 
@@ -90,8 +95,8 @@
     align-items: center;
 
     svg {
-      height: 14px;
-      width: 14px;
+      height: 12px;
+      width: 12px;
       color: var(--b3-theme-on-surface);
       margin-right: 5px;
       flex-shrink: 0;
@@ -146,8 +151,33 @@
     position: relative;
 
     .b3-menu {
-      width: 300px;
       max-height: 70vh;
+
+      &__item .b3-chip {
+        max-width: 196px;
+        margin: 1px 0;
+        padding-top: 6px;
+        padding-bottom: 6px;
+        float: left;
+
+        svg {
+          width: 12px;
+          flex-shrink: 0;
+        }
+      }
+
+      .b3-chips {
+        padding: 0;
+
+        input {
+          outline: none;
+          border: 0;
+          background-color: var(--b3-menu-background);
+          flex: 1;
+          height: 30px;
+          color: var(--b3-theme-on-background);
+        }
+      }
 
       .block__icon {
         line-height: 20px;
@@ -161,12 +191,26 @@
         overflow: hidden;
       }
 
+      &__item {
+        transition: margin .2s cubic-bezier(0, 0, .2, 1) 0ms;
+
+        &.dragover__bottom {
+          background-color: var(--b3-theme-primary-lightest);
+          box-shadow: 0 -2px 0 var(--b3-theme-primary-lighter) inset;
+        }
+
+        &.dragover__top {
+          background-color: var(--b3-theme-primary-lightest);
+          box-shadow: 0 2px 0 var(--b3-theme-primary-lighter) inset;
+        }
+      }
+
+      &__item:hover .b3-menu__action {
+        opacity: 1;
+      }
+
       &__item:not([data-type="nobg"]):hover {
         background-color: var(--b3-list-hover);
-
-        .b3-menu__action {
-          opacity: 1;
-        }
       }
     }
   }

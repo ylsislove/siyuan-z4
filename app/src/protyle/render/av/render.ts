@@ -1,6 +1,5 @@
 import {fetchPost} from "../../../util/fetch";
-import {getColIconByType} from "./col";
-import {showHeaderCellMenu} from "./cell";
+import {getColIconByType, showColMenu} from "./col";
 import {Constants} from "../../../constants";
 
 export const avRender = (element: Element, cb?: () => void) => {
@@ -23,12 +22,11 @@ export const avRender = (element: Element, cb?: () => void) => {
                 const data = response.data.av as IAV;
                 // header
                 let tableHTML = '<div class="av__row av__row--header"><div class="av__firstcol"><svg style="height: 42px"><use xlink:href="#iconUncheck"></use></svg></div>';
-                let index = 0;
                 data.columns.forEach((column: IAVColumn) => {
                     if (column.hidden) {
                         return;
                     }
-                    tableHTML += `<div class="av__cell" data-index="${index}" data-id="${column.id}" data-dtype="${column.type}"  
+                    tableHTML += `<div class="av__cell" data-col-id="${column.id}" data-dtype="${column.type}"  
 style="width: ${column.width || "200px"};
 ${column.wrap ? "" : "white-space: nowrap;"}">
     <div draggable="true" class="av__cellheader">
@@ -37,7 +35,6 @@ ${column.wrap ? "" : "white-space: nowrap;"}">
     </div>
     <div class="av__widthdrag"></div>
 </div>`;
-                    index++;
                 });
                 tableHTML += `<div class="block__icons">
     <div class="block__icon block__icon--show" data-type="av-header-add"><svg><use xlink:href="#iconAdd"></use></svg></div>
@@ -57,26 +54,29 @@ ${column.wrap ? "" : "white-space: nowrap;"}">
                         if (data.columns[index].hidden) {
                             return;
                         }
-                        let text: string;
+                        let text = '';
                         if (cell.valueType === "text") {
-                            text = cell.value?.text.content || "";
+                            text = `<span class="av__celltext">${cell.value?.text.content || ""}</span>`;
                         } else if (cell.valueType === "block") {
-                            text = cell.value?.block.content || "";
+                            text = `<span class="av__celltext">${cell.value?.block.content || ""}</span>`;
                         } else if (cell.valueType === "number") {
-                            text = cell.value?.number.content || "";
-                        } else if (cell.valueType === "select") {
-                            text = cell.value?.select.content || "";
-                        } else if (cell.valueType === "mSelect") {
-                            text = cell.value?.mSelect.content || "";
+                            text = `<span class="av__celltext">${cell.value?.number.content || ""}</span>`;
+                        } else if (cell.valueType === "mSelect" || cell.valueType === "select") {
+                            cell.value?.mSelect?.forEach((item: { content: string, color: string }) => {
+                                text += `<span class="av__celltext"><span class="b3-chip b3-chip--middle" style="background-color:var(--b3-font-background${item.color});color:var(--b3-font-color${item.color})">${item.content}</span></span>`;
+                            });
+                            if (!text) {
+                                text = '<span class="av__celltext"></span>'
+                            }
                         } else if (cell.valueType === "date") {
-                            text = cell.value?.date.content || "";
+                            text = `<span class="av__celltext">${cell.value?.date.content || ""}</span>`;
                         }
-                        tableHTML += `<div class="av__cell" data-id="${cell.id}" data-index="${index}" 
+                        tableHTML += `<div class="av__cell" data-id="${cell.id}" data-col-id="${data.columns[index].id}"
 ${cell.valueType === "block" ? 'data-block-id="' + (cell.value.block.id || "") + '"' : ""}  
 style="width: ${data.columns[index].width || "200px"};
 ${cell.bgColor ? `background-color:${cell.bgColor};` : ""}
 ${data.columns[index].wrap ? "" : "white-space: nowrap;"}
-${cell.color ? `color:${cell.color};` : ""}"><span class="av__celltext">${text}</span></div>`;
+${cell.color ? `color:${cell.color};` : ""}">${text}</div>`;
                     });
                     tableHTML += "<div></div></div>";
                 });
@@ -142,18 +142,17 @@ export const refreshAV = (protyle: IProtyle, operation: IOperation) => {
         Array.from(protyle.wysiwyg.element.querySelectorAll(`[data-av-id="${avId}"]`)).forEach((item: HTMLElement) => {
             item.removeAttribute("data-render");
             avRender(item, () => {
-                showHeaderCellMenu(protyle, item, item.querySelector(".av__row--header").lastElementChild.previousElementSibling as HTMLElement);
+                showColMenu(protyle, item, item.querySelector(".av__row--header").lastElementChild.previousElementSibling as HTMLElement);
             });
         });
     } else if (operation.action === "setAttrViewColWidth") {
         Array.from(protyle.wysiwyg.element.querySelectorAll(`[data-av-id="${avId}"]`)).forEach((item: HTMLElement) => {
-            const cellElement = item.querySelector(`.av__cell[data-id="${operation.id}"]`) as HTMLElement;
+            const cellElement = item.querySelector(`.av__cell[data-col-id="${operation.id}"]`) as HTMLElement;
             if (!cellElement || cellElement.style.width === operation.data) {
                 return;
             }
-            const index = cellElement.dataset.index;
             item.querySelectorAll(".av__row").forEach(rowItem => {
-                (rowItem.querySelector(`[data-index="${index}"]`) as HTMLElement).style.width = operation.data;
+                (rowItem.querySelector(`[data-col-id="${operation.id}"]`) as HTMLElement).style.width = operation.data;
             });
         });
     } else if (operation.action === "setAttrView" && typeof operation.data.name === "string") {
@@ -162,7 +161,7 @@ export const refreshAV = (protyle: IProtyle, operation: IOperation) => {
             if (!titleElement || titleElement.textContent.trim() === operation.data.name) {
                 return;
             }
-            titleElement.textContent =  operation.data.name;
+            titleElement.textContent = operation.data.name;
             titleElement.dataset.title = operation.data.name;
         });
     } else {
