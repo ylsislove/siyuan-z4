@@ -358,8 +358,8 @@ export class WYSIWYG {
                 const dragColId = dragElement.getAttribute("data-col-id");
                 let newWidth: string;
                 documentSelf.onmousemove = (moveEvent: MouseEvent) => {
-                    newWidth = oldWidth + (moveEvent.clientX - event.clientX) + "px";
-                    dragElement.parentElement.parentElement.querySelectorAll(".av__row").forEach(item => {
+                    newWidth = Math.max(oldWidth + (moveEvent.clientX - event.clientX), 100) + "px";
+                    dragElement.parentElement.parentElement.querySelectorAll(".av__row, .av__row--footer").forEach(item => {
                         (item.querySelector(`[data-col-id="${dragColId}"]`) as HTMLElement).style.width = newWidth;
                     });
                 };
@@ -373,12 +373,12 @@ export class WYSIWYG {
                     transaction(protyle, [{
                         action: "setAttrViewColWidth",
                         id: dragColId,
-                        parentID: avId,
+                        avID: avId,
                         data: newWidth
                     }], [{
                         action: "setAttrViewColWidth",
                         id: dragColId,
-                        parentID: avId,
+                        avID: avId,
                         data: oldWidth + "px"
                     }]);
                 };
@@ -1016,15 +1016,12 @@ export class WYSIWYG {
 
     private bindEvent(protyle: IProtyle) {
         this.element.addEventListener("focusout", () => {
-            if (getSelection().rangeCount > 0 && !this.element.contains(getSelection().getRangeAt(0).startContainer)) {
-                // 对 ctrl+tab 切换后 range 已经在新页面中才会触发的 focusout 进行忽略，因为在切换之前已经 dispatchEvent 了。
-                if (!protyle.toolbar.range) {
-                    protyle.toolbar.range = this.element.ownerDocument.createRange();
-                    protyle.toolbar.range.setStart(getContenteditableElement(this.element) || this.element, 0);
-                    protyle.toolbar.range.collapse(true);
-                }
-            } else {
-                protyle.toolbar.range = getEditorRange(this.element);
+            if (getSelection().rangeCount === 0) {
+                return;
+            }
+            const range = getSelection().getRangeAt(0);
+            if (this.element.isSameNode(range.startContainer) || this.element.contains(range.startContainer)) {
+                protyle.toolbar.range = range;
             }
         });
 

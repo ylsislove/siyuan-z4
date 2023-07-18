@@ -32,7 +32,10 @@ type TOperation =
     | "updateAttrViewColOptions"
     | "removeAttrViewColOption"
     | "updateAttrViewColOption"
-    | "setAttrView"
+    | "setAttrViewName"
+    | "setAttrViewFilters"
+    | "setAttrViewSorts"
+    | "setAttrViewColCalc"
 type TBazaarType = "templates" | "icons" | "widgets" | "themes" | "plugins"
 type TCardType = "doc" | "notebook" | "all"
 type TEventBus = "ws-main" |
@@ -40,6 +43,7 @@ type TEventBus = "ws-main" |
     "open-noneditableblock" |
     "open-menu-blockref" | "open-menu-fileannotationref" | "open-menu-tag" | "open-menu-link" | "open-menu-image" |
     "open-menu-av" | "open-menu-content" | "open-menu-breadcrumbmore" |
+    "input-search" |
     "loaded-protyle"
 type TAVCol = "text" | "date" | "number" | "relation" | "rollup" | "select" | "block" | "mSelect"
 type TAVFilterOperator =
@@ -304,15 +308,17 @@ interface IScrollAttr {
 interface IOperation {
     action: TOperation, // move， delete 不需要传 data
     id?: string,
+    avID?: string,  // av
+    keyID?: string // updateAttrViewCell 专享
+    rowID?: string // updateAttrViewCell 专享
     data?: any, // updateAttr 时为  { old: IObject, new: IObject }, updateAttrViewCell 时为 {TAVCol: {content: string}}
-    parentID?: string   // 为 insertAttrViewBlock 传 avid
+    parentID?: string
     previousID?: string
     retData?: any
     nextID?: string // insert 专享
     srcIDs?: string[] // insertAttrViewBlock 专享
     name?: string // addAttrViewCol 专享
     type?: TAVCol // addAttrViewCol 专享
-    rowID?: string // updateAttrViewCell 专享
     deckID?: string // add/removeFlashcards 专享
     blockIDs?: string[] // add/removeFlashcards 专享
 }
@@ -843,6 +849,21 @@ interface IBazaarItem {
 }
 
 interface IAV {
+    id: string
+    name: string
+    view: IAVTable
+    viewID: string
+    viewType: string
+    views: IAVView[]
+}
+
+interface IAVView {
+    name: string
+    id: string
+    type: string
+}
+
+interface IAVTable {
     columns: IAVColumn[],
     filters: IAVFilter[],
     sorts: IAVSort[],
@@ -871,6 +892,10 @@ interface IAVColumn {
     wrap: boolean,
     hidden: boolean,
     type: TAVCol,
+    calc: {
+        operator: string,
+        result: IAVCellValue
+    },
     // 选项列表
     options?: {
         name: string,
@@ -892,8 +917,9 @@ interface IAVCell {
 }
 
 interface IAVCellValue {
+    type: TAVCol,
     text?: { content: string },
-    number?: { content?: number, isNotEmpty: boolean },
+    number?: { content?: number, isNotEmpty: boolean, format?: string, formattedContent?: string },
     mSelect?: { content: string, color: string }[]
     block?: { content: string, id: string }
     date?: { content: string, content2?: string }

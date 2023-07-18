@@ -5,6 +5,7 @@
   flex-direction: column;
   box-sizing: border-box;
   user-select: auto;
+  overflow-x: clip;
 
   .protyle-breadcrumb__bar {
     font-size: 14px;
@@ -239,11 +240,8 @@
         border-left: 1px dashed var(--b3-theme-surface-lighter);
         max-width: 100%;
 
-        // 由于 https://github.com/siyuan-note/siyuan/issues/8402 custom-type=脑图
-        // 列表下有嵌入块会导致无法右滑
-        .protyle-attr--refcount {
-          right: 0;
-        }
+        // https://github.com/siyuan-note/siyuan/issues/8715 & https://ld246.com/article/1689063197687 第一点无法进行以下设置
+        //.protyle-attr--refcount {right: 0;}
 
         & > .protyle-wysiwyg__embed {
           -webkit-user-modify: read-only;

@@ -3,6 +3,7 @@ import {transaction} from "../../wysiwyg/transaction";
 
 export const addCol = (protyle: IProtyle, blockElement: HTMLElement) => {
     const menu = new Menu("av-header-add");
+    const avID = blockElement.getAttribute("data-av-id");
     menu.addItem({
         icon: "iconAlignLeft",
         label: window.siyuan.languages.text,
@@ -11,13 +12,13 @@ export const addCol = (protyle: IProtyle, blockElement: HTMLElement) => {
             transaction(protyle, [{
                 action: "addAttrViewCol",
                 name: "Text",
-                parentID: blockElement.getAttribute("data-av-id"),
+                avID,
                 type: "text",
                 id
             }], [{
                 action: "removeAttrViewCol",
                 id,
-                parentID: blockElement.getAttribute("data-av-id"),
+                avID,
             }]);
         }
     });
@@ -29,13 +30,13 @@ export const addCol = (protyle: IProtyle, blockElement: HTMLElement) => {
             transaction(protyle, [{
                 action: "addAttrViewCol",
                 name: "Number",
-                parentID: blockElement.getAttribute("data-av-id"),
+                avID,
                 type: "number",
                 id
             }], [{
                 action: "removeAttrViewCol",
                 id,
-                parentID: blockElement.getAttribute("data-av-id"),
+                avID,
             }]);
         }
     });
@@ -47,13 +48,13 @@ export const addCol = (protyle: IProtyle, blockElement: HTMLElement) => {
             transaction(protyle, [{
                 action: "addAttrViewCol",
                 name: "Select",
-                parentID: blockElement.getAttribute("data-av-id"),
+                avID,
                 type: "select",
                 id
             }], [{
                 action: "removeAttrViewCol",
                 id,
-                parentID: blockElement.getAttribute("data-av-id"),
+                avID,
             }]);
         }
     });
@@ -65,13 +66,13 @@ export const addCol = (protyle: IProtyle, blockElement: HTMLElement) => {
             transaction(protyle, [{
                 action: "addAttrViewCol",
                 name: "Multi-select",
-                parentID: blockElement.getAttribute("data-av-id"),
+                avID,
                 type: "mSelect",
                 id
             }], [{
                 action: "removeAttrViewCol",
                 id,
-                parentID: blockElement.getAttribute("data-av-id"),
+                avID,
             }]);
         }
     });
@@ -83,13 +84,13 @@ export const addCol = (protyle: IProtyle, blockElement: HTMLElement) => {
             transaction(protyle, [{
                 action: "addAttrViewCol",
                 name: "Date",
-                parentID: blockElement.getAttribute("data-av-id"),
+                avID,
                 type: "date",
                 id
             }], [{
                 action: "removeAttrViewCol",
                 id,
-                parentID: blockElement.getAttribute("data-av-id"),
+                avID,
             }]);
         }
     });

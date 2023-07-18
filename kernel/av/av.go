@@ -18,10 +18,12 @@
 package av
 
 import (
-	"bytes"
-	"database/sql"
+	"errors"
+	"fmt"
+	"math"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/88250/gulu"
@@ -33,96 +35,248 @@ import (
 
 // AttributeView 描述了属性视图的结构。
 type AttributeView struct {
-	Spec    int       `json:"spec"`
-	ID      string    `json:"id"`      // 属性视图 ID
-	Name    string    `json:"name"`    // 属性视图名称
-	Columns []*Column `json:"columns"` // 表格列名
-	Rows    []*Row    `json:"rows"`    // 表格行记录
-
-	Type    AttributeViewType      `json:"type"`    // 属性视图类型
-	Filters []*AttributeViewFilter `json:"filters"` // 过滤规则
-	Sorts   []*AttributeViewSort   `json:"sorts"`   // 排序规则
+	Spec      int          `json:"spec"`      // 格式版本
+	ID        string       `json:"id"`        // 属性视图 ID
+	Name      string       `json:"name"`      // 属性视图名称
+	KeyValues []*KeyValues `json:"keyValues"` // 属性视图属性列值
+	ViewID    string       `json:"viewID"`    // 当前视图 ID
+	Views     []*View      `json:"views"`     // 视图
 }
 
-// AttributeViewType 描述了属性视图的类型。
-type AttributeViewType string
+// KeyValues 描述了属性视图属性列值的结构。
+type KeyValues struct {
+	Key    *Key     `json:"key"`              // 属性视图属性列
+	Values []*Value `json:"values,omitempty"` // 属性视图属性列值
+}
+
+type KeyType string
 
 const (
-	AttributeViewTypeTable AttributeViewType = "table" // 属性视图类型 - 表格
+	KeyTypeBlock   KeyType = "block"
+	KeyTypeText    KeyType = "text"
+	KeyTypeNumber  KeyType = "number"
+	KeyTypeDate    KeyType = "date"
+	KeyTypeSelect  KeyType = "select"
+	KeyTypeMSelect KeyType = "mSelect"
 )
 
-func NewAttributeView(id string) *AttributeView {
-	return &AttributeView{
-		Spec:    0,
-		ID:      id,
-		Name:    "Table",
-		Columns: []*Column{{ID: ast.NewNodeID(), Name: "Block", Type: ColumnTypeBlock}},
-		Rows:    []*Row{},
-		Type:    AttributeViewTypeTable,
-		Filters: []*AttributeViewFilter{},
-		Sorts:   []*AttributeViewSort{},
+// Key 描述了属性视图属性列的基础结构。
+type Key struct {
+	ID   string  `json:"id"`   // 列 ID
+	Name string  `json:"name"` // 列名
+	Type KeyType `json:"type"` // 列类型
+	Icon string  `json:"icon"` // 列图标
+
+	// 以下是某些列类型的特有属性
+
+	Options []*KeySelectOption `json:"options,omitempty"` // 选项列表
+}
+
+func NewKey(id, name string, keyType KeyType) *Key {
+	return &Key{
+		ID:   id,
+		Name: name,
+		Type: keyType,
 	}
 }
 
-func (av *AttributeView) GetColumnNames() (ret []string) {
-	ret = []string{}
-	for _, column := range av.Columns {
-		ret = append(ret, column.Name)
+type KeySelectOption struct {
+	Name  string `json:"name"`
+	Color string `json:"color"`
+}
+
+type Value struct {
+	ID      string  `json:"id,omitempty"`
+	KeyID   string  `json:"keyID,omitempty"`
+	BlockID string  `json:"blockID,omitempty"`
+	Type    KeyType `json:"type,omitempty"`
+
+	Block   *ValueBlock    `json:"block,omitempty"`
+	Text    *ValueText     `json:"text,omitempty"`
+	Number  *ValueNumber   `json:"number,omitempty"`
+	Date    *ValueDate     `json:"date,omitempty"`
+	MSelect []*ValueSelect `json:"mSelect,omitempty"`
+}
+
+func (value *Value) ToJSONString() string {
+	data, err := gulu.JSON.MarshalJSON(value)
+	if nil != err {
+		return ""
 	}
+	return string(data)
+}
+
+type ValueBlock struct {
+	ID      string `json:"id"`
+	Content string `json:"content"`
+}
+
+type ValueText struct {
+	Content string `json:"content"`
+}
+
+type ValueNumber struct {
+	Content          float64      `json:"content"`
+	IsNotEmpty       bool         `json:"isNotEmpty"`
+	Format           NumberFormat `json:"format"`
+	FormattedContent string       `json:"formattedContent"`
+}
+
+type NumberFormat string
+
+const (
+	NumberFormatNone    NumberFormat = ""
+	NumberFormatPercent NumberFormat = "percent"
+)
+
+func NewValueNumber(content float64) *ValueNumber {
+	return &ValueNumber{
+		Content:          content,
+		IsNotEmpty:       true,
+		Format:           NumberFormatNone,
+		FormattedContent: fmt.Sprintf("%f", content),
+	}
+}
+
+func NewFormattedValueNumber(content float64, format NumberFormat) (ret *ValueNumber) {
+	ret = &ValueNumber{
+		Content:          content,
+		IsNotEmpty:       true,
+		Format:           format,
+		FormattedContent: fmt.Sprintf("%f", content),
+	}
+	switch format {
+	case NumberFormatNone:
+		s := fmt.Sprintf("%.5f", content)
+		ret.FormattedContent = strings.TrimRight(strings.TrimRight(s, "0"), ".")
+	case NumberFormatPercent:
+		s := fmt.Sprintf("%.2f", content*100)
+		ret.FormattedContent = strings.TrimRight(strings.TrimRight(s, "0"), ".") + "%"
+	}
+	return
+}
+
+func (number *ValueNumber) FormatNumber() {
+	switch number.Format {
+	case NumberFormatNone:
+		number.FormattedContent = strconv.FormatFloat(number.Content, 'f', -1, 64)
+	case NumberFormatPercent:
+		s := fmt.Sprintf("%.2f", number.Content*100)
+		number.FormattedContent = strings.TrimRight(strings.TrimRight(s, "0"), ".") + "%"
+	}
+}
+
+// RoundUp rounds like 12.3416 -> 12.35
+func RoundUp(val float64, precision int) float64 {
+	return math.Ceil(val*(math.Pow10(precision))) / math.Pow10(precision)
+}
+
+// RoundDown rounds like 12.3496 -> 12.34
+func RoundDown(val float64, precision int) float64 {
+	return math.Floor(val*(math.Pow10(precision))) / math.Pow10(precision)
+}
+
+// Round rounds to nearest like 12.3456 -> 12.35
+func Round(val float64, precision int) float64 {
+	return math.Round(val*(math.Pow10(precision))) / math.Pow10(precision)
+}
+
+type ValueDate struct {
+	Content  int64 `json:"content"`
+	Content2 int64 `json:"content2"`
+}
+
+type ValueSelect struct {
+	Content string `json:"content"`
+	Color   string `json:"color"`
+}
+
+// View 描述了视图的结构。
+type View struct {
+	ID   string `json:"id"`   // 视图 ID
+	Name string `json:"name"` // 视图名称
+
+	LayoutType LayoutType   `json:"type"`            // 当前布局类型
+	Table      *LayoutTable `json:"table,omitempty"` // 表格布局
+}
+
+// LayoutType 描述了视图布局的类型。
+type LayoutType string
+
+const (
+	LayoutTypeTable LayoutType = "table" // 属性视图类型 - 表格
+)
+
+func NewView() *View {
+	name := "Table"
+	return &View{
+		ID:         ast.NewNodeID(),
+		Name:       name,
+		LayoutType: LayoutTypeTable,
+		Table: &LayoutTable{
+			Spec:    0,
+			ID:      ast.NewNodeID(),
+			Filters: []*ViewFilter{},
+			Sorts:   []*ViewSort{},
+		},
+	}
+}
+
+// Viewable 描述了视图的接口。
+type Viewable interface {
+	Filterable
+	Sortable
+	Calculable
+
+	GetType() LayoutType
+	GetID() string
+}
+
+func NewAttributeView(id string) (ret *AttributeView) {
+	view := NewView()
+	key := NewKey(ast.NewNodeID(), "Block", KeyTypeBlock)
+	ret = &AttributeView{
+		Spec:      0,
+		ID:        id,
+		KeyValues: []*KeyValues{{Key: key}},
+		ViewID:    view.ID,
+		Views:     []*View{view},
+	}
+	view.Table.Columns = []*ViewTableColumn{{ID: key.ID}}
 	return
 }
 
 func ParseAttributeView(avID string) (ret *AttributeView, err error) {
 	avJSONPath := getAttributeViewDataPath(avID)
+	toCreate := false
 	if !gulu.File.IsExist(avJSONPath) {
 		ret = NewAttributeView(avID)
-		return
+		toCreate = true
 	}
 
-	data, err := filelock.ReadFile(avJSONPath)
-	if nil != err {
-		logging.LogErrorf("read attribute view [%s] failed: %s", avID, err)
-		return
-	}
-
-	ret = &AttributeView{}
-	if err = gulu.JSON.UnmarshalJSON(data, ret); nil != err {
-		logging.LogErrorf("unmarshal attribute view [%s] failed: %s", avID, err)
-		return
-	}
-	return
-}
-
-func ParseAttributeViewMap(avID string) (ret map[string]interface{}, err error) {
-	ret = map[string]interface{}{}
-	avJSONPath := getAttributeViewDataPath(avID)
-	if !gulu.File.IsExist(avJSONPath) {
-		av := NewAttributeView(avID)
-		var data []byte
-		data, err = gulu.JSON.MarshalJSON(av)
-		if nil == err {
+	if !toCreate {
+		data, readErr := filelock.ReadFile(avJSONPath)
+		if nil != readErr {
+			logging.LogErrorf("read attribute view [%s] failed: %s", avID, readErr)
 			return
 		}
 
-		err = gulu.JSON.UnmarshalJSON(data, &ret)
-		return
-	}
-
-	data, err := filelock.ReadFile(avJSONPath)
-	if nil != err {
-		logging.LogErrorf("read attribute view [%s] failed: %s", avID, err)
-		return
-	}
-
-	if err = gulu.JSON.UnmarshalJSON(data, &ret); nil != err {
-		logging.LogErrorf("unmarshal attribute view [%s] failed: %s", avID, err)
-		return
+		ret = &AttributeView{}
+		if err = gulu.JSON.UnmarshalJSON(data, ret); nil != err {
+			logging.LogErrorf("unmarshal attribute view [%s] failed: %s", avID, err)
+			return
+		}
+	} else {
+		if err = SaveAttributeView(ret); nil != err {
+			logging.LogErrorf("save attribute view [%s] failed: %s", avID, err)
+			return
+		}
 	}
 	return
 }
 
 func SaveAttributeView(av *AttributeView) (err error) {
-	data, err := gulu.JSON.MarshalIndentJSON(av, "", "\t")
+	data, err := gulu.JSON.MarshalIndentJSON(av, "", "\t") // TODO: single-line for production
 	if nil != err {
 		logging.LogErrorf("marshal attribute view [%s] failed: %s", av.ID, err)
 		return
@@ -132,6 +286,38 @@ func SaveAttributeView(av *AttributeView) (err error) {
 	if err = filelock.WriteFile(avJSONPath, data); nil != err {
 		logging.LogErrorf("save attribute view [%s] failed: %s", av.ID, err)
 		return
+	}
+	return
+}
+
+func (av *AttributeView) GetView() (ret *View, err error) {
+	for _, v := range av.Views {
+		if v.ID == av.ViewID {
+			ret = v
+			return
+		}
+	}
+	err = ErrViewNotFound
+	return
+}
+
+func (av *AttributeView) GetKey(keyID string) (ret *Key, err error) {
+	for _, kv := range av.KeyValues {
+		if kv.Key.ID == keyID {
+			ret = kv.Key
+			return
+		}
+	}
+	err = ErrKeyNotFound
+	return
+}
+
+func (av *AttributeView) GetBlockKeyValues() (ret *KeyValues) {
+	for _, kv := range av.KeyValues {
+		if KeyTypeBlock == kv.Key.Type {
+			ret = kv
+			return
+		}
 	}
 	return
 }
@@ -148,44 +334,7 @@ func getAttributeViewDataPath(avID string) (ret string) {
 	return
 }
 
-func RebuildAttributeViewTable(tx *sql.Tx, av *AttributeView) (err error) {
-	avID := av.ID
-	var columns []string
-	for _, c := range av.Columns {
-		columns = append(columns, "`"+c.ID+"`")
-	}
-
-	_, err = tx.Exec("DROP TABLE IF EXISTS `av_" + avID + "`")
-	if nil != err {
-		logging.LogErrorf("drop table [%s] failed: %s", avID, err)
-		return
-	}
-
-	_, err = tx.Exec("CREATE TABLE IF NOT EXISTS `av_" + avID + "` (" + strings.Join(columns, ", ") + ")")
-	if nil != err {
-		logging.LogErrorf("create table [%s] failed: %s", avID, err)
-		return
-	}
-
-	for _, r := range av.Rows {
-		buf := bytes.Buffer{}
-		for i, _ := range r.Cells {
-			buf.WriteString("?")
-			if i < len(r.Cells)-1 {
-				buf.WriteString(", ")
-			}
-		}
-
-		var values []interface{}
-		for _, c := range r.Cells {
-			values = append(values, c.Value)
-		}
-
-		_, err = tx.Exec("INSERT INTO `av_"+avID+"` VALUES ("+buf.String()+")", values...)
-		if nil != err {
-			logging.LogErrorf("insert row [%s] failed: %s", r.ID, err)
-			return
-		}
-	}
-	return
-}
+var (
+	ErrViewNotFound = errors.New("view not found")
+	ErrKeyNotFound  = errors.New("key not found")
+)

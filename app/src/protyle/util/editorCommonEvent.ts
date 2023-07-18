@@ -714,7 +714,7 @@ export const dropEvent = (protyle: IProtyle, editorElement: HTMLElement) => {
                 return;
             } else if (target.classList.contains("av__cellheader")) {
                 window.siyuan.dragElement = target.parentElement;
-                event.dataTransfer.setData(`${Constants.SIYUAN_DROP_GUTTER}NodeAttributeView${Constants.ZWSP}Col${Constants.ZWSP}${[target.parentElement.getAttribute("data-id")]}`,
+                event.dataTransfer.setData(`${Constants.SIYUAN_DROP_GUTTER}NodeAttributeView${Constants.ZWSP}Col${Constants.ZWSP}${[target.parentElement.getAttribute("data-col-id")]}`,
                     target.innerHTML);
                 return;
             } else if (target.classList.contains("av__gutters")) {
@@ -823,16 +823,16 @@ export const dropEvent = (protyle: IProtyle, editorElement: HTMLElement) => {
                     if (!blockElement) {
                         return;
                     }
-                    const avId = blockElement.getAttribute("data-av-id");
+                    const avID = blockElement.getAttribute("data-av-id");
                     transaction(protyle, [{
                         action: "sortAttrViewCol",
-                        parentID: avId,
-                        previousID: (targetElement.classList.contains("dragover__left") ? targetElement.previousElementSibling?.getAttribute("data-id") : targetElement.getAttribute("data-id")) || "",
+                        avID,
+                        previousID: (targetElement.classList.contains("dragover__left") ? targetElement.previousElementSibling?.getAttribute("data-col-id") : targetElement.getAttribute("data-col-id")) || "",
                         id: gutterTypes[2],
                     }], [{
                         action: "sortAttrViewCol",
-                        parentID: avId,
-                        previousID: targetElement.parentElement.querySelector(`[data-id="${gutterTypes[2]}"`).previousElementSibling?.getAttribute("data-id") || "",
+                        avID,
+                        previousID: targetElement.parentElement.querySelector(`[data-col-id="${gutterTypes[2]}"`).previousElementSibling?.getAttribute("data-col-id") || "",
                         id: gutterTypes[2],
                     }]);
                     return;
@@ -849,7 +849,7 @@ export const dropEvent = (protyle: IProtyle, editorElement: HTMLElement) => {
                     } else {
                         previousID = targetElement.previousElementSibling?.getAttribute("data-id") || "";
                     }
-                    const avId = blockElement.getAttribute("data-av-id");
+                    const avID = blockElement.getAttribute("data-av-id");
                     if (gutterTypes[0] === "nodeattributeview" && gutterTypes[1] === "row") {
                         // 行内拖拽
                         const doOperations: IOperation[] = [];
@@ -858,13 +858,13 @@ export const dropEvent = (protyle: IProtyle, editorElement: HTMLElement) => {
                         selectedIds.reverse().forEach(item => {
                             doOperations.push({
                                 action: "sortAttrViewRow",
-                                parentID: avId,
+                                avID,
                                 previousID,
                                 id: item,
                             });
                             undoOperations.push({
                                 action: "sortAttrViewRow",
-                                parentID: avId,
+                                avID,
                                 previousID: undoPreviousId,
                                 id: item,
                             });
@@ -873,13 +873,13 @@ export const dropEvent = (protyle: IProtyle, editorElement: HTMLElement) => {
                     } else {
                         transaction(protyle, [{
                             action: "insertAttrViewBlock",
-                            parentID: avId,
+                            avID,
                             previousID,
                             srcIDs: sourceIds,
                         }], [{
                             action: "removeAttrViewBlock",
                             srcIDs: sourceIds,
-                            parentID: avId,
+                            avID,
                         }]);
                     }
                     return;

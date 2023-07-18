@@ -19,7 +19,6 @@ package model
 import (
 	"bytes"
 	"fmt"
-	"github.com/siyuan-note/siyuan/kernel/av"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -34,6 +33,7 @@ import (
 	"github.com/emirpasic/gods/sets/hashset"
 	"github.com/siyuan-note/filelock"
 	"github.com/siyuan-note/logging"
+	"github.com/siyuan-note/siyuan/kernel/av"
 	"github.com/siyuan-note/siyuan/kernel/cache"
 	"github.com/siyuan-note/siyuan/kernel/filesys"
 	"github.com/siyuan-note/siyuan/kernel/sql"
@@ -217,6 +217,18 @@ func performTx(tx *Transaction) (ret *TxErr) {
 			ret = tx.doAddFlashcards(op)
 		case "removeFlashcards":
 			ret = tx.doRemoveFlashcards(op)
+		case "setAttrViewName":
+			ret = tx.doSetAttrViewName(op)
+		case "setAttrViewFilters":
+			ret = tx.doSetAttrViewFilters(op)
+		case "setAttrViewSorts":
+			ret = tx.doSetAttrViewSorts(op)
+		case "setAttrViewColWidth":
+			ret = tx.doSetAttrViewColumnWidth(op)
+		case "setAttrViewColWrap":
+			ret = tx.doSetAttrViewColumnWrap(op)
+		case "setAttrViewColHidden":
+			ret = tx.doSetAttrViewColumnHidden(op)
 		case "insertAttrViewBlock":
 			ret = tx.doInsertAttrViewBlock(op)
 		case "removeAttrViewBlock":
@@ -227,26 +239,20 @@ func performTx(tx *Transaction) (ret *TxErr) {
 			ret = tx.doUpdateAttrViewColumn(op)
 		case "removeAttrViewCol":
 			ret = tx.doRemoveAttrViewColumn(op)
+		case "sortAttrViewRow":
+			ret = tx.doSortAttrViewRow(op)
 		case "sortAttrViewCol":
 			ret = tx.doSortAttrViewColumn(op)
 		case "updateAttrViewCell":
 			ret = tx.doUpdateAttrViewCell(op)
-		case "sortAttrViewRow":
-			ret = tx.doSortAttrViewRow(op)
-		case "setAttrViewColHidden":
-			ret = tx.doSetAttrViewColumnHidden(op)
-		case "setAttrViewColWrap":
-			ret = tx.doSetAttrViewColumnWrap(op)
-		case "setAttrViewColWidth":
-			ret = tx.doSetAttrViewColumnWidth(op)
-		case "setAttrView":
-			ret = tx.doSetAttrView(op)
 		case "updateAttrViewColOptions":
 			ret = tx.doUpdateAttrViewColOptions(op)
 		case "removeAttrViewColOption":
 			ret = tx.doRemoveAttrViewColOption(op)
 		case "updateAttrViewColOption":
 			ret = tx.doUpdateAttrViewColOption(op)
+		case "setAttrViewColCalc":
+			ret = tx.doSetAttrViewColCalc(op)
 		}
 
 		if nil != ret {
@@ -716,7 +722,42 @@ func (tx *Transaction) doDelete(operation *Operation) (ret *TxErr) {
 	if err = tx.writeTree(tree); nil != err {
 		return
 	}
+
+	syncDelete2AttributeView(node)
 	return
+}
+
+func syncDelete2AttributeView(node *ast.Node) {
+	avs := node.IALAttr(NodeAttrNameAVs)
+	if "" == avs {
+		return
+	}
+
+	avIDs := strings.Split(avs, ",")
+	for _, avID := range avIDs {
+		attrView, parseErr := av.ParseAttributeView(avID)
+		if nil != parseErr {
+			continue
+		}
+
+		changedAv := false
+		blockValues := attrView.GetBlockKeyValues()
+		if nil == blockValues {
+			continue
+		}
+
+		for i, blockValue := range blockValues.Values {
+			if blockValue.Block.ID == node.ID {
+				blockValues.Values = append(blockValues.Values[:i], blockValues.Values[i+1:]...)
+				changedAv = true
+				break
+			}
+		}
+		if changedAv {
+			av.SaveAttributeView(attrView)
+			util.BroadcastByType("protyle", "refreshAttributeView", 0, "", map[string]interface{}{"id": avID})
+		}
+	}
 }
 
 func (tx *Transaction) doInsert(operation *Operation) (ret *TxErr) {
@@ -1046,10 +1087,12 @@ type Operation struct {
 
 	DeckID string `json:"deckID"` // 用于添加/删除闪卡
 
+	AvID   string   `json:"avID"`   // 属性视图 ID
 	SrcIDs []string `json:"srcIDs"` // 用于将块拖拽到属性视图中
-	Name   string   `json:"name"`   // 用于属性视图列名
-	Typ    string   `json:"type"`   // 用于属性视图列类型
-	RowID  string   `json:"rowID"`  // 用于属性视图行 ID
+	Name   string   `json:"name"`   // 属性视图列名
+	Typ    string   `json:"type"`   // 属性视图列类型
+	KeyID  string   `json:"keyID"`  // 属性视列 ID
+	RowID  string   `json:"rowID"`  // 属性视图行 ID
 
 	discard bool // 用于标识是否在事务合并中丢弃
 }
@@ -1210,16 +1253,16 @@ func refreshDynamicRefTexts(updatedDefNodes map[string]*ast.Node, updatedTrees m
 			}
 
 			changedAv := false
-			for _, row := range attrView.Rows {
-				blockCell := row.GetBlockCell()
-				if nil == blockCell || nil == blockCell.Value || nil == blockCell.Value.Block {
-					continue
-				}
+			blockValues := attrView.GetBlockKeyValues()
+			if nil == blockValues {
+				continue
+			}
 
-				if blockCell.Value.Block.ID == updatedDefNode.ID {
+			for _, blockValue := range blockValues.Values {
+				if blockValue.Block.ID == updatedDefNode.ID {
 					newContent := getNodeRefText(updatedDefNode)
-					if newContent != blockCell.Value.Block.Content {
-						blockCell.Value.Block.Content = newContent
+					if newContent != blockValue.Block.Content {
+						blockValue.Block.Content = newContent
 						changedAv = true
 					}
 					break
@@ -1227,7 +1270,6 @@ func refreshDynamicRefTexts(updatedDefNodes map[string]*ast.Node, updatedTrees m
 			}
 			if changedAv {
 				av.SaveAttributeView(attrView)
-
 				util.BroadcastByType("protyle", "refreshAttributeView", 0, "", map[string]interface{}{"id": avID})
 			}
 		}
