@@ -45,7 +45,7 @@ export class Background {
     <div class="protyle-background__icon" data-menu="true" data-type="open-emoji"></div>
     <div class="protyle-icons fn__flex-center">
         <span class="protyle-icon protyle-icon--first b3-tooltips b3-tooltips__s" data-menu="true" data-type="tag" aria-label="${window.siyuan.languages.addTag}"><svg><use xlink:href="#iconTags"></use></svg></span>
-        <span class="protyle-icon b3-tooltips b3-tooltips__s" data-type="icon" aria-label="${window.siyuan.languages.changeIcon}"><svg><use xlink:href="#iconEmoji"></use></svg></span>
+        <span class="protyle-icon b3-tooltips b3-tooltips__s" data-type="icon" aria-label="${window.siyuan.languages.randomIcon}"><svg><use xlink:href="#iconEmoji"></use></svg></span>
         <span class="protyle-icon protyle-icon--last b3-tooltips b3-tooltips__s" data-type="random" aria-label="${window.siyuan.languages.titleBg}"><svg><use xlink:href="#iconImage"></use></svg></span>
     </div>
 </div>`;
@@ -382,7 +382,7 @@ export class Background {
         this.element.setAttribute("data-node-id", rootId);
         if (tags) {
             let html = "";
-            const colors = ["secondary", "primary", "info", "success", "warning", "error", ""];
+            const colors = ["secondary", "primary", "info", "success", "warning", "error", "pink"];
             tags.split(",").forEach((item, index) => {
                 html += `<div class="b3-chip b3-chip--middle b3-chip--pointer b3-chip--${colors[index % 7]}" data-type="open-search">${item}<svg class="b3-chip__close" data-type="remove-tag"><use xlink:href="#iconCloseRound"></use></svg></div>`;
             });

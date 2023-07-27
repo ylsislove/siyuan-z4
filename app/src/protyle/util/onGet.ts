@@ -23,6 +23,7 @@ export const onGet = (options: {
     protyle: IProtyle,
     action?: string[],
     scrollAttr?: IScrollAttr
+    afterCB?: () => void
 }) => {
     if (!options.action) {
         options.action = [];
@@ -78,6 +79,7 @@ export const onGet = (options: {
             action: options.action,
             scrollAttr: options.scrollAttr,
             isSyncing: options.data.data.isSyncing,
+            afterCB: options.afterCB,
         }, options.protyle);
         removeLoading(options.protyle);
         return;
@@ -100,6 +102,7 @@ export const onGet = (options: {
             action: options.action,
             scrollAttr: options.scrollAttr,
             isSyncing: options.data.data.isSyncing,
+            afterCB: options.afterCB,
         }, options.protyle);
         setTitle(response.data.ial.title);
         removeLoading(options.protyle);
@@ -112,6 +115,7 @@ const setHTML = (options: {
     isSyncing: boolean,
     expand: boolean,
     scrollAttr?: IScrollAttr
+    afterCB?: () => void
 }, protyle: IProtyle) => {
     if (protyle.contentElement.classList.contains("fn__none") && protyle.wysiwyg.element.innerHTML !== "") {
         return;
@@ -263,12 +267,16 @@ const setHTML = (options: {
             onGet({data: getResponse, protyle, action: [Constants.CB_GET_APPEND, Constants.CB_GET_UNCHANGEID]});
         });
     }
+
     if (options.action.includes(Constants.CB_GET_APPEND) || options.action.includes(Constants.CB_GET_BEFORE)) {
         return;
     }
     if (protyle.options.render.breadcrumb) {
         protyle.breadcrumb.toggleExit(!options.action.includes(Constants.CB_GET_ALL));
         protyle.breadcrumb.render(protyle);
+    }
+    if (options.afterCB) {
+        options.afterCB();
     }
     protyle.app.plugins.forEach(item => {
         item.eventBus.emit("loaded-protyle", protyle);
@@ -315,7 +323,8 @@ export const enableProtyle = (protyle: IProtyle) => {
         return;
     }
     protyle.disabled = false;
-    if (navigator && navigator.maxTouchPoints > 1 && ["MacIntel", "iPhone"].includes(navigator.platform)) {
+    if (isMobile()) {
+        // Android 端空块输入法弹出会收起 https://ld246.com/article/1689713888289
         // iPhone，iPad 端 protyle.wysiwyg.element contenteditable 为 true 时，输入会在块中间插入 span 导致保存失败 https://ld246.com/article/1643473862873/comment/1643813765839#comments
     } else {
         protyle.wysiwyg.element.setAttribute("contenteditable", "true");

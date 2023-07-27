@@ -1,4 +1,6 @@
 {
+  "endDate": "End date",
+  "needLogin": "This function needs to be logged in to use",
   "calcResultCountAll": "COUNT",
   "calcResultCountValues": "VALUES",
   "calcResultCountUniqueValues": "UNIQUE",
@@ -211,7 +213,7 @@
   "regex": "Regex",
   "keywordsLimit": "Keywords Limit",
   "exportAsImage": "Export as image",
-  "featureBetaStage": "This feature support is currently in the free public beta stage, and there is no clear charging plan yet, please know",
+  "featureBetaStage": "This feature supports immediate charging (subscriber do not need to pay separately), and is available for lifetime after a one-time payment",
   "syncOfficialProviderIntro": "Currently selected is the cloud storage service officially provided by SiYuan, which only supports paid subscription users",
   "syncThirdPartyProviderS3Intro": "The current selected is a third-party cloud storage service compatible with the Amazon S3 protocol (eg <a href=\"https://s.qiniu.com/VbQfeu\" target=\"_blank\">Qiniu</a>, <a href=\"https://www.aliyun.com/product/oss?userCode=yqovuas2\" target=\"_blank\">Aliyun OSS</a>, <a href=\"https://www.cloudflare.com/\" target=\"_blank\">Cloudflare R2</a>)",
   "syncThirdPartyProviderWebDAVIntro": "The currently selected is a third-party cloud storage service with the WebDAV protocol. Due to the poor performance and insufficient stability of this protocol, it is recommended to choose the S3 service first",
@@ -470,6 +472,7 @@
   "recentEmoji": "Common Emoticons",
   "andSubFile": "and its <b>x</b> subdocs",
   "changeIcon": "Change icon",
+  "randomIcon": "Random icon",
   "includeSubFile": "\nInclude x subdocs",
   "untitled": "Untitled",
   "lockScreen": "Lock Screen",
@@ -517,7 +520,7 @@
   "attr": "Attribute",
   "updatePath": "Change dir",
   "default": "Default",
-  "titleBg": "Cover",
+  "titleBg": "Random cover",
   "random": "Random",
   "cloudBackup": "Cloud backup",
   "total": "Total",
@@ -569,7 +572,7 @@
   "collapse": "Collapse",
   "blockEmbed": "Embed Block",
   "rowTip": "Click to open menu<br>Drag to sort",
-  "gutterTip": "Click to open menu<br>⌘Click to focus<br>⌥Click to fold/expand<br>⇧Click to update attr<br>Drag to move<br>⌃Drag to duplicate<br>⌥Drag to ref<br> ⇧Drag to embed<br>",
+  "gutterTip": "Click/⌘/ to open menu<br>⌘Click to focus<br>⌥Click/⌥→ to fold/expand<br>⇧Click/⌥⌘A to update attr<br>Drag to move<br>⌃Drag to duplicate<br>⌥Drag to ref<br> ⇧Drag to embed<br>",
   "gutterTip2": "Click to open the menu<br>⇧Click Update attribute",
   "linkDistance": "Link distance",
   "collideStrength": "Collide strength",
@@ -1232,6 +1235,7 @@
     "210": "Verifying cloud data %v/%v",
     "211": "Cloud data verification complete",
     "212": "There are some defects in the current version of cloud data sync, please upgrade to the latest version. Sorry for the inconvenience",
-    "213": "Cloud verification failed, please try to upgrade to the latest version and log in again before syncing"
+    "213": "Cloud verification failed, please try to upgrade to the latest version and log in again before syncing",
+    "214": "This function needs to be logged in to use"
   }
 }

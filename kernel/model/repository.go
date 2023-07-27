@@ -627,6 +627,19 @@ func DownloadCloudSnapshot(tag, id string) (err error) {
 		return
 	}
 
+	switch Conf.Sync.Provider {
+	case conf.ProviderSiYuan:
+		if !IsSubscriber() {
+			util.PushErrMsg(Conf.Language(29), 5000)
+			return
+		}
+	case conf.ProviderWebDAV, conf.ProviderS3:
+		if !IsThirdPartySyncPaid() {
+			util.PushErrMsg(Conf.Language(214), 5000)
+			return
+		}
+	}
+
 	defer util.PushClearProgress()
 
 	var downloadFileCount, downloadChunkCount int
@@ -654,6 +667,19 @@ func UploadCloudSnapshot(tag, id string) (err error) {
 	repo, err := newRepository()
 	if nil != err {
 		return
+	}
+
+	switch Conf.Sync.Provider {
+	case conf.ProviderSiYuan:
+		if !IsSubscriber() {
+			util.PushErrMsg(Conf.Language(29), 5000)
+			return
+		}
+	case conf.ProviderWebDAV, conf.ProviderS3:
+		if !IsThirdPartySyncPaid() {
+			util.PushErrMsg(Conf.Language(214), 5000)
+			return
+		}
 	}
 
 	util.PushEndlessProgress(Conf.Language(116))
@@ -689,6 +715,19 @@ func RemoveCloudRepoTag(tag string) (err error) {
 		return
 	}
 
+	switch Conf.Sync.Provider {
+	case conf.ProviderSiYuan:
+		if !IsSubscriber() {
+			util.PushErrMsg(Conf.Language(29), 5000)
+			return
+		}
+	case conf.ProviderWebDAV, conf.ProviderS3:
+		if !IsThirdPartySyncPaid() {
+			util.PushErrMsg(Conf.Language(214), 5000)
+			return
+		}
+	}
+
 	err = repo.RemoveCloudRepoTag(tag)
 	if nil != err {
 		return
@@ -706,6 +745,19 @@ func GetCloudRepoTagSnapshots() (ret []*dejavu.Log, err error) {
 	repo, err := newRepository()
 	if nil != err {
 		return
+	}
+
+	switch Conf.Sync.Provider {
+	case conf.ProviderSiYuan:
+		if !IsSubscriber() {
+			util.PushErrMsg(Conf.Language(29), 5000)
+			return
+		}
+	case conf.ProviderWebDAV, conf.ProviderS3:
+		if !IsThirdPartySyncPaid() {
+			util.PushErrMsg(Conf.Language(214), 5000)
+			return
+		}
 	}
 
 	logs, err := repo.GetCloudRepoTagLogs(map[string]interface{}{eventbus.CtxPushMsg: eventbus.CtxPushMsgToStatusBar})
@@ -729,6 +781,19 @@ func GetCloudRepoSnapshots(page int) (ret []*dejavu.Log, pageCount, totalCount i
 	repo, err := newRepository()
 	if nil != err {
 		return
+	}
+
+	switch Conf.Sync.Provider {
+	case conf.ProviderSiYuan:
+		if !IsSubscriber() {
+			util.PushErrMsg(Conf.Language(29), 5000)
+			return
+		}
+	case conf.ProviderWebDAV, conf.ProviderS3:
+		if !IsThirdPartySyncPaid() {
+			util.PushErrMsg(Conf.Language(214), 5000)
+			return
+		}
 	}
 
 	if 1 > page {
@@ -942,10 +1007,8 @@ func syncRepoDownload() (err error) {
 	Conf.Save()
 	autoSyncErrCount = 0
 	BootSyncSucc = 0
-	logging.LogInfof("synced data repo download [provider=%d, ufc=%d, dfc=%d, ucc=%d, dcc=%d, ub=%s, db=%s] in [%.2fs]",
-		Conf.Sync.Provider, trafficStat.UploadFileCount, trafficStat.DownloadFileCount, trafficStat.UploadChunkCount, trafficStat.DownloadChunkCount, humanize.Bytes(uint64(trafficStat.UploadBytes)), humanize.Bytes(uint64(trafficStat.DownloadBytes)), elapsed.Seconds())
 
-	processSyncMergeResult(false, true, start, mergeResult)
+	processSyncMergeResult(false, true, mergeResult, trafficStat, "d", elapsed)
 	return
 }
 
@@ -1012,8 +1075,8 @@ func syncRepoUpload() (err error) {
 	Conf.Save()
 	autoSyncErrCount = 0
 	BootSyncSucc = 0
-	logging.LogInfof("synced data repo upload [provider=%d, ufc=%d, dfc=%d, ucc=%d, dcc=%d, ub=%s, db=%s] in [%.2fs]",
-		Conf.Sync.Provider, trafficStat.UploadFileCount, trafficStat.DownloadFileCount, trafficStat.UploadChunkCount, trafficStat.DownloadChunkCount, humanize.Bytes(uint64(trafficStat.UploadBytes)), humanize.Bytes(uint64(trafficStat.DownloadBytes)), elapsed.Seconds())
+
+	processSyncMergeResult(false, true, &dejavu.MergeResult{}, trafficStat, "u", elapsed)
 	return
 }
 
@@ -1181,14 +1244,18 @@ func syncRepo(exit, byHand bool) (dataChanged bool, err error) {
 	Conf.Sync.Stat = msg
 	Conf.Save()
 	autoSyncErrCount = 0
-	logging.LogInfof("synced data repo [kernel=%s, provider=%d, ufc=%d, dfc=%d, ucc=%d, dcc=%d, ub=%s, db=%s] in [%.2fs]",
-		KernelID, Conf.Sync.Provider, trafficStat.UploadFileCount, trafficStat.DownloadFileCount, trafficStat.UploadChunkCount, trafficStat.DownloadChunkCount, humanize.Bytes(uint64(trafficStat.UploadBytes)), humanize.Bytes(uint64(trafficStat.DownloadBytes)), elapsed.Seconds())
 
-	processSyncMergeResult(exit, byHand, start, mergeResult)
+	processSyncMergeResult(exit, byHand, mergeResult, trafficStat, "a", elapsed)
 	return
 }
 
-func processSyncMergeResult(exit, byHand bool, start time.Time, mergeResult *dejavu.MergeResult) {
+func processSyncMergeResult(exit, byHand bool, mergeResult *dejavu.MergeResult, trafficStat *dejavu.TrafficStat, mode string, elapsed time.Duration) {
+	logging.LogInfof("synced data repo [kernel=%s, provider=%d, mode=%s/%t, ufc=%d, dfc=%d, ucc=%d, dcc=%d, ub=%s, db=%s] in [%.2fs], merge result [conflicts=%d, upserts=%d, removes=%d]",
+		KernelID, Conf.Sync.Provider, mode, byHand,
+		trafficStat.UploadFileCount, trafficStat.DownloadFileCount, trafficStat.UploadChunkCount, trafficStat.DownloadChunkCount, humanize.Bytes(uint64(trafficStat.UploadBytes)), humanize.Bytes(uint64(trafficStat.DownloadBytes)),
+		elapsed.Seconds(),
+		len(mergeResult.Conflicts), len(mergeResult.Upserts), len(mergeResult.Removes))
+
 	//logSyncMergeResult(mergeResult)
 
 	if 0 < len(mergeResult.Conflicts) {
@@ -1304,7 +1371,6 @@ func processSyncMergeResult(exit, byHand bool, start time.Time, mergeResult *dej
 	}
 
 	upsertRootIDs, removeRootIDs := incReindex(upserts, removes)
-	elapsed := time.Since(start)
 	go func() {
 		if util.ContainerAndroid == util.Container || util.ContainerIOS == util.Container {
 			// 移动端不推送差异详情
@@ -1340,7 +1406,6 @@ func logSyncMergeResult(mergeResult *dejavu.MergeResult) {
 		return
 	}
 
-	logging.LogInfof("sync merge result [conflicts=%d, upserts=%d, removes=%d]", len(mergeResult.Conflicts), len(mergeResult.Upserts), len(mergeResult.Removes))
 	if 0 < len(mergeResult.Conflicts) {
 		logBuilder := bytes.Buffer{}
 		for i, f := range mergeResult.Conflicts {

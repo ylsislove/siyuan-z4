@@ -106,11 +106,30 @@ export const globalShortcut = (app: App) => {
         }
     });
     window.addEventListener("mousemove", (event: MouseEvent & { target: HTMLElement }) => {
+        // https://github.com/siyuan-note/siyuan/pull/8793
+        const coordinates = window.siyuan.coordinates ?? (window.siyuan.coordinates = {
+            pageX: 0,
+            pageY: 0,
+            clientX: 0,
+            clientY: 0,
+            screenX: 0,
+            screenY: 0,
+        });
+        coordinates.pageX = event.pageX;
+        coordinates.pageY = event.pageY;
+        coordinates.clientX = event.clientX;
+        coordinates.clientY = event.clientY;
+        coordinates.screenX = event.screenX;
+        coordinates.screenY = event.screenY;
+
         if (window.siyuan.hideBreadcrumb) {
             document.querySelectorAll(".protyle-breadcrumb__bar--hide").forEach(item => {
                 item.classList.remove("protyle-breadcrumb__bar--hide");
             });
             window.siyuan.hideBreadcrumb = false;
+            getAllModels().editor.forEach(item => {
+                item.editor.protyle.breadcrumb.render(item.editor.protyle, true);
+            });
         }
         if (event.buttons === 0 &&  // 鼠标按键被按下时不触发
             window.siyuan.layout.bottomDock &&

@@ -192,6 +192,9 @@ func (value *Value) CompareOperator(other *Value, operator FilterOperator) bool 
 		case FilterOperatorIsLessOrEqual:
 			return value.Date.Content <= other.Date.Content
 		case FilterOperatorIsBetween:
+			if value.Date.HasEndDate {
+				// TODO: date filter (between)
+			}
 			return value.Date.Content >= other.Date.Content && value.Date.Content <= other.Date.Content2
 		case FilterOperatorIsEmpty:
 			return 0 == value.Date.Content
@@ -574,7 +577,7 @@ func (table *Table) calcColDate(col *TableColumn, colIndex int) {
 			}
 		}
 		if 0 != earliest {
-			col.Calc.Result = &Value{Date: &ValueDate{Content: earliest}}
+			col.Calc.Result = &Value{Date: NewFormattedValueDate(earliest, 0, DateFormatNone)}
 		}
 	case CalcOperatorLatest:
 		latest := int64(0)
@@ -586,7 +589,7 @@ func (table *Table) calcColDate(col *TableColumn, colIndex int) {
 			}
 		}
 		if 0 != latest {
-			col.Calc.Result = &Value{Date: &ValueDate{Content: latest}}
+			col.Calc.Result = &Value{Date: NewFormattedValueDate(latest, 0, DateFormatNone)}
 		}
 	case CalcOperatorRange:
 		earliest := int64(0)
@@ -602,7 +605,7 @@ func (table *Table) calcColDate(col *TableColumn, colIndex int) {
 			}
 		}
 		if 0 != earliest && 0 != latest {
-			col.Calc.Result = &Value{Date: &ValueDate{Content: latest - earliest}}
+			col.Calc.Result = &Value{Date: NewFormattedValueDate(earliest, latest, DateFormatDuration)}
 		}
 	}
 }

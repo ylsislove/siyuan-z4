@@ -280,6 +280,14 @@ interface ISiyuan {
     ctrlIsPressed?: boolean,
     altIsPressed?: boolean,
     shiftIsPressed?: boolean,
+    coordinates?: {
+        pageX: number,
+        pageY: number,
+        clientX: number,
+        clientY: number,
+        screenX: number,
+        screenY: number,
+    },
     menus?: import("../menus").Menus
     languages?: {
         [key: string]: any;
@@ -917,10 +925,10 @@ interface IAVCell {
 }
 
 interface IAVCellValue {
-    type: TAVCol,
+    type?: TAVCol,
     text?: { content: string },
     number?: { content?: number, isNotEmpty: boolean, format?: string, formattedContent?: string },
     mSelect?: { content: string, color: string }[]
     block?: { content: string, id: string }
-    date?: { content: string, content2?: string }
+    date?: { content?: number, content2?: number, hasEndDate?: boolean }
 }

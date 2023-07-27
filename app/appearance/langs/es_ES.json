@@ -1,4 +1,6 @@
 {
+  "endDate": "Fecha de finalización",
+  "needLogin": "Esta función requiere iniciar sesión en la cuenta antes de poder usarla",
   "calcResultCountAll": "CONTAR",
   "calcResultCountValues": "VALORES",
   "calcResultCountUniqueValues": "ÚNICO",
@@ -211,7 +213,7 @@
   "regex": "Regex",
   "keywordsLimit": "Límite de palabras clave",
   "exportAsImage": "Exportar como imagen",
-  "featureBetaStage": "El soporte de esta función se encuentra actualmente en la etapa beta pública gratuita, y aún no hay un plan de carga claro, tenga en cuenta",
+  "featureBetaStage": "Esta función admite el cobro inmediato (los miembros suscritos no necesitan pagar por separado) y está disponible de por vida después de un pago único",
   "syncOfficialProviderIntro": "Actualmente seleccionado es el servicio de almacenamiento en la nube proporcionado oficialmente por SiYuan, que solo admite usuarios de suscripción paga",
   "syncThirdPartyProviderS3Intro": "El actual seleccionado es un servicio de almacenamiento en la nube de terceros compatible con el protocolo Amazon S3",
   "syncThirdPartyProviderWebDAVIntro": "El servicio de almacenamiento en la nube de terceros del protocolo WebDAV está actualmente seleccionado. Debido al bajo rendimiento y la estabilidad insuficiente de este protocolo, se recomienda elegir primero el servicio S3",
@@ -470,6 +472,7 @@
   "recentEmoji": "Emoticonos comunes",
   "andSubFile": "y sus <b>x</b> documentos secundarios",
   "changeIcon": "Cambiar el icono",
+  "randomIcon": "Icono aleatorio",
   "includeSubFile": "\nIncluir x documentos secundarios",
   "untitled": "Sin título",
   "lockScreen": "Pantalla de bloqueo",
@@ -517,7 +520,7 @@
   "attr": "Atributo",
   "updatePath": "Cambiar directorio",
   "default": "Por defecto",
-  "titleBg": "Cobertura",
+  "titleBg": "Portada aleatoria",
   "random": "Aleatorio",
   "cloudBackup": "Copia de seguridad en la nube",
   "total": "Total",
@@ -569,7 +572,7 @@
   "collapse": "Colapsar",
   "blockEmbed": "Integrar Bloque",
   "rowTip": "Haz clic para abrir el menú<br>Arrastra para ordenar",
-  "gutterTip": "Haga clic para abrir el menú<br>⌘Haga clic para enfocar<br>⌥Haga clic para plegar/expandir<br>⇧Haga clic para actualizar attr<br>Arrastre para mover<br>⌃Arrastre para duplicar<br>⌥ Arrastra para ref<br> ⇧Arrastra para incrustar<br>",
+  "gutterTip": "Haga clic/⌘/ para abrir el menú<br>⌘Haga clic/⌥→ para enfocar<br>⌥Haga clic/⌥⌘A para plegar/expandir<br>⇧Haga clic para actualizar attr<br>Arrastre para mover<br>⌃Arrastre para duplicar<br>⌥ Arrastra para ref<br> ⇧Arrastra para incrustar<br>",
   "gutterTip2": "Haga clic para abrir el menú<br>⇧Haga clic en Actualizar atributo",
   "linkDistance": "Distancia de enlace",
   "collideStrength": "Fuerza de colisión",
@@ -1232,6 +1235,7 @@
     "210": "Verificando datos en la nube %v/%v",
     "211": "Verificaci\u00f3n de datos en la nube completada",
     "212": "Hay algunos defectos en la versi\u00f3n actual de sincronizaci\u00f3n de datos en la nube, actualice a la versi\u00f3n m\u00e1s reciente. Disculpe las molestias",
-    "213": "La verificaci\u00f3n en la nube fall\u00f3, intente actualizar a la versi\u00f3n m\u00e1s reciente e inicie sesi\u00f3n de nuevo antes de sincronizar"
+    "213": "La verificaci\u00f3n en la nube fall\u00f3, intente actualizar a la versi\u00f3n m\u00e1s reciente e inicie sesi\u00f3n de nuevo antes de sincronizar",
+    "214": "Esta función requiere iniciar sesión en la cuenta antes de poder usarla"
   }
 }

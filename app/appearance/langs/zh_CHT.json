@@ -1,4 +1,6 @@
 {
+  "endDate": "結束日期",
+  "needLogin": "該功能需要登錄賬號後才能使用",
   "calcResultCountAll": "行計數",
   "calcResultCountValues": "值計數",
   "calcResultCountUniqueValues": "唯一值計數",
@@ -211,7 +213,7 @@
   "regex": "正則表達式",
   "keywordsLimit": "關鍵字數量限制",
   "exportAsImage": "導出為圖片",
-  "featureBetaStage": "該特性支持目前處於免費公測階段，目前尚未有明確的收費計劃，請悉知",
+  "featureBetaStage": "該特性支持即將收費（訂閱會員不用再單獨付費），一次性付費後終身可用",
   "syncOfficialProviderIntro": "當前選擇的是 SiYuan 官方提供的雲端存儲服務，僅支持付費訂閱用戶使用",
   "syncThirdPartyProviderS3Intro": "當前選擇的是 Amazon S3 協議兼容的第三方雲端存儲服務（比如<a href=\"https://s.qiniu.com/VbQfeu\" target=\"_blank\">七牛雲</a>、<a href=\"https://www.aliyun.com/product/oss?userCode=yqovuas2\" target=\"_blank\">阿里雲 OSS</a>、<a href=\"https://www.cloudflare.com/\" target=\"_blank\">Cloudflare R2</a>）",
   "syncThirdPartyProviderWebDAVIntro": "當前選擇的是 WebDAV 協議的第三方雲端存儲服務。由於該協議性能較差且穩定性不足，建議優先選擇 S3 服務",
@@ -470,6 +472,7 @@
   "recentEmoji": "常用表情",
   "andSubFile": "及其 <b>x</b> 個子文檔",
   "changeIcon": "修改圖示",
+  "randomIcon": "隨機圖標",
   "includeSubFile": "\n包含 x 個子文檔",
   "untitled": "新文檔",
   "lockScreen": "鎖定畫面",
@@ -517,7 +520,7 @@
   "attr": "屬性",
   "updatePath": "修改目錄",
   "default": "預設",
-  "titleBg": "封面圖",
+  "titleBg": "隨機封面圖",
   "random": "隨機",
   "cloudBackup": "雲端備份",
   "total": "總計",
@@ -569,7 +572,7 @@
   "collapse": "摺疊",
   "blockEmbed": "嵌入塊",
   "rowTip": "點擊 打開菜單<br>拖拽 排序",
-  "gutterTip": "點擊 打開菜單<br>⌘Click 聚焦<br>⌥Click 折疊/展開<br>⇧Click 修改屬性<br>拖拽 移動位置<br>⌃拖拽 重複<br>⌥拖拽 生成塊引用<br>⇧拖拽 生成嵌入塊<br>",
+  "gutterTip": "點擊/⌘/ 打開菜單<br>⌘Click 聚焦<br>⌥Click/⌥→ 折疊/展開<br>⇧Click/⌥⌘A 修改屬性<br>拖拽 移動位置<br>⌃拖拽 重複<br>⌥拖拽 生成塊引用<br>⇧拖拽 生成嵌入塊<br>",
   "gutterTip2": "點擊 打開功能表<br>⇧Click 修改屬性",
   "linkDistance": "連結距離",
   "collideStrength": "斥力強度",
@@ -1232,6 +1235,7 @@
     "210": "正在校驗雲端數據 %v/%v",
     "211": "校驗雲端數據完畢",
     "212": "當前版本雲端數據同步存在一些缺陷，請升級到最新版，帶來不便，敬請諒解",
-    "213": "雲端校驗失敗，請嘗試升級到最新版並重新登錄後再進行同步"
+    "213": "雲端校驗失敗，請嘗試升級到最新版並重新登錄後再進行同步",
+    "214": "該功能需要登錄賬號後才能使用"
   }
 }

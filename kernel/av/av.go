@@ -25,6 +25,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/88250/gulu"
 	"github.com/88250/lute/ast"
@@ -166,6 +167,41 @@ func (number *ValueNumber) FormatNumber() {
 	}
 }
 
+type ValueDate struct {
+	Content          int64  `json:"content"`
+	Content2         int64  `json:"content2"`
+	HasEndDate       bool   `json:"hasEndDate"`
+	FormattedContent string `json:"formattedContent"`
+}
+
+type DateFormat string
+
+const (
+	DateFormatNone     DateFormat = ""
+	DateFormatDuration DateFormat = "duration"
+)
+
+func NewFormattedValueDate(content, content2 int64, format DateFormat) (ret *ValueDate) {
+	formatted := time.UnixMilli(content).Format("2006-01-02 15:04")
+	if 0 < content2 {
+		formatted += " → " + time.UnixMilli(content2).Format("2006-01-02 15:04")
+	}
+	switch format {
+	case DateFormatNone:
+	case DateFormatDuration:
+		t1 := time.UnixMilli(content)
+		t2 := time.UnixMilli(content2)
+		formatted = util.HumanizeRelTime(t1, t2, util.Lang)
+	}
+	ret = &ValueDate{
+		Content:          content,
+		Content2:         content2,
+		HasEndDate:       false,
+		FormattedContent: formatted,
+	}
+	return
+}
+
 // RoundUp rounds like 12.3416 -> 12.35
 func RoundUp(val float64, precision int) float64 {
 	return math.Ceil(val*(math.Pow10(precision))) / math.Pow10(precision)
@@ -179,11 +215,6 @@ func RoundDown(val float64, precision int) float64 {
 // Round rounds to nearest like 12.3456 -> 12.35
 func Round(val float64, precision int) float64 {
 	return math.Round(val*(math.Pow10(precision))) / math.Pow10(precision)
-}
-
-type ValueDate struct {
-	Content  int64 `json:"content"`
-	Content2 int64 `json:"content2"`
 }
 
 type ValueSelect struct {

@@ -1,4 +1,6 @@
 {
+  "endDate": "Date de fin",
+  "needLogin": "La fonctionnalité nécessite un numéro de compte de connexion avant de pouvoir être utilisée",
   "calcResultCountAll": "COUNT",
   "calcResultCountValues": "VALEURS",
   "calcResultCountUniqueValues": "UNIQUE",
@@ -211,7 +213,7 @@
   "regex": "Regex",
   "keywordsLimit": "Limite de mots clés",
   "exportAsImage": "Exporter en tant qu'image",
-  "featureBetaStage": "La prise en charge de cette fonctionnalité est actuellement en phase de bêta publique gratuite et il n'y a pas encore de plan de facturation clair, veuillez savoir",
+  "featureBetaStage": "Cette fonctionnalité prend en charge la facturation immédiate (les membres abonnés n'ont pas besoin de payer séparément) et est disponible à vie après un paiement unique",
   "syncOfficialProviderIntro": "Actuellement sélectionné est le service de stockage en nuage officiellement fourni par SiYuan, qui ne prend en charge que les utilisateurs d'abonnement payant",
   "syncThirdPartyProviderS3Intro": "L'actuel sélectionné est un service de stockage cloud tiers compatible avec le protocole Amazon S3",
   "syncThirdPartyProviderWebDAVIntro": "Le service de stockage cloud tiers du protocole WebDAV est actuellement sélectionné. En raison des performances médiocres et de la stabilité insuffisante de ce protocole, il est recommandé de choisir d'abord le service S3",
@@ -470,6 +472,7 @@
   "recentEmoji": "Emoticônes courantes",
   "andSubFile": "et son <b>x</b> sous-documents",
   "changeIcon": "Changer l'icône",
+  "randomIcon": "Icône aléatoire",
   "includeSubFile": "\nInclure x sous-documents",
   "untitled": "Sans titre",
   "lockScreen": "Verrouiller Écran",
@@ -517,7 +520,7 @@
   "attr": "Attribut",
   "updatePath": "modifier le répertoire",
   "default": "Default",
-  "titleBg": "Couverture",
+  "titleBg": "Couverture aléatoire",
   "random": "Random",
   "cloudBackup": "Sauvegarde en Cloud",
   "total": "Total",
@@ -569,7 +572,7 @@
   "collapse": "Collapse",
   "blockEmbed": "incorporer le bloc",
   "rowTip": "Cliquez pour ouvrir le menu<br>Faites glisser pour trier",
-  "gutterTip": "Cliquez pour ouvrir le menu<br>⌘Cliquez pour se concentrer<br>⌥Cliquez pour plier/agrandir<br>⇧Cliquez pour mettre à jour l'attribut<br>Faites glisser pour déplacer<br>⌃Faites glisser pour dupliquer<br>⌥ Faites glisser vers ref<br> ⇧Faites glisser pour incorporer<br>",
+  "gutterTip": "Cliquez/⌘/ pour ouvrir le menu<br>⌘Cliquez/⌥→ pour se concentrer<br>⌥Cliquez/⌥⌘A pour plier/agrandir<br>⇧Cliquez pour mettre à jour l'attribut<br>Faites glisser pour déplacer<br>⌃Faites glisser pour dupliquer<br>⌥ Faites glisser vers ref<br> ⇧Faites glisser pour incorporer<br>",
   "gutterTip2": "Cliquez pour ouvrir le menu<br>⇧Click Modifier les attribut",
   "linkDistance": "Distance du lien",
   "collideStrength": "Force de collision",
@@ -1232,6 +1235,7 @@
     "210": "Vérification des données cloud %v/%v",
     "211": "Vérification des données cloud terminée",
     "212": "Il y a quelques défauts dans la version actuelle de la synchronisation des données cloud, veuillez mettre à niveau vers la dernière version. Désolé pour le désagrément",
-    "213": "Échec de la vérification cloud, veuillez essayer de mettre à niveau vers la dernière version et de vous reconnecter avant de synchroniser"
+    "213": "Échec de la vérification cloud, veuillez essayer de mettre à niveau vers la dernière version et de vous reconnecter avant de synchroniser",
+    "214": "La fonctionnalité nécessite un numéro de compte de connexion avant de pouvoir être utilisée"
   }
 }

@@ -7,7 +7,11 @@ export const getCalcValue = (column: IAVColumn) => {
     if (!column.calc || !column.calc.result) {
         return "";
     }
-    const resultCalc = column.calc.result.number;
+    let resultCalc: any = column.calc.result.number;
+    if (column.calc.operator === "Earliest" || column.calc.operator === "Latest" ||
+        (column.calc.operator === "Range" && column.type === "date")) {
+        resultCalc = column.calc.result.date;
+    }
     let value = "";
     switch (column.calc.operator) {
         case "Count all":
@@ -48,6 +52,12 @@ export const getCalcValue = (column: IAVColumn) => {
             break;
         case  "Range":
             value = `<span>${resultCalc.formattedContent}</span>${window.siyuan.languages.calcResultRange}`;
+            break;
+        case  "Earliest":
+            value = `<span>${resultCalc.formattedContent}</span>${window.siyuan.languages.calcOperatorEarliest}`;
+            break;
+        case  "Latest":
+            value = `<span>${resultCalc.formattedContent}</span>${window.siyuan.languages.calcOperatorLatest}`;
             break;
     }
     return value;
@@ -276,6 +286,34 @@ export const openCalcMenu = (protyle: IProtyle, calcElement: HTMLElement) => {
             operator: "Range",
             label: window.siyuan.languages.calcOperatorRange
         });
+    } else if (type === "date") {
+        calcItem({
+            menu,
+            protyle,
+            colId,
+            avId,
+            oldOperator,
+            operator: "Earliest",
+            label: window.siyuan.languages.calcOperatorEarliest
+        });
+        calcItem({
+            menu,
+            protyle,
+            colId,
+            avId,
+            oldOperator,
+            operator: "Latest",
+            label: window.siyuan.languages.calcOperatorLatest
+        });
+        calcItem({
+            menu,
+            protyle,
+            colId,
+            avId,
+            oldOperator,
+            operator: "Range",
+            label: window.siyuan.languages.calcOperatorRange
+        });
     }
     const calcRect = calcElement.getBoundingClientRect();
     menu.open({x: calcRect.left, y: calcRect.bottom, h: calcRect.height});
@@ -293,6 +331,9 @@ export const popTextCell = (protyle: IProtyle, cellElements: HTMLElement[]) => {
         html = `<input type="number" value="${cellElements[0].textContent}" ${style} class="b3-text-field">`;
     } else if (["select", "mSelect"].includes(type) && blockElement) {
         openMenuPanel({protyle, blockElement, type: "select", cellElements});
+        return;
+    } else if (type === "date" && blockElement) {
+        openMenuPanel({protyle, blockElement, type: "date", cellElements});
         return;
     }
     window.siyuan.menus.menu.remove();
