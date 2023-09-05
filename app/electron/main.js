@@ -49,6 +49,23 @@ try {
     app.exit();
 }
 
+const hotKey2Electron = (key) => {
+    if (!key) {
+        return key;
+    }
+    let electronKey = "";
+    if (key.indexOf("⌘") > -1) {
+        electronKey += "CommandOrControl+";
+    }
+    if (key.indexOf("⇧") > -1) {
+        electronKey += "Shift+";
+    }
+    if (key.indexOf("⌥") > -1) {
+        electronKey += "Alt+";
+    }
+    return electronKey + key.substr(key.length - 1);
+};
+
 const exitApp = (port, errorWindowId) => {
     let tray;
     let mainWindow;
@@ -482,7 +499,7 @@ const initKernel = (workspace, port, lang) => {
                                 showWindow(workspaces[0].browserWindow);
                             }
 
-                            errorWindowId = showErrorWindow("⚠️ 工作空间已被锁定 The workspace is locked", "<div>该工作空间正在被使用。</div><div>The workspace is in use.</div>");
+                            errorWindowId = showErrorWindow("⚠️ 工作空间已被锁定 The workspace is locked", "<div>该工作空间正在被使用，请尝试在任务管理器中结束 SiYuan-Kernel 进程或者重启操作系统后再启动思源。</div><div>The workspace is being used, please try to end the SiYuan-Kernel process in the task manager or restart the operating system and then start SiYuan.</div>");
                             break;
                         case 25:
                             errorWindowId = showErrorWindow("⚠️ 初始化工作空间失败 Failed to create workspace directory", "<div>初始化工作空间失败。</div><div>Failed to init workspace.</div>");
@@ -682,10 +699,9 @@ app.whenReady().then(() => {
         const win = new BrowserWindow({
             show: true,
             trafficLightPosition: {x: 8, y: 13},
-            width: mainScreen.size.width * 0.7,
-            height: mainScreen.size.height * 0.9,
+            width: data.width || mainScreen.size.width * 0.7,
+            height: data.height || mainScreen.size.height * 0.9,
             minWidth: 493,
-            center: true,
             minHeight: 376,
             fullscreenable: true,
             frame: "darwin" === process.platform,
@@ -699,6 +715,11 @@ app.whenReady().then(() => {
                 autoplayPolicy: "user-gesture-required" // 桌面端禁止自动播放多媒体 https://github.com/siyuan-note/siyuan/issues/7587
             },
         });
+        if (data.position) {
+            win.setPosition(data.position.x, data.position.y);
+        } else {
+            win.center();
+        }
         win.loadURL(data.url);
         const targetScreen = screen.getDisplayNearestPoint(screen.getCursorScreenPoint());
         if (mainScreen.id !== targetScreen.id) {
@@ -756,35 +777,51 @@ app.whenReady().then(() => {
     });
     ipcMain.on("siyuan-hotkey", (event, data) => {
         globalShortcut.unregisterAll();
-        if (!data.hotkey) {
+        if (!data.hotkeys || data.hotkeys.length === 0) {
             return;
         }
-        globalShortcut.register(data.hotkey, () => {
-            workspaces.forEach(item => {
-                const mainWindow = item.browserWindow;
-                if (mainWindow.isMinimized()) {
-                    mainWindow.restore();
-                    mainWindow.show(); // 按 `Alt+M` 后隐藏窗口，再次按 `Alt+M` 显示窗口后会卡住不能编辑 https://github.com/siyuan-note/siyuan/issues/8456
-                } else {
-                    if (mainWindow.isVisible()) {
-                        if (1 === workspaces.length) { // 改进 `Alt+M` 激活窗口 https://github.com/siyuan-note/siyuan/issues/7258
-                            if (!mainWindow.isFocused()) {
-                                mainWindow.show();
-                            } else {
-                                hideWindow(mainWindow);
-                            }
+        data.hotkeys.forEach((item, index) => {
+            const shortcut = hotKey2Electron(item);
+            if (!shortcut) {
+                return;
+            }
+            if (index === 0) {
+                globalShortcut.register(shortcut, () => {
+                    workspaces.forEach(workspaceItem => {
+                        const mainWindow = workspaceItem.browserWindow;
+                        if (mainWindow.isMinimized()) {
+                            mainWindow.restore();
+                            mainWindow.show(); // 按 `Alt+M` 后隐藏窗口，再次按 `Alt+M` 显示窗口后会卡住不能编辑 https://github.com/siyuan-note/siyuan/issues/8456
                         } else {
-                            hideWindow(mainWindow);
+                            if (mainWindow.isVisible()) {
+                                if (1 === workspaces.length) { // 改进 `Alt+M` 激活窗口 https://github.com/siyuan-note/siyuan/issues/7258
+                                    if (!mainWindow.isFocused()) {
+                                        mainWindow.show();
+                                    } else {
+                                        hideWindow(mainWindow);
+                                    }
+                                } else {
+                                    hideWindow(mainWindow);
+                                }
+                            } else {
+                                mainWindow.show();
+                            }
                         }
-                    } else {
-                        mainWindow.show();
-                    }
-                }
 
-                if ("win32" === process.platform || "linux" === process.platform) {
-                    resetTrayMenu(item.tray, data.languages, mainWindow);
-                }
-            });
+                        if ("win32" === process.platform || "linux" === process.platform) {
+                            resetTrayMenu(workspaceItem.tray, data.languages, mainWindow);
+                        }
+                    });
+                });
+            } else {
+                globalShortcut.register(shortcut, () => {
+                    BrowserWindow.getAllWindows().forEach(itemB => {
+                        itemB.webContents.send("siyuan-hotkey", {
+                            hotkey: item
+                        });
+                    });
+                });
+            }
         });
     });
     ipcMain.on("siyuan-send_windows", (event, data) => {
@@ -985,5 +1022,13 @@ powerMonitor.on("shutdown", () => {
     workspaces.forEach(item => {
         const currentURL = new URL(item.browserWindow.getURL());
         net.fetch(getServer(currentURL.port) + "/api/system/exit", {method: "POST"});
+    });
+});
+
+
+powerMonitor.on("lock-screen", () => {
+    writeLog("system lock-screen");
+    BrowserWindow.getAllWindows().forEach(item => {
+        item.webContents.send("siyuan-send_windows", {cmd: "lockscreenByMode"});
     });
 });

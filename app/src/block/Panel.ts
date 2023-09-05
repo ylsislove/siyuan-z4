@@ -49,7 +49,8 @@ export class BlockPanel {
         this.isBacklink = options.isBacklink;
 
         this.element = document.createElement("div");
-        this.element.classList.add("block__popover", "block__popover--top");
+        this.element.style.zIndex = (++window.siyuan.zIndex).toString();
+        this.element.classList.add("block__popover");
 
         const parentElement = hasClosestByClassName(this.targetElement, "block__popover", true);
         let level = 1;
@@ -95,11 +96,8 @@ export class BlockPanel {
             }
         });
         this.element.addEventListener("click", (event) => {
-            document.querySelectorAll(".block__popover--top").forEach(item => {
-                item.classList.remove("block__popover--top");
-            });
             if (this.element && window.siyuan.blockPanels.length > 1) {
-                this.element.classList.add("block__popover--top");
+                this.element.style.zIndex = (++window.siyuan.zIndex).toString();
             }
 
             let target = event.target as HTMLElement;
@@ -159,7 +157,11 @@ export class BlockPanel {
             const action = [];
             if (response.data.rootID !== this.nodeIds[index]) {
                 action.push(Constants.CB_GET_ALL);
+            } else {
+                action.push(Constants.CB_GET_SCROLL);
+                action.push(Constants.CB_GET_HL);
             }
+
             if (this.isBacklink) {
                 action.push(Constants.CB_GET_BACKLINK);
             }

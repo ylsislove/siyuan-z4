@@ -29,6 +29,7 @@ import (
 	"unicode/utf8"
 
 	"code.sajari.com/docconv"
+	"github.com/88250/epub"
 	"github.com/88250/gulu"
 	"github.com/88250/lute/ast"
 	"github.com/dustin/go-humanize"
@@ -42,7 +43,6 @@ import (
 	"github.com/siyuan-note/siyuan/kernel/sql"
 	"github.com/siyuan-note/siyuan/kernel/task"
 	"github.com/siyuan-note/siyuan/kernel/util"
-	"github.com/wmentor/epub"
 	"github.com/xuri/excelize/v2"
 )
 
@@ -400,6 +400,8 @@ func (searcher *AssetsSearcher) FullIndex() {
 			return nil
 		}
 
+		logging.LogInfof("parsing asset content [%s]", absPath)
+
 		result := parser.Parse(absPath)
 		if nil == result {
 			return nil
@@ -551,7 +553,8 @@ func copyTempAsset(absPath string) (ret string) {
 	filelock.RWLock.Lock()
 	defer filelock.RWLock.Unlock()
 
-	ret = filepath.Join(dir, gulu.Rand.String(7)+".docx")
+	ext := filepath.Ext(absPath)
+	ret = filepath.Join(dir, gulu.Rand.String(7)+ext)
 	if err := gulu.File.Copy(absPath, ret); nil != err {
 		logging.LogErrorf("copy [src=%s, dest=%s] failed: %s", absPath, ret, err)
 		return
@@ -749,6 +752,11 @@ func (parser *PdfAssetParser) getTextPageWorker(id int, instance pdfium.Pdfium, 
 
 // Parse will parse a PDF document using PDFium webassembly module using a worker pool
 func (parser *PdfAssetParser) Parse(absPath string) (ret *AssetParseResult) {
+	if util.ContainerIOS == util.Container || util.ContainerAndroid == util.Container {
+		// PDF asset content searching is not supported on mobile platforms
+		return
+	}
+
 	now := time.Now()
 	if !strings.HasSuffix(strings.ToLower(absPath), ".pdf") {
 		return

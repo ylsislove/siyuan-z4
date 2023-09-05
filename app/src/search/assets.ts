@@ -5,7 +5,7 @@ import * as path from "path";
 import {Constants} from "../constants";
 import {fetchPost} from "../util/fetch";
 import {upDownHint} from "../util/upDownHint";
-import {escapeHtml} from "../util/escape";
+import {escapeAriaLabel, escapeHtml} from "../util/escape";
 import {setStorageVal} from "../protyle/util/compatibility";
 /// #if !MOBILE
 import {getQueryTip} from "./util";
@@ -142,8 +142,10 @@ export const openSearchAsset = (element: Element, isStick: boolean) => {
                 searchInputElement.value = historyElement.querySelector(".b3-list-item--focus").textContent.trim();
                 assetInputEvent(element, localSearch);
                 toggleAssetHistory(historyElement, searchInputElement);
+                renderPreview(previewElement, currentList.dataset.id, searchInputElement.value, localSearch.method);
             }
             event.preventDefault();
+            return;
         }
         if (event.key === "ArrowDown" && event.altKey) {
             toggleAssetHistory(historyElement, searchInputElement);
@@ -175,7 +177,10 @@ export const openSearchAsset = (element: Element, isStick: boolean) => {
                 searchPanelElement.scrollTop = currentList.offsetTop - searchPanelElement.clientHeight + lineHeight;
             }
             event.preventDefault();
-        } else if (event.key === "ArrowUp") {
+            renderPreview(previewElement, currentList.dataset.id, searchInputElement.value, localSearch.method);
+            return;
+        }
+        if (event.key === "ArrowUp") {
             currentList.classList.remove("b3-list-item--focus");
             if (!currentList.previousElementSibling) {
                 searchPanelElement.lastElementChild.classList.add("b3-list-item--focus");
@@ -188,8 +193,8 @@ export const openSearchAsset = (element: Element, isStick: boolean) => {
                 searchPanelElement.scrollTop = currentList.offsetTop - lineHeight * 2;
             }
             event.preventDefault();
+            renderPreview(previewElement, currentList.dataset.id, searchInputElement.value, localSearch.method);
         }
-        renderPreview(previewElement, currentList.dataset.id, searchInputElement.value, localSearch.method);
     });
     assetInputEvent(element, localSearch);
 
@@ -273,7 +278,7 @@ export const assetInputEvent = (element: Element, localSearch?: ISearchAssetOpti
 <span class="fn__space"></span>
 <span class="b3-list-item__text">${item.content}</span>
 <span class="b3-list-item__meta">${item.hSize}</span>
-<span class="b3-list-item__meta b3-list-item__meta--ellipsis b3-tooltips__w b3-tooltips" aria-label="${item.path}">${item.name}</span>
+<span class="b3-list-item__meta b3-list-item__meta--ellipsis ariaLabel" aria-label="${escapeAriaLabel(item.path)}">${item.name}</span>
 </div>`;
             });
             const previewElement = element.querySelector("#searchAssetPreview");
@@ -385,7 +390,6 @@ export const assetMethodMenu = (target: HTMLElement, cb: () => void) => {
         }
     }).element);
     /// #if MOBILE
-    window.siyuan.menus.menu.element.style.zIndex = "221";
     window.siyuan.menus.menu.fullscreen();
     /// #else
     const rect = target.getBoundingClientRect();
@@ -536,7 +540,6 @@ export const assetMoreMenu = (target: Element, element: Element, cb: () => void)
         },
     }).element);
     /// #if MOBILE
-    window.siyuan.menus.menu.element.style.zIndex = "221";
     window.siyuan.menus.menu.fullscreen();
     /// #else
     const rect = target.getBoundingClientRect();

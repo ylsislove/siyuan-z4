@@ -984,7 +984,24 @@
     * `path`：工作空间路径下的文件路径
 * 返回值
 
-  文件内容
+    * 响应状态码 `200`: 文件内容
+    * 响应状态码 `202`: 异常信息
+
+      ```json
+      {
+        "code": 404,
+        "msg": "",
+        "data": null
+      }
+      ```
+
+        * `code`: 非零的异常值
+
+            * `-1`: 参数解析错误
+            * `404`: 未找到 (文件不存在)
+            * `405`: 方法不被允许 (这是一个目录)
+            * `500`: 服务器错误 (文件查询失败 / 文件读取失败)
+        * `msg`: 一段描述错误的文本
 
 ### 写入文件
 
@@ -1261,7 +1278,9 @@
             "Cookie": ""
         }
     ],
-    "payload": {}
+    "payload": {},
+    "payloadEncoding": "text",
+    "responseEncoding": "text"
   }
   ```
 
@@ -1271,6 +1290,22 @@
     * `contentType`：HTTP Content-Type，默认为 `application/json`
     * `headers`：HTTP 请求标头
     * `payload`：HTTP 请求体，对象或者是字符串
+    * `payloadEncoding`：`pyaload` 所使用的编码方案，默认为 `text`，可选值如下所示
+
+        * `text`
+        * `base64` | `base64-std`
+        * `base64-url`
+        * `base32` | `base32-std`
+        * `base32-hex`
+        * `hex`
+    * `responseEncoding`：响应数据中 `body` 字段所使用的编码方案，默认为 `text`，可选值如下所示
+
+        * `text`
+        * `base64` | `base64-std`
+        * `base64-url`
+        * `base32` | `base32-std`
+        * `base32-hex`
+        * `hex`
 * 返回值
 
   ```json
@@ -1279,6 +1314,7 @@
     "msg": "",
     "data": {
       "body": "",
+      "bodyEncoding": "text",
       "contentType": "text/html",
       "elapsed": 1976,
       "headers": {
@@ -1288,6 +1324,15 @@
     }
   }
   ```
+
+    * `bodyEncoding`：`body` 所使用的编码方案，与请求中 `responseEncoding` 字段一致，默认为 `text`，可能的值如下所示
+
+        * `text`
+        * `base64` | `base64-std`
+        * `base64-url`
+        * `base32` | `base32-std`
+        * `base32-hex`
+        * `hex`
 
 ## 系统
 

@@ -6,6 +6,8 @@ import {fetchGet, fetchPost, fetchSyncPost} from "../util/fetch";
 import {getBackend, getFrontend} from "../util/functions";
 /// #if !MOBILE
 import {openFile, openFileById} from "../editor/util";
+import {openNewWindow, openNewWindowById} from "../window/openNewWindow";
+import {Tab} from "../layout/Tab";
 /// #endif
 import {updateHotkeyTip} from "../protyle/util/compatibility";
 import {App} from "../index";
@@ -15,11 +17,37 @@ import {Menu} from "./Menu";
 import {Protyle} from "../protyle";
 
 let openTab;
+let openWindow;
 /// #if MOBILE
 openTab = () => {
     // TODO: Mobile
 };
+openWindow = () => {
+    // TODO: Mobile
+};
 /// #else
+openWindow = (options: {
+    position?: {
+        x: number,
+        y: number,
+    },
+    height?: number,
+    width?: number,
+    tab?: Tab,
+    doc?: {
+        id: string,     // 块 id
+    },
+}) => {
+    if (options.doc.id) {
+        openNewWindowById(options.doc.id, {position: options.position, width: options.width, height: options.height});
+        return;
+    }
+    if (options.tab) {
+        openNewWindow(options.tab, {position: options.position, width: options.width, height: options.height});
+        return;
+    }
+};
+
 openTab = (options: {
     app: App,
     doc?: {
@@ -147,6 +175,7 @@ export const API = {
     getFrontend,
     getBackend,
     openTab,
+    openWindow,
     Protyle,
     Plugin,
     Dialog,
