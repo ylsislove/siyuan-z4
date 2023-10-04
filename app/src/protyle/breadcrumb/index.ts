@@ -30,7 +30,6 @@ import {openTitleMenu} from "../header/openTitleMenu";
 import {emitOpenMenu} from "../../plugin/EventBus";
 import {isInAndroid} from "../util/compatibility";
 import {resize} from "../util/resize";
-import {transferBlockRef} from "../../menus/block";
 
 export class Breadcrumb {
     public element: HTMLElement;
@@ -88,7 +87,7 @@ export class Breadcrumb {
                         fetchPost("/api/block/getDocInfo", {
                             id: protyle.block.rootID
                         }, (response) => {
-                            openFileAttr(response.data.ial);
+                            openFileAttr(response.data.ial, "bookmark", protyle);
                         });
                     } else {
                         const targetRect = target.getBoundingClientRect();
@@ -241,7 +240,7 @@ export class Breadcrumb {
         }
     }
 
-    public showMenu(protyle: IProtyle, position: { x: number, y: number }) {
+    public showMenu(protyle: IProtyle, position:IPosition) {
         if (!window.siyuan.menus.menu.element.classList.contains("fn__none") &&
             window.siyuan.menus.menu.element.getAttribute("data-name") === "breadcrumbMore") {
             window.siyuan.menus.menu.remove();
@@ -415,6 +414,13 @@ export class Breadcrumb {
                 accelerator: window.siyuan.config.keymap.editor.general.wysiwyg.custom,
                 click: () => {
                     setEditMode(protyle, "wysiwyg");
+                    protyle.scroll.lastScrollTop = 0;
+                    fetchPost("/api/filetree/getDoc", {
+                        id: protyle.block.parentID,
+                        size: window.siyuan.config.editor.dynamicLoadBlocks,
+                    }, getResponse => {
+                        onGet({data: getResponse, protyle});
+                    });
                 }
             }];
             editSubmenu.push({
@@ -511,9 +517,6 @@ export class Breadcrumb {
                 }).element);
             }
             /// #endif
-            if (!protyle.disabled) {
-                transferBlockRef(protyle.block.rootID);
-            }
             if (protyle?.app?.plugins) {
                 emitOpenMenu({
                     plugins: protyle.app.plugins,

@@ -350,6 +350,15 @@ func InitConf() {
 	if 0 > Conf.Flashcard.ReviewCardLimit {
 		Conf.Flashcard.ReviewCardLimit = 200
 	}
+	if 0 >= Conf.Flashcard.RequestRetention || 1 <= Conf.Flashcard.RequestRetention {
+		Conf.Flashcard.RequestRetention = conf.NewFlashcard().RequestRetention
+	}
+	if 0 >= Conf.Flashcard.MaximumInterval || 36500 <= Conf.Flashcard.MaximumInterval {
+		Conf.Flashcard.MaximumInterval = conf.NewFlashcard().MaximumInterval
+	}
+	if "" == Conf.Flashcard.Weights || 17 != len(strings.Split(Conf.Flashcard.Weights, ",")) {
+		Conf.Flashcard.Weights = conf.NewFlashcard().Weights
+	}
 
 	if nil == Conf.AI {
 		Conf.AI = conf.NewAI()
@@ -714,12 +723,12 @@ func IsSubscriber() bool {
 	return nil != Conf.User && (-1 == Conf.User.UserSiYuanProExpireTime || 0 < Conf.User.UserSiYuanProExpireTime) && 0 == Conf.User.UserSiYuanSubscriptionStatus
 }
 
-func IsOneTimePaid() bool {
+func IsPaidUser() bool {
 	if IsSubscriber() {
 		return true
 	}
 	return nil != Conf.User // Sign in to use S3/WebDAV data sync https://github.com/siyuan-note/siyuan/issues/8779
-	// TODO https://github.com/siyuan-note/siyuan/issues/8780
+	// TODO S3/WebDAV data sync and backup are available for a fee https://github.com/siyuan-note/siyuan/issues/8780
 	// return nil != Conf.User && 1 == Conf.User.UserSiYuanOneTimePayStatus
 }
 

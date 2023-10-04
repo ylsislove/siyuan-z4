@@ -45,8 +45,22 @@ export class Files extends Model {
                             this.onMount(data);
                             break;
                         case "createnotebook":
-                            setNoteBook();
-                            this.element.insertAdjacentHTML("beforeend", this.genNotebook(data.data.box));
+                            setNoteBook((notebooks) => {
+                                let previousId: string;
+                                notebooks.find(item => {
+                                    if (!item.closed) {
+                                        if (item.id === data.data.box.id) {
+                                            if (previousId) {
+                                                this.element.querySelector(`.b3-list[data-url="${previousId}"]`).insertAdjacentHTML("afterend", this.genNotebook(data.data.box));
+                                            } else {
+                                                this.element.insertAdjacentHTML("afterbegin", this.genNotebook(data.data.box));
+                                            }
+                                            return true;
+                                        }
+                                        previousId = item.id;
+                                    }
+                                });
+                            });
                             break;
                         case "unmount":
                         case "removeDoc":
@@ -243,7 +257,12 @@ export class Files extends Model {
                         const pathString = target.parentElement.getAttribute("data-path");
                         if (!window.siyuan.config.readonly) {
                             if (type === "new") {
-                                newFile(options.app, notebookId, pathString);
+                                newFile({
+                                    app: options.app,
+                                    notebookId,
+                                    currentPath:pathString,
+                                    useSavePath: false
+                                });
                             } else if (type === "more-root") {
                                 initNavigationMenu(options.app, target.parentElement).popup({
                                     x: event.clientX,
