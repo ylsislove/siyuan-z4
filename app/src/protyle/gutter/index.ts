@@ -221,7 +221,7 @@ export class Gutter {
                 if (isMobile()) {
                     window.siyuan.menus.menu.fullscreen();
                 } else {
-                    window.siyuan.menus.menu.popup({x: event.clientX - 16, y: event.clientY - 16}, true);
+                    window.siyuan.menus.menu.popup({x: event.clientX - 16, y: event.clientY - 16, isLeft: true});
                     focusByRange(protyle.toolbar.range);
                 }
             }
@@ -233,7 +233,7 @@ export class Gutter {
             }
             if (!window.siyuan.ctrlIsPressed && !window.siyuan.altIsPressed && !window.siyuan.shiftIsPressed) {
                 this.renderMenu(protyle, buttonElement);
-                window.siyuan.menus.menu.popup({x: event.clientX - 16, y: event.clientY - 16}, true);
+                window.siyuan.menus.menu.popup({x: event.clientX - 16, y: event.clientY - 16, isLeft: true});
             }
             event.preventDefault();
             event.stopPropagation();
@@ -1885,7 +1885,7 @@ export class Gutter {
         if (nodeElement.getAttribute("data-type") === "NodeAttributeView") {
             const iconElement = nodeElement.querySelector(".item__graphic");
             if (iconElement) {
-                this.element.style.top = `${iconElement.getBoundingClientRect().top - (window.siyuan.config.editor.fontSize * 1.625 - 14) / 2}px`;
+                this.element.style.top = `${Math.max(iconElement.getBoundingClientRect().top - (window.siyuan.config.editor.fontSize * 1.625 - 14) / 2, wysiwyg.parentElement.getBoundingClientRect().top)}px`;
             } else {
                 this.element.style.top = `${Math.max(rect.top, wysiwyg.parentElement.getBoundingClientRect().top) + 8}px`;
             }

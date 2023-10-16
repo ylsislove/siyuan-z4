@@ -278,13 +278,25 @@ export const avContextmenu = (protyle: IProtyle, event: MouseEvent & { detail: a
     menu.addSeparator();
     const editAttrSubmenu: IMenu[] = [];
     rowElement.parentElement.querySelectorAll(".av__row--header .av__cell").forEach((cellElement: HTMLElement) => {
-        editAttrSubmenu.push({
-            icon: getColIconByType(cellElement.getAttribute("data-dtype") as TAVCol),
-            label: cellElement.textContent.trim(),
-            click() {
-                popTextCell(protyle, Array.from(blockElement.querySelectorAll(`.av__row--select:not(.av__row--header) .av__cell[data-col-id="${cellElement.dataset.colId}"]`)));
-            }
-        });
+        let hideBlock = false;
+        const selectElements: HTMLElement[] = Array.from(blockElement.querySelectorAll(`.av__row--select:not(.av__row--header) .av__cell[data-col-id="${cellElement.dataset.colId}"]`));
+        if (cellElement.dataset.dtype === "block") {
+            selectElements.find(item => {
+                if (!item.dataset.detached) {
+                    hideBlock = true;
+                    return true;
+                }
+            });
+        }
+        if (!hideBlock) {
+            editAttrSubmenu.push({
+                icon: getColIconByType(cellElement.getAttribute("data-dtype") as TAVCol),
+                label: cellElement.textContent.trim(),
+                click() {
+                    popTextCell(protyle, selectElements);
+                }
+            });
+        }
     });
     menu.addItem({
         icon: "iconAttr",
@@ -339,7 +351,7 @@ export const removeAttrViewColAnimation = (blockElement: Element, id: string) =>
     });
 };
 
-export const insertAttrViewBlockAnimation = (blockElement: Element, size: number, previousId: string, avId?:string) => {
+export const insertAttrViewBlockAnimation = (blockElement: Element, size: number, previousId: string, avId?: string) => {
     const previousElement = blockElement.querySelector(`.av__row[data-id="${previousId}"]`) || blockElement.querySelector(".av__row--header");
     let colHTML = "";
     previousElement.querySelectorAll(".av__cell").forEach((item: HTMLElement) => {

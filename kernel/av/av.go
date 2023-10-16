@@ -66,6 +66,8 @@ const (
 	KeyTypePhone    KeyType = "phone"
 	KeyTypeMAsset   KeyType = "mAsset"
 	KeyTypeTemplate KeyType = "template"
+	KeyTypeCreated  KeyType = "created"
+	KeyTypeUpdated  KeyType = "updated"
 )
 
 // Key 描述了属性视图属性列的基础结构。
@@ -82,11 +84,12 @@ type Key struct {
 	Template     string             `json:"template"`          // 模板内容
 }
 
-func NewKey(id, name string, keyType KeyType) *Key {
+func NewKey(id, name, icon string, keyType KeyType) *Key {
 	return &Key{
 		ID:   id,
 		Name: name,
 		Type: keyType,
+		Icon: icon,
 	}
 }
 
@@ -96,11 +99,12 @@ type KeySelectOption struct {
 }
 
 type Value struct {
-	ID         string  `json:"id,omitempty"`
-	KeyID      string  `json:"keyID,omitempty"`
-	BlockID    string  `json:"blockID,omitempty"`
-	Type       KeyType `json:"type,omitempty"`
-	IsDetached bool    `json:"isDetached,omitempty"`
+	ID            string  `json:"id,omitempty"`
+	KeyID         string  `json:"keyID,omitempty"`
+	BlockID       string  `json:"blockID,omitempty"`
+	Type          KeyType `json:"type,omitempty"`
+	IsDetached    bool    `json:"isDetached,omitempty"`
+	IsInitialized bool    `json:"isInitialized,omitempty"`
 
 	Block    *ValueBlock    `json:"block,omitempty"`
 	Text     *ValueText     `json:"text,omitempty"`
@@ -112,6 +116,8 @@ type Value struct {
 	Phone    *ValuePhone    `json:"phone,omitempty"`
 	MAsset   []*ValueAsset  `json:"mAsset,omitempty"`
 	Template *ValueTemplate `json:"template,omitempty"`
+	Created  *ValueCreated  `json:"created,omitempty"`
+	Updated  *ValueUpdated  `json:"updated,omitempty"`
 }
 
 func (value *Value) String() string {
@@ -144,6 +150,10 @@ func (value *Value) String() string {
 		return strings.Join(ret, " ")
 	case KeyTypeTemplate:
 		return value.Template.Content
+	case KeyTypeCreated:
+		return value.Created.FormattedContent
+	case KeyTypeUpdated:
+		return value.Updated.FormattedContent
 	default:
 		return ""
 	}
@@ -160,6 +170,8 @@ func (value *Value) ToJSONString() string {
 type ValueBlock struct {
 	ID      string `json:"id"`
 	Content string `json:"content"`
+	Created int64  `json:"created"`
+	Updated int64  `json:"updated"`
 }
 
 type ValueText struct {
@@ -354,6 +366,76 @@ type ValueTemplate struct {
 	Content string `json:"content"`
 }
 
+type ValueCreated struct {
+	Content          int64  `json:"content"`
+	IsNotEmpty       bool   `json:"isNotEmpty"`
+	Content2         int64  `json:"content2"`
+	IsNotEmpty2      bool   `json:"isNotEmpty2"`
+	FormattedContent string `json:"formattedContent"`
+}
+
+type CreatedFormat string
+
+const (
+	CreatedFormatNone     CreatedFormat = "" // 2006-01-02 15:04
+	CreatedFormatDuration CreatedFormat = "duration"
+)
+
+func NewFormattedValueCreated(content, content2 int64, format CreatedFormat) (ret *ValueCreated) {
+	formatted := time.UnixMilli(content).Format("2006-01-02 15:04")
+	if 0 < content2 {
+		formatted += " → " + time.UnixMilli(content2).Format("2006-01-02 15:04")
+	}
+	switch format {
+	case CreatedFormatNone:
+	case CreatedFormatDuration:
+		t1 := time.UnixMilli(content)
+		t2 := time.UnixMilli(content2)
+		formatted = util.HumanizeRelTime(t1, t2, util.Lang)
+	}
+	ret = &ValueCreated{
+		Content:          content,
+		Content2:         content2,
+		FormattedContent: formatted,
+	}
+	return
+}
+
+type ValueUpdated struct {
+	Content          int64  `json:"content"`
+	IsNotEmpty       bool   `json:"isNotEmpty"`
+	Content2         int64  `json:"content2"`
+	IsNotEmpty2      bool   `json:"isNotEmpty2"`
+	FormattedContent string `json:"formattedContent"`
+}
+
+type UpdatedFormat string
+
+const (
+	UpdatedFormatNone     UpdatedFormat = "" // 2006-01-02 15:04
+	UpdatedFormatDuration UpdatedFormat = "duration"
+)
+
+func NewFormattedValueUpdated(content, content2 int64, format UpdatedFormat) (ret *ValueUpdated) {
+	formatted := time.UnixMilli(content).Format("2006-01-02 15:04")
+	if 0 < content2 {
+		formatted += " → " + time.UnixMilli(content2).Format("2006-01-02 15:04")
+	}
+	switch format {
+	case UpdatedFormatNone:
+	case UpdatedFormatDuration:
+		t1 := time.UnixMilli(content)
+		t2 := time.UnixMilli(content2)
+		formatted = util.HumanizeRelTime(t1, t2, util.Lang)
+	}
+	ret = &ValueUpdated{
+		Content:          content,
+		Content2:         content2,
+		FormattedContent: formatted,
+	}
+	return
+}
+
 // View 描述了视图的结构。
 type View struct {
 	ID   string `json:"id"`   // 视图 ID
@@ -397,7 +479,7 @@ type Viewable interface {
 
 func NewAttributeView(id string) (ret *AttributeView) {
 	view := NewView()
-	key := NewKey(ast.NewNodeID(), "Block", KeyTypeBlock)
+	key := NewKey(ast.NewNodeID(), "Block", "", KeyTypeBlock)
 	ret = &AttributeView{
 		Spec:      0,
 		ID:        id,
@@ -431,6 +513,28 @@ func ParseAttributeView(avID string) (ret *AttributeView, err error) {
 }
 
 func SaveAttributeView(av *AttributeView) (err error) {
+	// 做一些数据兼容处理
+	now := util.CurrentTimeMillis()
+	for _, kv := range av.KeyValues {
+		if KeyTypeBlock == kv.Key.Type {
+			// 补全 block 的创建时间和更新时间
+			for _, v := range kv.Values {
+				if 0 == v.Block.Created {
+					createdStr := v.Block.ID[:len("20060102150405")]
+					created, parseErr := time.ParseInLocation("20060102150405", createdStr, time.Local)
+					if nil == parseErr {
+						v.Block.Created = created.UnixMilli()
+					} else {
+						v.Block.Created = now
+					}
+				}
+				if 0 == v.Block.Updated {
+					v.Block.Updated = now
+				}
+			}
+		}
+	}
+
 	data, err := gulu.JSON.MarshalIndentJSON(av, "", "\t") // TODO: single-line for production
 	if nil != err {
 		logging.LogErrorf("marshal attribute view [%s] failed: %s", av.ID, err)
@@ -492,4 +596,8 @@ func GetAttributeViewDataPath(avID string) (ret string) {
 var (
 	ErrViewNotFound = errors.New("view not found")
 	ErrKeyNotFound  = errors.New("key not found")
+)
+
+const (
+	NodeAttrNameAvs = "custom-avs" // 用于标记块所属的属性视图，逗号分隔 av id
 )

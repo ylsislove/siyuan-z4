@@ -1,7 +1,6 @@
 import {copySubMenu, exportMd, movePathToMenu, openFileAttr, renameMenu,} from "./commonMenuItem";
 /// #if !BROWSER
-import {FileFilter, shell} from "electron";
-import {dialog as remoteDialog} from "@electron/remote";
+import {FileFilter, ipcRenderer, shell} from "electron";
 import * as path from "path";
 /// #endif
 import {MenuItem} from "./Menu";
@@ -28,6 +27,7 @@ import {openDocHistory} from "../history/doc";
 import {openEditorTab} from "./util";
 import {makeCard} from "../card/makeCard";
 import {transaction} from "../protyle/wysiwyg/transaction";
+import {emitOpenMenu} from "../plugin/EventBus";
 
 const initMultiMenu = (selectItemElements: NodeListOf<Element>, app: App) => {
     const fileItemElement = Array.from(selectItemElements).find(item => {
@@ -105,6 +105,17 @@ const initMultiMenu = (selectItemElements: NodeListOf<Element>, app: App) => {
         icon: "iconRiffCard",
         submenu: riffCardMenu,
     }).element);
+    if (app.plugins) {
+        emitOpenMenu({
+            plugins: app.plugins,
+            type: "open-menu-doctree",
+            detail: {
+                elements: selectItemElements,
+                type: "docs"
+            },
+            separatorPosition: "top",
+        });
+    }
     return window.siyuan.menus.menu;
 };
 
@@ -325,6 +336,17 @@ export const initNavigationMenu = (app: App, liElement: HTMLElement) => {
             }
         }]
     }).element);
+    if (app.plugins) {
+        emitOpenMenu({
+            plugins: app.plugins,
+            type: "open-menu-doctree",
+            detail: {
+                elements: selectItemElements,
+                type: "notebook"
+            },
+            separatorPosition: "top",
+        });
+    }
     return window.siyuan.menus.menu;
 };
 
@@ -594,6 +616,17 @@ export const initFileMenu = (app: App, notebookId: string, pathString: string, l
     }
     genImportMenu(notebookId, pathString);
     window.siyuan.menus.menu.append(exportMd(id));
+    if (app.plugins) {
+        emitOpenMenu({
+            plugins: app.plugins,
+            type: "open-menu-doctree",
+            detail: {
+                elements: selectItemElements,
+                type: "doc"
+            },
+            separatorPosition: "top",
+        });
+    }
     return window.siyuan.menus.menu;
 };
 
@@ -609,7 +642,8 @@ export const genImportMenu = (notebookId: string, pathString: string) => {
                     if (isDoc) {
                         filters = [{name: "Markdown", extensions: ["md", "markdown"]}];
                     }
-                    const localPath = await remoteDialog.showOpenDialog({
+                    const localPath = await ipcRenderer.invoke(Constants.SIYUAN_GET, {
+                        cmd: "showOpenDialog",
                         defaultPath: window.siyuan.config.system.homeDir,
                         filters,
                         properties: [isDoc ? "openFile" : "openDirectory"],

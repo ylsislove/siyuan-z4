@@ -3,6 +3,7 @@ import {getColIconByType} from "./col";
 import {Constants} from "../../../constants";
 import {getCalcValue} from "./cell";
 import * as dayjs from "dayjs";
+import {unicode2Emoji} from "../../../emoji";
 
 export const avRender = (element: Element, protyle: IProtyle, cb?: () => void) => {
     let avElements: Element[] = [];
@@ -32,11 +33,11 @@ export const avRender = (element: Element, protyle: IProtyle, cb?: () => void) =
                     if (column.hidden) {
                         return;
                     }
-                    tableHTML += `<div class="av__cell" data-col-id="${column.id}" data-dtype="${column.type}"  
+                    tableHTML += `<div class="av__cell" data-col-id="${column.id}" data-icon="${column.icon}" data-dtype="${column.type}"  
 style="width: ${column.width || "200px"};
 ${column.wrap ? "" : "white-space: nowrap;"}">
     <div draggable="true" class="av__cellheader">
-        <svg><use xlink:href="#${column.icon || getColIconByType(column.type)}"></use></svg>
+        ${column.icon ? unicode2Emoji(column.icon, "av__cellicon", true) : `<svg class="av__cellicon"><use xlink:href="#${getColIconByType(column.type)}"></use></svg>`}
         <span class="av__celltext">${column.name}</span>
     </div>
     <div class="av__widthdrag"></div>
@@ -54,7 +55,7 @@ style="width: ${column.width || "200px"}">${getCalcValue(column) || '<svg><use x
                 data.rows.forEach((row: IAVRow) => {
                     tableHTML += `<div class="av__row" data-id="${row.id}">
 <div class="av__gutters ariaLabel" draggable="true" data-position="right" aria-label="${window.siyuan.languages.rowTip}">
-    <button><svg><use xlink:href="#iconLine"></use></svg></button>
+    <button><svg><use xlink:href="#iconDrag"></use></svg></button>
 </div>
 <div class="av__firstcol"><svg><use xlink:href="#iconUncheck"></use></svg></div>`;
                     row.cells.forEach((cell, index) => {
@@ -83,7 +84,7 @@ style="width: ${column.width || "200px"}">${getCalcValue(column) || '<svg><use x
                                 text += `<span class="b3-chip b3-chip--info b3-chip--small" data-type="block-ref" data-id="${cell.value.block.id}" data-subtype="s">${window.siyuan.languages.openBy}</span>`;
                             }
                         } else if (cell.valueType === "number") {
-                            text = `<span class="av__celltext" data-content="${cell.value?.number.content || ""}">${cell.value?.number.formattedContent || ""}</span>`;
+                            text = `<span class="av__celltext" data-content="${cell.value?.number.isNotEmpty ? cell.value?.number.content : ""}">${cell.value?.number.formattedContent || ""}</span>`;
                         } else if (cell.valueType === "mSelect" || cell.valueType === "select") {
                             cell.value?.mSelect?.forEach((item) => {
                                 text += `<span class="b3-chip b3-chip--middle" style="background-color:var(--b3-font-background${item.color});color:var(--b3-font-color${item.color})">${item.content}</span>`;
@@ -95,11 +96,19 @@ style="width: ${column.width || "200px"}">${getCalcValue(column) || '<svg><use x
                             }
                         } else if (cell.valueType === "date") {
                             text = '<span class="av__celltext av__celltext--date">';
-                            if (cell.value?.date.isNotEmpty) {
-                                text += dayjs(cell.value.date.content).format("YYYY-MM-DD HH:mm");
+                            const dataValue = cell.value ? cell.value.date : null;
+                            if (dataValue && dataValue.isNotEmpty) {
+                                text += dayjs(dataValue.content).format("YYYY-MM-DD HH:mm");
                             }
-                            if (cell.value?.date.hasEndDate && cell.value?.date.isNotEmpty && cell.value?.date.isNotEmpty2) {
-                                text += `<svg><use xlink:href="#iconForward"></use></svg>${dayjs(cell.value.date.content2).format("YYYY-MM-DD HH:mm")}`;
+                            if (dataValue && dataValue.hasEndDate && dataValue.isNotEmpty && dataValue.isNotEmpty2) {
+                                text += `<svg><use xlink:href="#iconForward"></use></svg>${dayjs(dataValue.content2).format("YYYY-MM-DD HH:mm")}`;
+                            }
+                            text += "</span>";
+                        } else if (["created", "updated"].includes(cell.valueType)) {
+                            text = '<span class="av__celltext av__celltext--date">';
+                            const dataValue = cell.value ? cell.value[cell.valueType as "date"] : null;
+                            if (dataValue && dataValue.isNotEmpty) {
+                                text += dayjs(dataValue.content).format("YYYY-MM-DD HH:mm");
                             }
                             text += "</span>";
                         } else if (cell.valueType === "mAsset") {
