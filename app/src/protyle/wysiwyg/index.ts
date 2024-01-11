@@ -1326,6 +1326,17 @@ export class WYSIWYG {
                 /// #endif
                 return false;
             }
+            // 在 span 前面，防止单元格哪 block-ref 被修改
+            const avRowElement = hasClosestByClassName(target, "av__row");
+            if (avRowElement && avContextmenu(protyle, avRowElement, {
+                x: event.clientX,
+                y: avRowElement.getBoundingClientRect().bottom,
+                h: avRowElement.clientHeight
+            })) {
+                event.stopPropagation();
+                event.preventDefault();
+                return;
+            }
             protyle.toolbar.range = getEditorRange(protyle.element);
             if (target.tagName === "SPAN") { // https://ld246.com/article/1665141518103
                 let types = protyle.toolbar.getCurrentType(protyle.toolbar.range);
@@ -1373,24 +1384,13 @@ export class WYSIWYG {
                 });
                 return false;
             }
-
-            const avRowElement = hasClosestByClassName(target, "av__row");
-            if (avRowElement && avContextmenu(protyle, avRowElement, {
-                x: event.clientX,
-                y: avRowElement.getBoundingClientRect().bottom,
-                h: avRowElement.clientHeight
-            })) {
-                event.stopPropagation();
-                event.preventDefault();
-                return;
-            }
             const nodeElement = hasClosestBlock(target);
             if (!nodeElement) {
                 return false;
             }
             const avCellHeaderElement = hasClosestByClassName(target, "av__cellheader");
             if (avCellHeaderElement) {
-                showColMenu(protyle, nodeElement, target.parentElement);
+                showColMenu(protyle, nodeElement, avCellHeaderElement.parentElement);
                 event.stopPropagation();
                 event.preventDefault();
                 return;
@@ -1882,7 +1882,8 @@ export class WYSIWYG {
                     }
                 } else if (linkAddress) {
                     /// #if !BROWSER
-                    if (0 > linkAddress.indexOf("://")) {
+                    if (0 > linkAddress.indexOf(":")) {
+                        // 使用 : 判断，不使用 :// 判断 Open external application protocol invalid https://github.com/siyuan-note/siyuan/issues/10075
                         // Support click to open hyperlinks like `www.foo.com` https://github.com/siyuan-note/siyuan/issues/9986
                         linkAddress = `https://${linkAddress}`;
                     }
