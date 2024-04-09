@@ -46,8 +46,10 @@ type TOperation =
     | "sortAttrViewView"
     | "setAttrViewPageSize"
     | "updateAttrViewColRelation"
+    | "moveOutlineHeading"
     | "updateAttrViewColRollup"
     | "hideAttrViewName"
+    | "setAttrViewColDate"
 type TBazaarType = "templates" | "icons" | "widgets" | "themes" | "plugins"
 type TCardType = "doc" | "notebook" | "all"
 type TEventBus = "ws-main" | "sync-start" | "sync-end" | "sync-fail" |
@@ -273,7 +275,7 @@ interface ISearchOption {
 interface ISearchType {
     audioBlock: boolean
     videoBlock: boolean
-    iFrameBlock: boolean
+    iframeBlock: boolean
     widgetBlock: boolean
     mathBlock: boolean
     table: boolean
@@ -707,6 +709,7 @@ interface IModels {
 }
 
 interface IMenu {
+    checked?: boolean,
     iconClass?: string,
     label?: string,
     click?: (element: HTMLElement, event: MouseEvent) => boolean | void | Promise<boolean | void>
@@ -811,6 +814,9 @@ interface IAVColumn {
     numberFormat: string,
     template: string,
     calc: IAVCalc,
+    date?: {
+        autoFillNow: boolean,
+    }
     // 选项列表
     options?: {
         name: string,

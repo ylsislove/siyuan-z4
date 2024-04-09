@@ -1,4 +1,4 @@
-import {paste} from "../util/paste";
+import {getTextStar, paste} from "../util/paste";
 import {
     hasClosestBlock,
     hasClosestByAttribute,
@@ -269,31 +269,22 @@ export class WYSIWYG {
                     selectElements[0].parentElement.classList.contains("list") &&   // 反链复制列表项 https://github.com/siyuan-note/siyuan/issues/6555
                     selectElements[0].parentElement.childElementCount - 1 === selectElements.length) {
                     if (isRefText) {
-                        const cloneElement = selectElements[0].parentElement.cloneNode(true) as HTMLElement;
-                        const cloneEditElement = getContenteditableElement(cloneElement);
-                        if (cloneEditElement) {
-                            cloneEditElement.insertAdjacentHTML("beforeend", ` <span data-type="block-ref" data-subtype="s" data-id="${cloneElement.getAttribute("data-node-id")}">*</span>`);
-                        }
-                        html = cloneElement.outerHTML;
-                        selectElements[0].removeAttribute("data-reftext");
+                        html = getTextStar(selectElements[0].parentElement);
                     } else {
                         html = selectElements[0].parentElement.outerHTML;
                     }
                 } else {
-                    selectElements.forEach((item, index) => {
+                    selectElements.forEach((item: HTMLElement, index) => {
                         // 复制列表项中的块会变为复制列表项，因此不能使用 getTopAloneElement https://github.com/siyuan-note/siyuan/issues/8925
                         if (isRefText && index === 0) {
-                            const cloneElement = item.cloneNode(true) as HTMLElement;
-                            const cloneEditElement = getContenteditableElement(cloneElement);
-                            if (cloneEditElement) {
-                                cloneEditElement.insertAdjacentHTML("beforeend", ` <span data-type="block-ref" data-subtype="s" data-id="${item.getAttribute("data-node-id")}">*</span>`);
-                            }
-                            html += removeEmbed(cloneElement);
-                            selectElements[0].removeAttribute("data-reftext");
+                            html += getTextStar(item) + "\n\n";
                         } else {
                             html += removeEmbed(item);
                         }
                     });
+                }
+                if (isRefText) {
+                    selectElements[0].removeAttribute("data-reftext");
                 }
             } else if (selectAVElement) {
                 const cellElements: Element[] = Array.from(nodeElement.querySelectorAll(".av__cell--active, .av__cell--select")) || [];
@@ -423,13 +414,18 @@ export class WYSIWYG {
                 const dragElement = target.parentElement;
                 const oldWidth = dragElement.clientWidth;
                 const dragColId = dragElement.getAttribute("data-col-id");
-                let newWidth: string;
+                let newWidth: number;
                 const scrollElement = nodeElement.querySelector(".av__scroll");
                 const contentRect = protyle.contentElement.getBoundingClientRect();
                 documentSelf.onmousemove = (moveEvent: MouseEvent) => {
-                    newWidth = Math.max(oldWidth + (moveEvent.clientX - event.clientX), 25) + "px";
+                    newWidth = Math.max(oldWidth + (moveEvent.clientX - event.clientX), 25);
                     scrollElement.querySelectorAll(".av__row, .av__row--footer").forEach(item => {
-                        (item.querySelector(`[data-col-id="${dragColId}"]`) as HTMLElement).style.width = newWidth;
+                        const cellElement = item.querySelector(`[data-col-id="${dragColId}"]`) as HTMLElement;
+                        if (cellElement.previousElementSibling) {
+                            cellElement.style.width = newWidth + "px";
+                        } else {
+                            cellElement.style.width = newWidth + 24 + "px";
+                        }
                     });
                     stickyRow(nodeElement, contentRect, "bottom");
                 };
@@ -440,14 +436,14 @@ export class WYSIWYG {
                     documentSelf.ondragstart = null;
                     documentSelf.onselectstart = null;
                     documentSelf.onselect = null;
-                    if (!newWidth || newWidth === oldWidth + "px") {
+                    if (!newWidth || newWidth === oldWidth) {
                         return;
                     }
                     transaction(protyle, [{
                         action: "setAttrViewColWidth",
                         id: dragColId,
                         avID: avId,
-                        data: newWidth,
+                        data: newWidth + "px",
                         blockID
                     }], [{
                         action: "setAttrViewColWidth",
@@ -743,6 +739,10 @@ export class WYSIWYG {
             let endLastElement: Element;
             documentSelf.onmousemove = (moveEvent: MouseEvent) => {
                 const moveTarget = moveEvent.target as HTMLElement;
+                if (moveTarget.tagName === "IFRAME") {
+                    moveTarget.style.pointerEvents = "none";
+                    return;
+                }
                 // table cell select
                 if (!protyle.disabled && tableBlockElement && tableBlockElement.contains(moveTarget) && !hasClosestByClassName(tableBlockElement, "protyle-wysiwyg__embed")) {
                     if ((moveTarget.tagName === "TH" || moveTarget.tagName === "TD") && !moveTarget.isSameNode(target) && (!moveCellElement || !moveCellElement.isSameNode(moveTarget))) {
@@ -1198,6 +1198,9 @@ export class WYSIWYG {
                 const selectElement = protyle.wysiwyg.element.querySelectorAll(".protyle-wysiwyg--select");
                 selectElement.forEach(item => {
                     ids.push(item.getAttribute("data-node-id"));
+                    if (item.classList.contains("iframe")) {
+                        item.querySelector("iframe").style.pointerEvents = "";
+                    }
                 });
                 countBlockWord(ids);
                 // 划选后不能存在跨块的 range https://github.com/siyuan-note/siyuan/issues/4473
@@ -1582,7 +1585,9 @@ export class WYSIWYG {
             }
             const avCellHeaderElement = hasClosestByClassName(target, "av__cell--header");
             if (avCellHeaderElement) {
-                showColMenu(protyle, nodeElement, avCellHeaderElement);
+                if (!protyle.disabled) {
+                    showColMenu(protyle, nodeElement, avCellHeaderElement);
+                }
                 event.stopPropagation();
                 event.preventDefault();
                 return;
@@ -1975,20 +1980,13 @@ export class WYSIWYG {
             });
             // 面包屑定位，需至于前，否则 return 的元素就无法进行面包屑定位
             if (protyle.options.render.breadcrumb) {
-                protyle.breadcrumb.render(protyle);
+                protyle.breadcrumb.render(protyle, false, hasClosestBlock(event.target));
             }
             const range = getEditorRange(this.element);
             // 需放在嵌入块之前，否则嵌入块内的引用、链接、pdf 双链无法点击打开 https://ld246.com/article/1630479789513
             const blockRefElement = hasClosestByAttribute(event.target, "data-type", "block-ref");
             const aElement = hasClosestByAttribute(event.target, "data-type", "a") || hasClosestByAttribute(event.target, "data-type", "url");
-            let aLink = "";
-            if (aElement) {
-                if (aElement.classList.contains("av__celltext")) {
-                    aLink = aElement.textContent.trim();
-                } else {
-                    aLink = aElement.getAttribute("data-href");
-                }
-            }
+            const aLink = aElement ? aElement.getAttribute("data-href") : "";
             if (blockRefElement || aLink.startsWith("siyuan://blocks/")) {
                 event.stopPropagation();
                 event.preventDefault();
@@ -2100,7 +2098,7 @@ export class WYSIWYG {
                 return;
             }
 
-            if (aElement) {
+            if (aElement && range.toString() === "") {
                 event.stopPropagation();
                 event.preventDefault();
                 let linkAddress = Lute.UnEscapeHTMLStr(aLink);

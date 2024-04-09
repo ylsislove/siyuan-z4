@@ -39,6 +39,8 @@ import {setTitle} from "../dialog/processSystem";
 import {newCenterEmptyTab, resizeTabs} from "./tabUtil";
 import {fullscreen} from "../protyle/breadcrumb/action";
 import {setPadding} from "../protyle/ui/initUI";
+import {setPosition} from "../util/setPosition";
+import {clearOBG} from "./dock/util";
 
 export class Wnd {
     private app: App;
@@ -496,13 +498,7 @@ export class Wnd {
                 setPadding(currentTab.model.editor.protyle);
             }
         } else {
-            updatePanelByEditor({
-                protyle: undefined,
-                focus: false,
-                pushBackStack: false,
-                reload: false,
-                resize,
-            });
+            clearOBG();
         }
         if (isSaveLayout) {
             saveLayout();
@@ -617,6 +613,7 @@ export class Wnd {
                             this.removeTab(item.getAttribute("data-id"));
                             if (element.previousElementSibling || element.nextElementSibling) {
                                 element.remove();
+                                setPosition(window.siyuan.menus.menu.element, rect.left + rect.width - window.siyuan.menus.menu.element.clientWidth, rect.top + rect.height);
                             } else {
                                 window.siyuan.menus.menu.remove();
                             }
@@ -719,13 +716,7 @@ export class Wnd {
                     // 关闭分屏页签后光标消失
                     const editors = getAllModels().editor;
                     if (editors.length === 0) {
-                        updatePanelByEditor({
-                            protyle: undefined,
-                            focus: true,
-                            pushBackStack: false,
-                            reload: false,
-                            resize: true,
-                        });
+                       clearOBG();
                     } else {
                         editors.forEach(item => {
                             if (!item.element.classList.contains("fn__none")) {

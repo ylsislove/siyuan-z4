@@ -9,7 +9,7 @@ import {
     getTypeByCellElement,
     popTextCell,
     renderCell,
-    renderCellAttr,
+    renderCellAttr, updateCellsValue,
     updateHeaderCell
 } from "./cell";
 import {getColIconByType, showColMenu} from "./col";
@@ -304,28 +304,43 @@ export const avContextmenu = (protyle: IProtyle, rowElement: HTMLElement, positi
     rowElement.querySelector(".av__firstcol use").setAttribute("xlink:href", "#iconCheck");
     const rowElements = blockElement.querySelectorAll(".av__row--select:not(.av__row--header)");
     updateHeader(rowElement);
-    if (rowElements.length === 1 && !rowElements[0].querySelector('[data-detached="true"]')) {
-        openEditorTab(protyle.app, rowElements[0].getAttribute("data-id"));
+    const keyCellElement = rowElements[0].querySelector(".av__cell[data-block-id]") as HTMLElement;
+    if (rowElements.length === 1 && keyCellElement.getAttribute("data-detached") !== "true") {
+        const blockId = rowElements[0].getAttribute("data-id");
+        openEditorTab(protyle.app, blockId);
         menu.addItem({
             label: window.siyuan.languages.copy,
             icon: "iconCopy",
             type: "submenu",
-            submenu: copySubMenu(rowElements[0].getAttribute("data-id"))
+            submenu: copySubMenu(blockId)
+        });
+        menu.addItem({
+            label: window.siyuan.languages.unbindBlock,
+            icon: "iconLinkOff",
+            click() {
+                updateCellsValue(protyle, blockElement, keyCellElement.querySelector(".av__celltext").textContent, [keyCellElement]);
+            }
         });
     }
     if (!protyle.disabled) {
         if (rowElements.length === 1) {
-            if (!rowElements[0].querySelector('[data-detached="true"]')) {
+            if (keyCellElement.getAttribute("data-detached") !== "true") {
                 menu.addSeparator();
             }
             menu.addItem({
                 icon: "iconBefore",
-                type: "readonly",
                 label: `<div class="fn__flex" style="align-items: center;">
-${window.siyuan.languages.insertRowBefore.replace("${x}", '<span class="fn__space"></span><input style="width:64px" type="number" step="1" min="1" placeholder="Enter" class="b3-text-field"><span class="fn__space"></span>')}
+${window.siyuan.languages.insertRowBefore.replace("${x}", '<span class="fn__space"></span><input style="width:64px" type="number" step="1" min="1" value="1" placeholder="Enter" class="b3-text-field"><span class="fn__space"></span>')}
 </div>`,
                 bind(element) {
                     const inputElement = element.querySelector("input");
+                    element.addEventListener("click", () => {
+                        if (document.activeElement.isSameNode(inputElement)) {
+                            return;
+                        }
+                        insertRows(blockElement, protyle, parseInt(inputElement.value), rowElements[0].previousElementSibling.getAttribute("data-id"));
+                        menu.close();
+                    });
                     inputElement.addEventListener("keydown", (event: KeyboardEvent) => {
                         if (!event.isComposing && event.key === "Enter") {
                             insertRows(blockElement, protyle, parseInt(inputElement.value), rowElements[0].previousElementSibling.getAttribute("data-id"));
@@ -336,12 +351,18 @@ ${window.siyuan.languages.insertRowBefore.replace("${x}", '<span class="fn__spac
             });
             menu.addItem({
                 icon: "iconAfter",
-                type: "readonly",
                 label: `<div class="fn__flex" style="align-items: center;">
-${window.siyuan.languages.insertRowAfter.replace("${x}", '<span class="fn__space"></span><input style="width:64px" type="number" step="1" min="1" placeholder="Enter" class="b3-text-field"><span class="fn__space"></span>')}
+${window.siyuan.languages.insertRowAfter.replace("${x}", '<span class="fn__space"></span><input style="width:64px" type="number" step="1" min="1" placeholder="Enter" class="b3-text-field" value="1"><span class="fn__space"></span>')}
 </div>`,
                 bind(element) {
                     const inputElement = element.querySelector("input");
+                    element.addEventListener("click", () => {
+                        if (document.activeElement.isSameNode(inputElement)) {
+                            return;
+                        }
+                        insertRows(blockElement, protyle, parseInt(inputElement.value), rowElements[0].getAttribute("data-id"));
+                        menu.close();
+                    });
                     inputElement.addEventListener("keydown", (event: KeyboardEvent) => {
                         if (!event.isComposing && event.key === "Enter") {
                             insertRows(blockElement, protyle, parseInt(inputElement.value), rowElements[0].getAttribute("data-id"));

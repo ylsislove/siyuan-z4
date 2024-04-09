@@ -14,6 +14,7 @@ import {MobileCustom} from "../mobile/dock/MobileCustom";
 import {hasClosestByAttribute} from "../protyle/util/hasClosest";
 import {BlockPanel} from "../block/Panel";
 import {Setting} from "./Setting";
+import {clearOBG} from "../layout/dock/util";
 
 export class Plugin {
     private app: App;
@@ -97,7 +98,36 @@ export class Plugin {
     }
 
     public addCommand(command: ICommand) {
-        this.commands.push(command);
+        if (!window.siyuan.config.keymap.plugin) {
+            window.siyuan.config.keymap.plugin = {};
+        }
+        if (!window.siyuan.config.keymap.plugin[this.name]) {
+            command.customHotkey = command.hotkey;
+            window.siyuan.config.keymap.plugin[this.name] = {
+                [command.langKey]: {
+                    default: command.hotkey,
+                    custom: command.hotkey,
+                }
+            };
+        } else if (!window.siyuan.config.keymap.plugin[this.name][command.langKey]) {
+            command.customHotkey = command.hotkey;
+            window.siyuan.config.keymap.plugin[this.name][command.langKey] = {
+                default: command.hotkey,
+                custom: command.hotkey,
+            };
+        } else if (window.siyuan.config.keymap.plugin[this.name][command.langKey]) {
+            if (typeof window.siyuan.config.keymap.plugin[this.name][command.langKey].custom === "string") {
+                command.customHotkey = window.siyuan.config.keymap.plugin[this.name][command.langKey].custom;
+            } else {
+                command.customHotkey = command.hotkey;
+            }
+            window.siyuan.config.keymap.plugin[this.name][command.langKey]["default"] = command.hotkey;
+        }
+        if (typeof command.customHotkey !== "string") {
+            console.error(`${this.name} - commands data is error and has been removed.`);
+        } else {
+            this.commands.push(command);
+        }
     }
 
     public addIcons(svg: string) {
@@ -239,6 +269,7 @@ export class Plugin {
                 update: options.update,
             });
             customObj.element.addEventListener("click", () => {
+                clearOBG();
                 setPanelFocus(customObj.element.parentElement.parentElement);
             });
             return customObj;
@@ -297,6 +328,29 @@ export class Plugin {
             }
             /// #endif
         };
+        if (!window.siyuan.config.keymap.plugin) {
+            window.siyuan.config.keymap.plugin = {};
+        }
+        if (options.config.hotkey) {
+            if (!window.siyuan.config.keymap.plugin[this.name]) {
+                window.siyuan.config.keymap.plugin[this.name] = {
+                    [type2]: {
+                        default: options.config.hotkey,
+                        custom: options.config.hotkey,
+                    }
+                };
+            } else if (!window.siyuan.config.keymap.plugin[this.name][type2]) {
+                window.siyuan.config.keymap.plugin[this.name][type2] = {
+                    default: options.config.hotkey,
+                    custom: options.config.hotkey,
+                };
+            } else if (window.siyuan.config.keymap.plugin[this.name][type2]) {
+                if (typeof window.siyuan.config.keymap.plugin[this.name][type2].custom !== "string") {
+                    window.siyuan.config.keymap.plugin[this.name][type2].custom = options.config.hotkey;
+                }
+                window.siyuan.config.keymap.plugin[this.name][type2]["default"] = options.config.hotkey;
+            }
+        }
         return this.docks[type2];
     }
 

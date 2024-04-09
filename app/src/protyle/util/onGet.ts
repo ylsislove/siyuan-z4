@@ -33,10 +33,12 @@ export const onGet = (options: {
     options.protyle.wysiwyg.element.removeAttribute("data-top");
     if (options.data.code === 1) {
         // 其他报错
-        if (options.protyle.model) {
-            options.protyle.model.parent.parent.removeTab(options.protyle.model.parent.id, false);
-        } else {
-            options.protyle.element.innerHTML = `<div class="ft__smaller ft__secondary b3-form__space--small" contenteditable="false">${window.siyuan.languages.refExpired}</div>`;
+        if (!options.action.includes(Constants.CB_GET_APPEND)) {    // 向下加载时块可能还没有创建 https://github.com/siyuan-note/siyuan/issues/10851
+            if (options.protyle.model) {
+                options.protyle.model.parent.parent.removeTab(options.protyle.model.parent.id, false);
+            } else {
+                options.protyle.element.innerHTML = `<div class="ft__smaller ft__secondary b3-form__space--small" contenteditable="false">${window.siyuan.languages.refExpired}</div>`;
+            }
         }
         return;
     }
@@ -254,11 +256,14 @@ const setHTML = (options: {
     }
     if (options.scrollAttr && !protyle.scroll.element.classList.contains("fn__none") && !protyle.element.classList.contains("fn__none")) {
         // 使用动态滚动条定位到最后一个块，重启后无法触发滚动事件，需要再次更新 index
-        protyle.scroll.updateIndex(protyle, options.scrollAttr.startId);
-        // https://github.com/siyuan-note/siyuan/issues/8224
-        if (protyle.contentElement.scrollHeight <= protyle.contentElement.clientHeight) {
-            showMessage(window.siyuan.languages.scrollGetMore);
-        }
+        protyle.scroll.updateIndex(protyle, options.scrollAttr.startId, (index) => {
+            // https://github.com/siyuan-note/siyuan/issues/8224
+            // https://github.com/siyuan-note/siyuan/issues/10716
+            if (index > 1 && protyle.block.blockCount > 1 && protyle.contentElement.scrollHeight <= protyle.contentElement.clientHeight) {
+                showMessage(window.siyuan.languages.scrollGetMore);
+            }
+        });
+
     }
     protyle.app.plugins.forEach(item => {
         item.eventBus.emit("loaded-protyle", protyle);  // 准备废弃

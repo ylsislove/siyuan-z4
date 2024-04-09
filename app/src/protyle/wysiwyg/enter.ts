@@ -17,8 +17,12 @@ import {isIPad, setStorageVal} from "../util/compatibility";
 import {mathRender} from "../render/mathRender";
 import {isMobile} from "../../util/functions";
 import {processRender} from "../util/processCode";
+import {hasClosestByClassName} from "../util/hasClosest";
 
 export const enter = (blockElement: HTMLElement, range: Range, protyle: IProtyle) => {
+    if (hasClosestByClassName(blockElement, "protyle-wysiwyg__embed")) {
+        return;
+    }
     const disableElement = isNotEditBlock(blockElement);
     if (!disableElement && blockElement.classList.contains("protyle-wysiwyg--select")) {
         setLastNodeRange(getContenteditableElement(blockElement), range, false);
@@ -204,7 +208,22 @@ export const enter = (blockElement: HTMLElement, range: Range, protyle: IProtyle
     const id = blockElement.getAttribute("data-node-id");
     const newElement = document.createElement("div");
     newElement.appendChild(genEmptyElement(false, false));
-    newElement.querySelector('[contenteditable="true"]').appendChild(range.extractContents());
+    const newEditableElement = newElement.querySelector('[contenteditable="true"]');
+    newEditableElement.appendChild(range.extractContents());
+    const newHTML = newEditableElement.innerHTML.trimStart();
+    // https://github.com/siyuan-note/siyuan/issues/10759
+    if (newHTML.startsWith("```") || newHTML.startsWith("···") || newHTML.startsWith("~~~") ||
+        newHTML.indexOf("\n```") > -1 || newHTML.indexOf("\n~~~") > -1 || newHTML.indexOf("\n···") > -1) {
+        if (newHTML.indexOf("\n") === -1 && newHTML.replace(/·|~/g, "`").replace(/^`{3,}/g, "").indexOf("`") > -1) {
+            // ```test` 不处理，正常渲染为段落块
+        } else {
+            let replaceNewHTML = newEditableElement.innerHTML.replace(/\n(~|·|`){3,}/g, "\n```").trim().replace(/^(~|·|`){3,}/g, "```");
+            if (!replaceNewHTML.endsWith("\n```")) {
+                replaceNewHTML += "\n```";
+            }
+            newEditableElement.innerHTML = replaceNewHTML;
+        }
+    }
     // https://github.com/siyuan-note/insider/issues/480
     newElement.innerHTML = protyle.lute.SpinBlockDOM(newElement.innerHTML);
 
@@ -216,16 +235,15 @@ export const enter = (blockElement: HTMLElement, range: Range, protyle: IProtyle
     enterElement.innerHTML = protyle.lute.SpinBlockDOM(editableElement.parentElement.outerHTML);
     const doOperation: IOperation[] = [];
     const undoOperation: IOperation[] = [];
+    let currentElement = blockElement;
     // 回车之前的块为 1\n\n2 时会产生多个块
     Array.from(enterElement.children).forEach((item: HTMLElement) => {
         if (item.dataset.nodeId === id) {
-            const blockPreviousElement = blockElement.previousElementSibling;
-            const blockParentElement = blockElement.parentElement;
-            blockElement.outerHTML = item.outerHTML;
-            blockElement = (blockPreviousElement ? blockPreviousElement.nextElementSibling : blockParentElement.firstElementChild) as HTMLElement;
+            blockElement.before(item);
+            blockElement.remove();
             doOperation.push({
                 action: "update",
-                data: blockElement.outerHTML,
+                data: item.outerHTML,
                 id,
             });
             undoOperation.push({
@@ -233,7 +251,6 @@ export const enter = (blockElement: HTMLElement, range: Range, protyle: IProtyle
                 data: html,
                 id,
             });
-            mathRender(editableElement);
         } else {
             doOperation.push({
                 action: "insert",
@@ -241,34 +258,38 @@ export const enter = (blockElement: HTMLElement, range: Range, protyle: IProtyle
                 id: item.dataset.nodeId,
                 nextID: id,
             });
-            blockElement.insertAdjacentElement("beforebegin", item);
+            currentElement.insertAdjacentElement("afterend", item);
             undoOperation.push({
                 action: "delete",
                 id: item.dataset.nodeId,
             });
-            mathRender(item);
         }
+        mathRender(item);
+        currentElement = item;
     });
 
-    let previousElement = blockElement;
     Array.from(newElement.children).forEach((item: HTMLElement) => {
         const newId = item.getAttribute("data-node-id");
         doOperation.push({
             action: "insert",
             data: item.outerHTML,
             id: newId,
-            previousID: previousElement.getAttribute("data-node-id"),
+            previousID: currentElement.getAttribute("data-node-id"),
         });
         undoOperation.push({
             action: "delete",
             id: newId,
         });
-        previousElement.insertAdjacentElement("afterend", item);
-        mathRender(previousElement.nextElementSibling);
-        previousElement = item;
+        currentElement.insertAdjacentElement("afterend", item);
+        if (item.classList.contains("code-block")) {
+            highlightRender(item);
+        } else {
+            mathRender(currentElement.nextElementSibling);
+        }
+        currentElement = item;
     });
     transaction(protyle, doOperation, undoOperation);
-    focusBlock(blockElement.nextElementSibling);
+    focusBlock(currentElement);
     scrollCenter(protyle);
     return true;
 };
