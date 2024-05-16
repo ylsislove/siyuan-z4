@@ -119,6 +119,7 @@ func ExportAv2CSV(avID, blockID string) (zipPath string, err error) {
 		return
 	}
 
+	rowNum := 1
 	for _, row := range table.Rows {
 		var rowVal []string
 		for _, cell := range row.Cells {
@@ -140,15 +141,32 @@ func ExportAv2CSV(avID, blockID string) (zipPath string, err error) {
 					if nil != cell.Value.MAsset {
 						buf := &bytes.Buffer{}
 						for _, a := range cell.Value.MAsset {
-							buf.WriteString("![](")
-							buf.WriteString(a.Content)
-							buf.WriteString(") ")
+							if av.AssetTypeImage == a.Type {
+								buf.WriteString("![")
+								buf.WriteString(a.Name)
+								buf.WriteString("](")
+								buf.WriteString(a.Content)
+								buf.WriteString(") ")
+							} else if av.AssetTypeFile == a.Type {
+								buf.WriteString("[")
+								buf.WriteString(a.Name)
+								buf.WriteString("](")
+								buf.WriteString(a.Content)
+								buf.WriteString(") ")
+							} else {
+								buf.WriteString(a.Content)
+								buf.WriteString(" ")
+							}
 						}
 						val = strings.TrimSpace(buf.String())
 					}
+				} else if av.KeyTypeLineNumber == cell.Value.Type {
+					val = strconv.Itoa(rowNum)
 				}
 
-				val = cell.Value.String(true)
+				if "" == val {
+					val = cell.Value.String(true)
+				}
 			}
 
 			rowVal = append(rowVal, val)
@@ -158,6 +176,7 @@ func ExportAv2CSV(avID, blockID string) (zipPath string, err error) {
 			f.Close()
 			return
 		}
+		rowNum++
 	}
 	writer.Flush()
 
@@ -206,7 +225,7 @@ func Export2Liandi(id string) (err error) {
 	embedAssets := assetsLinkDestsInQueryEmbedNodes(tree)
 	assets = append(assets, embedAssets...)
 	assets = gulu.Str.RemoveDuplicatedElem(assets)
-	err = uploadAssets2Cloud(assets, bizTypeExport2Liandi)
+	_, err = uploadAssets2Cloud(assets, bizTypeExport2Liandi)
 	if nil != err {
 		return
 	}
@@ -526,6 +545,7 @@ func Preview(id string) (retStdHTML string, retOutline []*Path) {
 		Conf.Export.AddTitle)
 	luteEngine := NewLute()
 	luteEngine.SetFootnotes(true)
+	addBlockIALNodes(tree, false)
 	md := treenode.FormatNode(tree.Root, luteEngine)
 	tree = parse.Parse("", []byte(md), luteEngine.ParseOptions)
 	retStdHTML = luteEngine.ProtylePreview(tree, luteEngine.RenderOptions)
@@ -2301,6 +2321,8 @@ func exportTree(tree *parse.Tree, wysiwyg, expandKaTexMacros, keepFold bool,
 			cell.AppendChild(&ast.Node{Type: ast.NodeText, Tokens: []byte(col.Name)})
 			mdTableHeadRow.AppendChild(cell)
 		}
+
+		rowNum := 1
 		for _, row := range table.Rows {
 			mdTableRow := &ast.Node{Type: ast.NodeTableRow, TableAligns: aligns}
 			mdTable.AppendChild(mdTableRow)
@@ -2325,17 +2347,33 @@ func exportTree(tree *parse.Tree, wysiwyg, expandKaTexMacros, keepFold bool,
 						if nil != cell.Value.MAsset {
 							buf := &bytes.Buffer{}
 							for _, a := range cell.Value.MAsset {
-								buf.WriteString("![](")
-								buf.WriteString(a.Content)
-								buf.WriteString(") ")
+								if av.AssetTypeImage == a.Type {
+									buf.WriteString("![")
+									buf.WriteString(a.Name)
+									buf.WriteString("](")
+									buf.WriteString(a.Content)
+									buf.WriteString(") ")
+								} else if av.AssetTypeFile == a.Type {
+									buf.WriteString("[")
+									buf.WriteString(a.Name)
+									buf.WriteString("](")
+									buf.WriteString(a.Content)
+									buf.WriteString(") ")
+								} else {
+									buf.WriteString(a.Content)
+									buf.WriteString(" ")
+								}
 							}
 							val = strings.TrimSpace(buf.String())
-							mdTableCell.AppendChild(&ast.Node{Type: ast.NodeText, Tokens: []byte(val)})
-							continue
 						}
+					} else if av.KeyTypeLineNumber == cell.Value.Type {
+						val = strconv.Itoa(rowNum)
+						rowNum++
 					}
 
-					val = cell.Value.String(true)
+					if "" == val {
+						val = cell.Value.String(true)
+					}
 				}
 				mdTableCell.AppendChild(&ast.Node{Type: ast.NodeText, Tokens: []byte(val)})
 			}

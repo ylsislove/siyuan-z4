@@ -12,7 +12,7 @@ import {
     focusByWbr,
     focusSideBlock,
     getEditorRange,
-    getSelectionOffset,
+    getSelectionOffset, setFirstNodeRange,
     setLastNodeRange,
 } from "../util/selection";
 import {Constants} from "../../constants";
@@ -57,7 +57,7 @@ import {blockRender} from "../render/blockRender";
 /// #if !MOBILE
 import {getAllModels} from "../../layout/getAll";
 import {pushBack} from "../../util/backForward";
-import {openFileById, openLink} from "../../editor/util";
+import {openFileById} from "../../editor/util";
 import {openGlobalSearch} from "../../search/util";
 /// #else
 import {popSearch} from "../../mobile/menu/search";
@@ -90,6 +90,8 @@ import {
     updateCellsValue
 } from "../render/av/cell";
 import {openEmojiPanel, unicode2Emoji} from "../../emoji";
+import {openLink} from "../../editor/openLink";
+import {mathRender} from "../render/mathRender";
 
 export class WYSIWYG {
     public lastHTMLs: { [key: string]: string } = {};
@@ -226,6 +228,10 @@ export class WYSIWYG {
                     item.setCurrent(nodeElement);
                 }
             });
+        }
+        /// #else
+        if (protyle.disabled) {
+            protyle.toolbar.range = getEditorRange(nodeElement);
         }
         /// #endif
     }
@@ -1253,7 +1259,14 @@ export class WYSIWYG {
                         endBlockElement = hasClosestBlock(range.endContainer);
                     }
                     if (startBlockElement && endBlockElement && !endBlockElement.isSameNode(startBlockElement)) {
-                        range.collapse(true);
+                        if ((range.startContainer.nodeType === 1 && (range.startContainer as HTMLElement).tagName === "DIV" && (range.startContainer as HTMLElement).classList.contains("protyle-attr")) ||
+                            event.clientY > mouseUpEvent.clientY) {
+                            setFirstNodeRange(getContenteditableElement(endBlockElement), range);
+                        } else if (range.endOffset === 0 && range.endContainer.nodeType === 1 && (range.endContainer as HTMLElement).tagName === "DIV") {
+                            setLastNodeRange(getContenteditableElement(startBlockElement), range, false);
+                        } else {
+                            range.collapse(true);
+                        }
                     }
                 }
             };
@@ -1435,6 +1448,7 @@ export class WYSIWYG {
                         tempElement.append(range.extractContents());
                         nodeElement.outerHTML = protyle.lute.SpinBlockDOM(nodeElement.outerHTML);
                         nodeElement = protyle.wysiwyg.element.querySelector(`[data-node-id="${id}"]`) as HTMLElement;
+                        mathRender(nodeElement);
                         focusByWbr(nodeElement, range);
                     } else {
                         const inlineMathElement = hasClosestByAttribute(range.commonAncestorContainer, "data-type", "inline-math");
@@ -1745,6 +1759,10 @@ export class WYSIWYG {
         });
 
         this.element.addEventListener("paste", (event: ClipboardEvent & { target: HTMLElement }) => {
+            // https://github.com/siyuan-note/siyuan/issues/11241
+            if (event.target.localName === "input" && event.target.getAttribute("data-type") === "av-search") {
+                return;
+            }
             if (protyle.disabled) {
                 event.stopPropagation();
                 event.preventDefault();
@@ -2104,9 +2122,7 @@ export class WYSIWYG {
             if (fileElement && range.toString() === "") {
                 event.stopPropagation();
                 event.preventDefault();
-                const fileIds = fileElement.getAttribute("data-id").split("/");
-                const linkAddress = `assets/${fileIds[1]}`;
-                openLink(protyle, linkAddress, event, ctrlIsPressed);
+                openLink(protyle, fileElement.getAttribute("data-id"), event, ctrlIsPressed);
                 return;
             }
 

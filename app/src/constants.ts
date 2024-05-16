@@ -93,6 +93,7 @@ export abstract class Constants {
     public static readonly CB_GET_ROOTSCROLL = "cb-get-rootscroll"; // 如果为 rootID 就滚动到指定位置，必有 rootID
     public static readonly CB_GET_HTML = "cb-get-html"; // 直接渲染，不需要再 /api/block/getDocInfo，否则搜索表格无法定位
     public static readonly CB_GET_HISTORY = "cb-get-history"; // 历史渲染
+    public static readonly CB_GET_OPENNEW = "cb-get-opennew"; // 编辑器只读后新建文件需为临时解锁状态
 
     // localstorage
     public static readonly LOCAL_ZOOM = "local-zoom";
@@ -190,6 +191,7 @@ export abstract class Constants {
         en_US: "20210808180117-6v0mkxr",
         fr_FR: "20210808180117-6v0mkxr",
         es_ES: "20210808180117-6v0mkxr",
+        ja_JP: "20210808180117-6v0mkxr",
     };
     public static readonly QUICK_DECK_ID = "20230218211946-2kw8jgx";
 
@@ -399,6 +401,8 @@ export abstract class Constants {
                 insertBefore: {default: "⇧⌘B", custom: "⇧⌘B"},
                 insertAfter: {default: "⇧⌘A", custom: "⇧⌘A"},
                 jumpToParentNext: {default: "⇧⌘N", custom: "⇧⌘N"},
+                jumpToParentPrev: {default: "⇧⌘M", custom: "⇧⌘M"},
+                jumpToParent: {default: "⇧⌘J", custom: "⇧⌘J"},
                 moveToUp: {default: "⇧⌘↑", custom: "⇧⌘↑"},
                 moveToDown: {default: "⇧⌘↓", custom: "⇧⌘↓"}
             },

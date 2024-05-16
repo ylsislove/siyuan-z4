@@ -29,7 +29,25 @@ import (
 	"github.com/siyuan-note/siyuan/kernel/util"
 )
 
-func getParentNextChildID(c *gin.Context) {
+func getBlockTreeInfos(c *gin.Context) {
+	ret := gulu.Ret.NewResult()
+	defer c.JSON(http.StatusOK, ret)
+
+	arg, ok := util.JsonArg(c, ret)
+	if !ok {
+		return
+	}
+
+	var ids []string
+	idsArg := arg["ids"].([]interface{})
+	for _, id := range idsArg {
+		ids = append(ids, id.(string))
+	}
+
+	ret.Data = model.GetBlockTreeInfos(ids)
+}
+
+func getBlockSiblingID(c *gin.Context) {
 	ret := gulu.Ret.NewResult()
 	defer c.JSON(http.StatusOK, ret)
 
@@ -39,8 +57,11 @@ func getParentNextChildID(c *gin.Context) {
 	}
 
 	id := arg["id"].(string)
+	parent, previous, next := model.GetBlockSiblingID(id)
 	ret.Data = map[string]string{
-		"id": model.GetParentNextChildID(id),
+		"parent":   parent,
+		"next":     next,
+		"previous": previous,
 	}
 }
 
