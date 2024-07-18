@@ -33,15 +33,28 @@ RUN apk add --no-cache gcc musl-dev && \
     find /opt/siyuan/ -name .git | xargs rm -rf
 
 FROM alpine:latest
-LABEL maintainer="Liang Ding<845765@qq.com>"
+LABEL maintainer="wangyu<wangyu0814@foxmail.com>"
 
 WORKDIR /opt/siyuan/
 COPY --from=GO_BUILD /opt/siyuan/ /opt/siyuan/
-RUN addgroup --gid 1000 siyuan && adduser --uid 1000 --ingroup siyuan --disabled-password siyuan && apk add --no-cache ca-certificates tzdata && chown -R siyuan:siyuan /opt/siyuan/
+RUN \
+  apk add --no-cache \
+    ca-certificates \
+    tzdata && \
+  echo "**** cleanup ****" && \
+  rm -rf \
+      /root/.cache \
+      /tmp/* 
+
+# copy local files
+COPY root/ /
 
 ENV TZ=Asia/Shanghai
 ENV RUN_IN_CONTAINER=true
+ENV ACCESSAUTHCODE=
+ENV PUID=0
+ENV PGID=0
+VOLUME /siyuan/workspace/
 EXPOSE 6806
 
-USER siyuan
 ENTRYPOINT ["/opt/siyuan/kernel"]
